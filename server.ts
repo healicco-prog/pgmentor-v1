@@ -3108,10 +3108,18 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static(path.join(__dirname, "dist")));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "dist", "index.html"));
-    });
+    // In production, serve static files if dist/ exists (full-stack mode)
+    // On Cloud Run (backend-only), dist/ won't exist — that's fine
+    const distPath = path.join(__dirname, "dist");
+    const fs = await import("fs");
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        // Don't catch API routes or health check
+        if (req.path.startsWith("/api") || req.path === "/health") return;
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
   }
 
   app.listen(PORT, "0.0.0.0", () => {

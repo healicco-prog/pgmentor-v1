@@ -5,9 +5,10 @@ FROM node:20-slim AS base
 
 WORKDIR /app
 
-# Copy package files and install ALL deps (we need tsx to run server.ts)
+# Copy package files and install deps
+# We need tsx (devDep) to run server.ts, but NOT vite/react etc.
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev && npm install tsx
+RUN npm install --production express dotenv @supabase/supabase-js @google/genai resend tsx
 
 # Copy only backend-related files
 COPY server.ts ./

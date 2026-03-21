@@ -1,0 +1,17 @@
+node_modules
+dist
+.git
+.gitignore
+.env
+*.md
+src/
+public/
+index.html
+vite.config.ts
+postcss.config.js
+tailwind.config.*
+*.sql
+*.test.*
+check_*.js
+test-*.js
+.testsprite/

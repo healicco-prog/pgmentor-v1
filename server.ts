@@ -39,8 +39,50 @@ if (!resendApiKey) {
 async function startServer() {
   const app = express();
   const PORT = parseInt(process.env.PORT || '3000', 10);
+  const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
   app.use(express.json({ limit: '50mb' }));
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CORS — Only allow requests from the frontend domain in production
+  // ═══════════════════════════════════════════════════════════════════════════
+  const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+    : ['http://localhost:3000', 'http://localhost:3005', 'http://localhost:5173'];
+
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && ALLOWED_ORIGINS.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else if (!IS_PRODUCTION) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-API-Key');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    next();
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // API KEY PROTECTION — Block unauthorized direct access to backend
+  // ═══════════════════════════════════════════════════════════════════════════
+  const BACKEND_API_KEY = process.env.BACKEND_API_KEY;
+
+  if (IS_PRODUCTION && BACKEND_API_KEY) {
+    app.use('/api', (req, res, next) => {
+      const clientKey = req.headers['x-api-key'];
+      if (clientKey !== BACKEND_API_KEY) {
+        return res.status(403).json({ error: 'Forbidden: Invalid or missing API key.' });
+      }
+      next();
+    });
+    console.log('🔒 API Key protection enabled for /api/* routes.');
+  }
+
+  // Health check for Cloud Run
+  app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PASSWORD RESET OTP SYSTEM

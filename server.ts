@@ -604,14 +604,15 @@ async function startServer() {
       const authUser = authData?.users?.find((u: any) => u.email === email);
       if (!authUser) return res.status(404).json({ error: "User not found" });
       
+      // Use upsert to handle cases where user profile might not exist yet
       const { error } = await supabaseAdmin
         .from("user_profiles")
-        .update({ 
+        .upsert({ 
+          user_id: authUser.id,
           active_session_id: sessionId,
           device_id: deviceId || "unknown",
           last_login_at: new Date().toISOString()
-        })
-        .eq("user_id", authUser.id);
+        }, { onConflict: 'user_id' });
         
       if (error) return res.status(500).json({ error: error.message });
       res.json({ success: true });
@@ -628,7 +629,7 @@ async function startServer() {
       
       const { data: authData } = await supabaseAdmin.auth.admin.listUsers();
       const authUser = authData?.users?.find((u: any) => u.email === email);
-      if (!authUser) return res.json({ valid: false });
+      if (!authUser) return res.json({ valid: true }); // Can't verify → don't kick out
       
       const { data } = await supabaseAdmin
         .from("user_profiles")
@@ -636,11 +637,16 @@ async function startServer() {
         .eq("user_id", authUser.id)
         .single();
         
-      if (!data) return res.json({ valid: false });
+      if (!data) return res.json({ valid: true }); // No profile → don't kick out
       
+      // If no session is registered in DB, treat as valid (no competing session)
+      if (!data.active_session_id) return res.json({ valid: true });
+      
+      // Only invalidate when there's an EXPLICIT mismatch (another device registered a DIFFERENT session)
       res.json({ valid: data.active_session_id === sessionId });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      // On any error, don't kick the user out
+      res.json({ valid: true });
     }
   });
 

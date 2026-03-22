@@ -17055,19 +17055,23 @@ export default function App() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, sessionId })
         });
-        const data = await res.json();
-        if (data.valid === false) {
-          // Invalid session - another device took over!
-          clearInterval(interval);
-          await _supabase.auth.signOut();
-          localStorage.removeItem('medimentr_session_id');
-          alert('Your session has ended because your account was accessed from another device.');
-          window.location.href = '/';
+        // Only act on successful responses with explicit valid:false
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.valid === false) {
+            // Another device explicitly registered a DIFFERENT session
+            clearInterval(interval);
+            await _supabase.auth.signOut();
+            localStorage.removeItem('medimentr_session_id');
+            alert('Your session has ended because your account was accessed from another device.');
+            window.location.href = '/';
+          }
         }
+        // If response is not OK, silently ignore (don't kick user out)
       } catch (e) {
-        // Ignore network errors
+        // Ignore network errors — never kick user out due to connectivity issues
       }
-    }, 15000); // Check every 15 seconds
+    }, 30000); // Check every 30 seconds (reduced frequency to avoid false triggers)
 
     return () => clearInterval(interval);
   }, [authSession?.user?.email]);

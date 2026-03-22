@@ -15110,9 +15110,40 @@ const ControlPanelLogin = ({ onSuccess }: { onSuccess: (role: string) => void })
 };
 
 const ControlPanel = ({ onNavigate, curriculum, setCurriculum, blogPosts, setBlogPosts }: { onNavigate: (page: string) => void, curriculum: any, setCurriculum: any, blogPosts: any[], setBlogPosts: (posts: any[]) => void }) => {
-  // ── Control Panel Auth Gate ──────────────────────────────────────────
+  // ── ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS ──────────
   const [cpAuthed, setCpAuthed] = useState(false);
   const [cpRole, setCpRole] = useState('');
+  const [activeTab, setActiveTab] = useState('lms-notes');
+  const [activeGenTab, setActiveGenTab] = useState('lms-notes');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [lmsNotes, setLmsNotes] = useState(DEFAULT_LMS_STRUCTURE);
+  const [essayQuestions, setEssayQuestions] = useState(DEFAULT_ESSAY_STRUCTURE);
+  const [mcqQuestions, setMcqQuestions] = useState(DEFAULT_MCQ_STRUCTURE);
+  const [flashCards, setFlashCards] = useState(DEFAULT_FLASH_CARDS_STRUCTURE);
+  const [isBulkBlogModalOpen, setIsBulkBlogModalOpen] = useState(false);
+  const [blogModalData, setBlogModalData] = useState({ count: 1, categories: [] as string[] });
+  const [editingBlogIdx, setEditingBlogIdx] = useState<number | null>(null);
+  const [isCreatingBlog, setIsCreatingBlog] = useState(false);
+  const [blogForm, setBlogForm] = useState({ title: '', category: '', excerpt: '', content: '', hashtags: '', date: '', views: 0, imageSrc: '' });
+  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+  const [isBulkGenerating, setIsBulkGenerating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
+  const [selectedCourseId, setSelectedCourseId] = useState('c1');
+  const [selectedPaperId, setSelectedPaperId] = useState('');
+  const [selectedSectionId, setSelectedSectionId] = useState('');
+  const [newCourse, setNewCourse] = useState('');
+  const [newPaper, setNewPaper] = useState('');
+  const [newSection, setNewSection] = useState('');
+  const [newTopic, setNewTopic] = useState('');
+  const [genCourseId, setGenCourseId] = useState('c1');
+  const [genPaperId, setGenPaperId] = useState('p1');
+  const [genSectionId, setGenSectionId] = useState('s2');
+  const [selectedTopics, setSelectedTopics] = useState<string[]>(['t4']);
+  const [lmsCourseId, setLmsCourseId] = useState('c1');
+  const [lmsPaperId, setLmsPaperId] = useState('');
+  const [lmsSectionId, setLmsSectionId] = useState('');
 
   useEffect(() => {
     try {
@@ -15130,29 +15161,14 @@ const ControlPanel = ({ onNavigate, curriculum, setCurriculum, blogPosts, setBlo
     } catch {}
   }, []);
 
+  // ── Auth Gate (after all hooks) ─────────────────────────────────────
   if (!cpAuthed) {
     return <ControlPanelLogin onSuccess={(role) => { setCpAuthed(true); setCpRole(role); }} />;
   }
-  // ── End Auth Gate ────────────────────────────────────────────────────
-
-  const [activeTab, setActiveTab] = useState('lms-notes');
-  const [activeGenTab, setActiveGenTab] = useState('lms-notes');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [lmsNotes, setLmsNotes] = useState(DEFAULT_LMS_STRUCTURE);
-  const [essayQuestions, setEssayQuestions] = useState(DEFAULT_ESSAY_STRUCTURE);
-  const [mcqQuestions, setMcqQuestions] = useState(DEFAULT_MCQ_STRUCTURE);
-  const [flashCards, setFlashCards] = useState(DEFAULT_FLASH_CARDS_STRUCTURE);
+  // ── End Auth Gate ───────────────────────────────────────────────────
 
   const activeStructure = activeTab === 'essay-questions' ? essayQuestions : activeTab === 'mcq-questions' ? mcqQuestions : activeTab === 'flash-cards' ? flashCards : lmsNotes;
   const setActiveStructure = activeTab === 'essay-questions' ? setEssayQuestions : activeTab === 'mcq-questions' ? setMcqQuestions : activeTab === 'flash-cards' ? setFlashCards : setLmsNotes;
-  const [isBulkBlogModalOpen, setIsBulkBlogModalOpen] = useState(false);
-  const [blogModalData, setBlogModalData] = useState({ count: 1, categories: [] as string[] });
-
-  // Blog Article Editor State
-  const [editingBlogIdx, setEditingBlogIdx] = useState<number | null>(null); // index of post being edited, null = not editing
-  const [isCreatingBlog, setIsCreatingBlog] = useState(false); // true when creating a new article
-  const [blogForm, setBlogForm] = useState({ title: '', category: '', excerpt: '', content: '', hashtags: '', date: '', views: 0, imageSrc: '' });
-  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
 
   const openBlogEditor = (idx: number) => {
     const post = blogPosts[idx];
@@ -15344,8 +15360,6 @@ Write the article now:`;
   };
 
   // Bulk Blog AI Generation
-  const [isBulkGenerating, setIsBulkGenerating] = useState(false);
-  const [bulkProgress, setBulkProgress] = useState('');
   const handleBulkBlogGenerate = async () => {
     if (blogModalData.categories.length === 0) {
       alert('Please select at least one category.');
@@ -15464,32 +15478,6 @@ Return ONLY the JSON object, no extra text.`;
     }
   };
 
-  // Notes Editor Local State
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [editingContent, setEditingContent] = useState('');
-
-  // Curriculum Setup Local State
-  const [selectedCourseId, setSelectedCourseId] = useState('c1');
-  const [selectedPaperId, setSelectedPaperId] = useState('');
-  const [selectedSectionId, setSelectedSectionId] = useState('');
-
-  // Input states
-  const [newCourse, setNewCourse] = useState('');
-  const [newPaper, setNewPaper] = useState('');
-  const [newSection, setNewSection] = useState('');
-  const [newTopic, setNewTopic] = useState('');
-
-  // Generation Engine Local State
-  const [genCourseId, setGenCourseId] = useState('c1');
-  const [genPaperId, setGenPaperId] = useState('p1');
-  const [genSectionId, setGenSectionId] = useState('s2');
-  const [selectedTopics, setSelectedTopics] = useState<string[]>(['t4']);
-
-  // LMS Editor Local State
-  const [lmsCourseId, setLmsCourseId] = useState('c1');
-  const [lmsPaperId, setLmsPaperId] = useState('');
-  const [lmsSectionId, setLmsSectionId] = useState('');
-  
   // --- Computed Active Entities for Curriculum Setup ---
   const activeCourse = curriculum.find(c => c.id === selectedCourseId) || curriculum[0];
   const activePapers = activeCourse?.papers || [];

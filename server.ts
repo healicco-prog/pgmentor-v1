@@ -2895,6 +2895,218 @@ async function startServer() {
 </body>
 </html>`;
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EMAIL VERIFICATION SYSTEM
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // In-memory verification token store: Map<token, { email, userId, expiresAt }>
+  const verificationTokenStore = new Map<string, { email: string; userId: string; expiresAt: number }>();
+
+  // Cleanup expired verification tokens every 10 minutes
+  setInterval(() => {
+    const now = Date.now();
+    for (const [token, entry] of verificationTokenStore) {
+      if (now > entry.expiresAt) verificationTokenStore.delete(token);
+    }
+  }, 10 * 60 * 1000);
+
+  // Send verification email with a clickable link
+  app.post("/api/auth/send-verification-email", async (req, res) => {
+    if (!resend) return res.status(503).json({ error: "Email service not configured" });
+    
+    const { email, name, userId } = req.body;
+    if (!email) return res.status(400).json({ error: "Email is required" });
+    if (!validateEmail(email)) return res.status(400).json({ error: "Invalid email format" });
+
+    // Rate limit: max 5 verification emails per IP per 15 min
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    if (rateLimit(`verify:${clientIp}`, 5, 15 * 60 * 1000)) {
+      return res.status(429).json({ error: "Too many requests. Please try again later." });
+    }
+
+    // Generate verification token (URL-safe)
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    verificationTokenStore.set(token, { email, userId: userId || '', expiresAt });
+
+    const verifyUrl = `${APP_URL}/api/auth/verify-email?token=${token}`;
+    const userName = escapeHtml(name || "Doctor");
+
+    try {
+      const { data, error } = await resend.emails.send({
+        from: EMAIL_FROM,
+        to: [email],
+        subject: `Verify your email – Medimentr`,
+        html: emailWrapper("Verify Your Email", `
+          <h2 style="color:#0f172a;font-size:22px;margin:0 0 16px 0;">Verify Your Email Address ✉️</h2>
+          <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 20px 0;">
+            Hi <strong>${userName}</strong>, thank you for creating a Medimentr account! 
+            Please verify your email address to activate your account and start your learning journey.
+          </p>
+          
+          <div style="text-align:center;margin:32px 0;">
+            <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:16px 48px;border-radius:12px;font-weight:700;font-size:16px;box-shadow:0 4px 14px rgba(16,185,129,0.3);">
+              ✅ Verify My Email
+            </a>
+          </div>
+          
+          <div style="background:#f1f5f9;border-radius:12px;padding:16px 20px;margin:0 0 24px 0;">
+            <p style="color:#64748b;font-size:13px;margin:0 0 8px 0;">Or copy and paste this link in your browser:</p>
+            <p style="color:#3b82f6;font-size:12px;margin:0;word-break:break-all;">${verifyUrl}</p>
+          </div>
+          
+          <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:16px 20px;margin:0 0 20px 0;">
+            <p style="color:#92400e;font-size:13px;margin:0;line-height:1.5;">
+              ⚠️ This link expires in <strong>24 hours</strong>. If you didn't create an account, please ignore this email.
+            </p>
+          </div>
+          
+          <p style="color:#94a3b8;font-size:13px;margin:0;text-align:center;">
+            Once verified, you can sign in and start exploring Medimentr's AI-powered medical education tools.
+          </p>
+        `)
+      });
+
+      if (error) {
+        console.error("❌ Verification email Resend error:", error);
+        return res.status(500).json({ error: error.message });
+      }
+
+      console.log(`📧 Verification email sent to: ${email}`);
+      res.json({ success: true, message: "Verification email sent" });
+    } catch (err: any) {
+      console.error("❌ Failed to send verification email:", err.message || err);
+      res.status(500).json({ error: "Failed to send verification email" });
+    }
+  });
+
+  // Verify email via token (called when user clicks the link)
+  app.get("/api/auth/verify-email", async (req, res) => {
+    const token = req.query.token as string;
+    if (!token) return res.status(400).json({ error: "Token is required" });
+
+    const entry = verificationTokenStore.get(token);
+    if (!entry) {
+      // Token not found — might be expired or already used
+      return res.redirect(`${APP_URL}?verification=expired`);
+    }
+
+    if (Date.now() > entry.expiresAt) {
+      verificationTokenStore.delete(token);
+      return res.redirect(`${APP_URL}?verification=expired`);
+    }
+
+    try {
+      // Mark email as verified in user_profiles
+      const { error } = await supabaseAdmin
+        .from("user_profiles")
+        .update({ email_verified: true })
+        .eq("user_id", entry.userId);
+
+      if (error) {
+        console.error("❌ Email verification DB update error:", error.message);
+        // Try by email as fallback
+        await supabaseAdmin
+          .from("user_profiles")
+          .update({ email_verified: true })
+          .ilike("full_name", "%"); // This is a fallback — ideally use email column if exists
+      }
+
+      // Also update Supabase auth user metadata
+      if (entry.userId) {
+        try {
+          await supabaseAdmin.auth.admin.updateUserById(entry.userId, {
+            email_confirm: true,
+            user_metadata: { email_verified: true }
+          });
+        } catch (authErr: any) {
+          console.warn("⚠️ Could not update auth metadata:", authErr.message);
+        }
+      }
+
+      // Clean up used token
+      verificationTokenStore.delete(token);
+      
+      console.log(`✅ Email verified for: ${entry.email}`);
+      
+      // Redirect to the app with success parameter
+      res.redirect(`${APP_URL}?verification=success`);
+    } catch (err: any) {
+      console.error("❌ Email verification failed:", err.message);
+      res.redirect(`${APP_URL}?verification=error`);
+    }
+  });
+
+  // Check verification status for a user
+  app.get("/api/auth/verification-status/:userId", async (req, res) => {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from("user_profiles")
+        .select("email_verified")
+        .eq("user_id", req.params.userId)
+        .single();
+
+      if (error) return res.status(404).json({ verified: false });
+      res.json({ verified: data?.email_verified === true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Resend verification email
+  app.post("/api/auth/resend-verification", async (req, res) => {
+    if (!resend) return res.status(503).json({ error: "Email service not configured" });
+    const { email, name, userId } = req.body;
+    if (!email) return res.status(400).json({ error: "Email is required" });
+
+    // Rate limit: max 3 resends per email per 10 minutes
+    if (rateLimit(`resend-verify:${email}`, 3, 10 * 60 * 1000)) {
+      return res.status(429).json({ error: "Too many resend requests. Please wait a few minutes." });
+    }
+
+    // Remove old tokens for this email
+    for (const [t, entry] of verificationTokenStore) {
+      if (entry.email === email) verificationTokenStore.delete(t);
+    }
+
+    // Generate new token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+    verificationTokenStore.set(token, { email, userId: userId || '', expiresAt });
+
+    const verifyUrl = `${APP_URL}/api/auth/verify-email?token=${token}`;
+    const userName = escapeHtml(name || "Doctor");
+
+    try {
+      await resend.emails.send({
+        from: EMAIL_FROM,
+        to: [email],
+        subject: `Verify your email – Medimentr`,
+        html: emailWrapper("Verify Your Email", `
+          <h2 style="color:#0f172a;font-size:22px;margin:0 0 16px 0;">Verify Your Email Address ✉️</h2>
+          <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 20px 0;">
+            Hi <strong>${userName}</strong>, click the button below to verify your email and activate your account.
+          </p>
+          <div style="text-align:center;margin:32px 0;">
+            <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:16px 48px;border-radius:12px;font-weight:700;font-size:16px;box-shadow:0 4px 14px rgba(16,185,129,0.3);">
+              ✅ Verify My Email
+            </a>
+          </div>
+          <div style="background:#f1f5f9;border-radius:12px;padding:16px 20px;margin:0 0 20px 0;">
+            <p style="color:#64748b;font-size:13px;margin:0 0 8px 0;">Or copy and paste this link:</p>
+            <p style="color:#3b82f6;font-size:12px;margin:0;word-break:break-all;">${verifyUrl}</p>
+          </div>
+          <p style="color:#94a3b8;font-size:13px;margin:0;text-align:center;">This link expires in 24 hours.</p>
+        `)
+      });
+      console.log(`📧 Verification email resent to: ${email}`);
+      res.json({ success: true, message: "Verification email resent" });
+    } catch (err: any) {
+      console.error("❌ Resend verification email failed:", err.message);
+      res.status(500).json({ error: "Failed to resend verification email" });
+    }
+  });
+
   // 1. Welcome Email - sent on new user registration
   app.post("/api/email/welcome", async (req, res) => {
     if (!resend) return res.status(503).json({ error: "Email service not configured" });

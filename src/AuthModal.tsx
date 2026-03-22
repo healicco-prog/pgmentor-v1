@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import {
   Eye, EyeOff, X, Mail, Lock, User, Stethoscope,
   GraduationCap, ChevronRight, Loader2, CheckCircle, AlertCircle, Home,
-  KeyRound, ArrowLeft, ShieldCheck, BookOpen
+  KeyRound, ArrowLeft, ShieldCheck, BookOpen, MailCheck, RefreshCw
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -56,6 +56,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
   const [success, setSuccess] = useState('');
   const [step, setStep] = useState<1 | 2>(1); // signup has 2 steps
   const [showOverrideConfirm, setShowOverrideConfirm] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [verificationName, setVerificationName] = useState('');
+  const [verificationUserId, setVerificationUserId] = useState('');
+  const [resendingVerification, setResendingVerification] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Sign In fields
   const [email, setEmail] = useState('');
@@ -91,6 +97,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
           if (data.found) setRefReferrerId(data.referrer_user_id);
         })
         .catch((err) => { console.error('Referral lookup failed:', err); });
+    }
+
+    // Check for email verification result from URL params
+    const verification = params.get('verification');
+    if (verification === 'success') {
+      setSuccess('✅ Email verified successfully! You can now sign in.');
+      setMode('signin');
+      // Clean the URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (verification === 'expired') {
+      setError('Verification link has expired. Please request a new one.');
+      setMode('signin');
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (verification === 'error') {
+      setError('Email verification failed. Please try again.');
+      setMode('signin');
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
 
@@ -271,6 +294,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
       const { data: authData, error: err } = await supabase.auth.signInWithPassword({ email, password });
       if (err) { setError(err.message); setShowOverrideConfirm(false); return; }
 
+      // Step 2.5: Check email verification status
+      const userId = authData.user?.id;
+      if (userId) {
+        try {
+          const verifyRes = await fetch(`/api/auth/verification-status/${userId}`);
+          const verifyData = await verifyRes.json();
+          if (!verifyData.verified) {
+            // Email not verified — show verification screen
+            await supabase.auth.signOut(); // Sign them out
+            setVerificationEmail(email);
+            setVerificationName(authData.user?.user_metadata?.full_name || '');
+            setVerificationUserId(userId);
+            setVerificationSent(true);
+            setError('Please verify your email before signing in. Check your inbox for the verification link.');
+            setLoading(false);
+            return;
+          }
+        } catch (verifyErr) {
+          console.warn('Could not check verification status:', verifyErr);
+          // Allow sign-in if verification check fails (graceful degradation)
+        }
+      }
+
       // Step 3: Register the new session exclusively for this device
       const sessionId = crypto.randomUUID();
       localStorage.setItem('medimentr_session_id', sessionId);
@@ -310,6 +356,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
     setStep(2);
   };
 
+  // ── Resend verification email handler ────────────────────────────────────────
+  const handleResendVerification = async () => {
+    if (resendCooldown > 0) return;
+    setResendingVerification(true);
+    setError('');
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: verificationEmail, name: verificationName, userId: verificationUserId })
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Failed to resend verification email.'); return; }
+      setSuccess('Verification email resent! Please check your inbox.');
+      // Start 60s cooldown
+      setResendCooldown(60);
+      const timer = setInterval(() => {
+        setResendCooldown(prev => {
+          if (prev <= 1) { clearInterval(timer); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch {
+      setError('Failed to resend. Please try again.');
+    } finally {
+      setResendingVerification(false);
+    }
+  };
+
   // ── Sign Up step 2 → create account ────────────────────────────────────────
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -317,7 +392,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
     setError('');
     setLoading(true);
     try {
-      // 1. Create auth user
+      // 1. Create auth user (do NOT auto-confirm — require email verification)
       const { data, error: signUpErr } = await supabase.auth.signUp({
         email,
         password,
@@ -396,22 +471,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
           }).catch(err => console.error('Referral record failed:', err));
         }
 
-        // 6. Send welcome email (fire-and-forget, don't block sign-up)
-        fetch('/api/email/welcome', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: email, name: fullName })
-        }).catch(err => console.error('Welcome email failed:', err));
+        // 6. Send verification email (instead of welcome — verify first!)
+        try {
+          await fetch('/api/auth/send-verification-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, name: fullName, userId })
+          });
+        } catch (emailErr) {
+          console.error('Verification email failed:', emailErr);
+        }
+
+        // Sign out the user — they must verify email first
+        await supabase.auth.signOut();
       }
 
-      // Save course and user info to localStorage so dashboard/features pick it up immediately
+      // Save course to localStorage for later use
       if (selectedCourse) {
         localStorage.setItem('medimentr_selected_course', selectedCourse);
       }
-      localStorage.setItem('user', JSON.stringify({ email }));
 
-      setSuccess('Account created! Signing you in...');
-      setTimeout(onSuccess, 800);
+      // Show verification screen instead of auto sign-in
+      setVerificationEmail(email);
+      setVerificationName(fullName);
+      setVerificationUserId(userId || '');
+      setVerificationSent(true);
     } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {
@@ -446,6 +530,84 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
         </button>
 
         <div className="relative z-10 p-8">
+          {/* ── Email Verification Sent Screen ────────────────────────────── */}
+          {verificationSent ? (
+            <div className="text-center">
+              <div className="relative mx-auto w-20 h-20 mb-6">
+                <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping" />
+                <div className="relative w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                  <MailCheck size={36} className="text-white" />
+                </div>
+              </div>
+              
+              <h2 className="text-2xl font-bold text-white mb-2">Check Your Email</h2>
+              <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+                We've sent a verification link to<br />
+                <span className="text-emerald-400 font-semibold">{verificationEmail}</span>
+              </p>
+
+              <div className="bg-slate-800/60 border border-white/10 rounded-2xl p-5 mb-6 text-left">
+                <div className="flex items-start gap-3 mb-3">
+                  <Mail size={18} className="text-blue-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-slate-300 text-sm leading-relaxed">
+                    Click the <strong className="text-white">Verify My Email</strong> button in the email to activate your account.
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <ShieldCheck size={18} className="text-amber-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-slate-300 text-sm leading-relaxed">
+                    The link expires in <strong className="text-white">24 hours</strong>. Check your spam folder if you don't see it.
+                  </p>
+                </div>
+              </div>
+
+              {/* Error/Success messages */}
+              {error && (
+                <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5 mb-4">
+                  <AlertCircle size={16} className="text-red-400 flex-shrink-0" />
+                  <p className="text-red-400 text-sm">{error}</p>
+                </div>
+              )}
+              {success && (
+                <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2.5 mb-4">
+                  <CheckCircle size={16} className="text-emerald-400 flex-shrink-0" />
+                  <p className="text-emerald-400 text-sm">{success}</p>
+                </div>
+              )}
+
+              {/* Resend Button */}
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resendingVerification || resendCooldown > 0}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-800 border border-white/10 text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+              >
+                {resendingVerification ? (
+                  <><Loader2 size={16} className="animate-spin" /> Sending...</>
+                ) : resendCooldown > 0 ? (
+                  <><RefreshCw size={16} /> Resend in {resendCooldown}s</>
+                ) : (
+                  <><RefreshCw size={16} /> Resend Verification Email</>
+                )}
+              </button>
+
+              {/* Back to Sign In */}
+              <button
+                type="button"
+                onClick={() => {
+                  setVerificationSent(false);
+                  setError('');
+                  setSuccess('');
+                  switchMode('signin');
+                }}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-sm font-medium"
+              >
+                <ArrowLeft size={16} />
+                Back to Sign In
+              </button>
+            </div>
+          ) : (
+          <>
           {/* Logo + Header */}
           <div className="text-center mb-8">
             <img src="/logo.jpg" alt="MediMentr" className="w-14 h-14 rounded-2xl mx-auto mb-4 shadow-lg" />
@@ -896,6 +1058,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                 Return to Home Page
               </button>
             </div>
+          )}
+          </>
           )}
         </div>
       </motion.div>

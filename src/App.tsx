@@ -2057,12 +2057,17 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
   const removeSaved = async (id: string) => {
     try {
       const itemToDelete = savedItems.find(item => item.id === id);
+      let response: Response;
       if (itemToDelete?.featureId === 'essay-generator') {
-        await fetch(`/api/essay-generator/${id}`, { method: 'DELETE' });
+        response = await fetch(`/api/essay-generator/${id}`, { method: 'DELETE' });
       } else {
-        await fetch(`/api/saved/${id}`, { method: 'DELETE' });
+        response = await fetch(`/api/saved/${id}`, { method: 'DELETE' });
       }
-      setSavedItems(prev => prev.filter(item => item.id !== id));
+      if (response.ok) {
+        setSavedItems(prev => prev.filter(item => item.id !== id));
+      } else {
+        console.error('Delete failed with status:', response.status);
+      }
     } catch (error) {
       console.error('Error removing item:', error);
     }
@@ -2248,7 +2253,7 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
             applyCourselock(profile.selected_course);
           }
         })
-        .catch(() => {});
+        .catch((error) => { console.error('Error fetching user profile:', error); });
     }
   }, [curriculum]);
 
@@ -3569,7 +3574,7 @@ Return the response in JSON format with the following schema:
       setSimUploadTimeRemaining(600);
     }
     return () => clearInterval(interval);
-  }, [simExamActive, simTimeRemaining]);
+  }, [simExamActive]);
 
   useEffect(() => {
     let interval: any;
@@ -3585,7 +3590,7 @@ Return the response in JSON format with the following schema:
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [simUploadPhase, simUploadTimeRemaining, isEvaluatingSim, simEvaluationResult]);
+  }, [simUploadPhase, isEvaluatingSim, simEvaluationResult]);
 
   const handleSelectAnalyzerQuestion = async (q: any) => {
     setAnalyzerSelectedQuestion(q);

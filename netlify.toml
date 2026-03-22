@@ -15,7 +15,9 @@
   status = 200
   force = true
   [redirects.headers]
-    X-API-Key = "8c79db32a6134110a841b688b1f9bce7417b31448d57e43fb874970915c"
+    # SECURITY: Move this key to Netlify Environment Variables (Settings > Build > Environment)
+    # Set BACKEND_API_KEY in Netlify dashboard, then reference it here:
+    X-API-Key = "${BACKEND_API_KEY}"
 
 # ═══════════════════════════════════════════════════════════════
 # Blog OG Card Proxy — Route /blog/* to backend for SSR meta tags

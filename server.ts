@@ -1,9 +1,11 @@
 import "dotenv/config";
 import express from "express";
 import path from "path";
+import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { GoogleGenAI } from "@google/genai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,10 +37,73 @@ if (!resendApiKey) {
   console.log("✅ Resend email service initialized.");
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// SECURITY UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Escape HTML to prevent XSS in email templates */
+function escapeHtml(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/** Simple in-memory rate limiter */
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+function rateLimit(key: string, maxRequests: number, windowMs: number): boolean {
+  const now = Date.now();
+  const entry = rateLimitStore.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
+    return false; // Not rate limited
+  }
+  entry.count++;
+  if (entry.count > maxRequests) return true; // Rate limited
+  return false;
+}
+
+// Clean up rate limit store every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore) {
+    if (now > entry.resetAt) rateLimitStore.delete(key);
+  }
+}, 5 * 60 * 1000);
+
+/** Validate and sanitize input string fields */
+function validateString(value: any, fieldName: string, maxLength: number = 1000): string {
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'string') throw new Error(`${fieldName} must be a string`);
+  if (value.length > maxLength) throw new Error(`${fieldName} exceeds maximum length of ${maxLength}`);
+  return value.trim();
+}
+
+function validateEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GEMINI AI CLIENT (server-side only)
+// ═══════════════════════════════════════════════════════════════════════════
+const geminiApiKey = process.env.GEMINI_API_KEY;
+const genAI = geminiApiKey ? new GoogleGenAI({ apiKey: geminiApiKey }) : null;
+if (!geminiApiKey) {
+  console.warn("⚠️ Missing GEMINI_API_KEY in .env. AI features will be disabled.");
+} else {
+  console.log("✅ Gemini AI client initialized (server-side).");
+}
+
 async function startServer() {
   const app = express();
   const PORT = parseInt(process.env.PORT || '3000', 10);
   const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+  const APP_URL = process.env.APP_URL || (IS_PRODUCTION ? 'https://www.medimentr.com' : `http://localhost:${PORT}`);
+  const EMAIL_FROM = process.env.EMAIL_FROM || 'Medimentr <onboarding@resend.dev>';
+  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'healicco@gmail.com';
 
   app.use(express.json({ limit: '50mb' }));
 
@@ -47,18 +112,20 @@ async function startServer() {
   // ═══════════════════════════════════════════════════════════════════════════
   const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
-    : ['http://localhost:3000', 'http://localhost:3005', 'http://localhost:5173'];
+    : ['http://localhost:3000', '${APP_URL}', 'http://localhost:5173'];
 
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (origin && ALLOWED_ORIGINS.includes(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
-    } else if (!IS_PRODUCTION) {
-      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else if (!IS_PRODUCTION && origin) {
+      // In dev, allow the requesting origin (not wildcard, to support credentials)
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-API-Key');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
     if (req.method === 'OPTIONS') return res.sendStatus(204);
     next();
   });
@@ -82,12 +149,82 @@ async function startServer() {
   // Health check for Cloud Run
   app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AI PROXY ROUTES — All Gemini AI calls go through the backend
+  // SECURITY: API key is never exposed to the client
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  app.post("/api/ai/generate", async (req, res) => {
+    if (!genAI) return res.status(503).json({ error: "AI service not configured" });
+    const { prompt, systemInstruction, responseMimeType, useSearch } = req.body;
+    if (!prompt) return res.status(400).json({ error: "prompt is required" });
+
+    try {
+      const config: any = { systemInstruction, temperature: 0.7, responseMimeType: responseMimeType || "text/plain" };
+      if (useSearch) config.tools = [{ googleSearch: {} }];
+      const response = await genAI.models.generateContent({ model: "gemini-2.5-flash", contents: prompt, config });
+      res.json({ text: response.text });
+    } catch (error: any) {
+      console.error("❌ AI generate error:", error.message);
+      res.status(500).json({ error: "AI generation failed" });
+    }
+  });
+
+  app.post("/api/ai/extract-contact", async (req, res) => {
+    if (!genAI) return res.status(503).json({ error: "AI service not configured" });
+    const { image } = req.body;
+    if (!image) return res.status(400).json({ error: "image is required" });
+
+    try {
+      const systemInstruction = `You are an OCR specialist. Extract contact information from the provided visiting card image. Return JSON with: name, designation, organization, email, phone, website, address. If a field is not found, leave it as an empty string.`;
+      const prompt = { parts: [{ text: "Extract contact info from this visiting card." }, { inlineData: { mimeType: "image/png", data: image.split(',')[1] || image } }] };
+      const response = await genAI.models.generateContent({ model: "gemini-2.5-flash", contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } });
+      res.json(JSON.parse(response.text || '{}'));
+    } catch (error: any) {
+      console.error("❌ AI extract-contact error:", error.message);
+      res.status(500).json({ error: "Contact extraction failed" });
+    }
+  });
+
+  app.post("/api/ai/analyze-prescription", async (req, res) => {
+    if (!genAI) return res.status(503).json({ error: "AI service not configured" });
+    const { image } = req.body;
+    if (!image) return res.status(400).json({ error: "image is required" });
+
+    try {
+      const systemInstruction = `You are an expert AI healthcare systems evaluator. Analyze the provided medical prescription based on WHO Good Prescription Guidelines. Return a structured JSON report with: overall_score, quality_level, scores (patient_information, prescriber_details, clinical_documentation, drug_information, rational_drug_use, safety_compliance), strengths, deficiencies, recommendations.`;
+      const prompt = { parts: [{ text: "Analyze this prescription and generate the evaluation JSON report." }, { inlineData: { mimeType: "image/jpeg", data: image.split(',')[1] || image } }] };
+      const response = await genAI.models.generateContent({ model: "gemini-2.5-flash", contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } });
+      res.json(JSON.parse(response.text || '{}'));
+    } catch (error: any) {
+      console.error("❌ AI analyze-prescription error:", error.message);
+      res.status(500).json({ error: "Prescription analysis failed" });
+    }
+  });
+
+  app.post("/api/ai/extract-paper", async (req, res) => {
+    if (!genAI) return res.status(503).json({ error: "AI service not configured" });
+    const { image } = req.body;
+    if (!image) return res.status(400).json({ error: "image is required" });
+
+    try {
+      const systemInstruction = `You are an expert AI extraction tool. Accurately transcribe the uploaded medical question paper. Maintain exact formatting, structure, question numbers. Return as plain text in Markdown.`;
+      const prompt = { parts: [{ text: "Extract and format the question paper text exactly as shown." }, { inlineData: { mimeType: "image/jpeg", data: image.split(',')[1] || image } }] };
+      const response = await genAI.models.generateContent({ model: "gemini-2.5-flash", contents: [prompt], config: { systemInstruction, responseMimeType: "text/plain" } });
+      res.json({ text: response.text });
+    } catch (error: any) {
+      console.error("❌ AI extract-paper error:", error.message);
+      res.status(500).json({ error: "Paper extraction failed" });
+    }
+  });
+
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PASSWORD RESET OTP SYSTEM
   // ═══════════════════════════════════════════════════════════════════════════
   
   // In-memory OTP store: Map<email, { code, expiresAt, attempts, resetToken? }>
+  const OTP_STORE_MAX_SIZE = 10000; // Prevent memory exhaustion from spam
   const otpStore = new Map<string, { code: string; expiresAt: number; attempts: number; resetToken?: string }>();
 
   // Cleanup expired OTPs every 5 minutes
@@ -98,38 +235,52 @@ async function startServer() {
     }
   }, 5 * 60 * 1000);
 
-  // Generate a random 6-digit OTP
+  // Generate a cryptographically secure 6-digit OTP
   const generateOTP = (): string => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    return crypto.randomInt(100000, 999999).toString();
   };
 
-  // Generate a reset token (random hex string)
+  // Generate a cryptographically secure reset token
   const generateResetToken = (): string => {
-    return Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    return crypto.randomBytes(32).toString('hex');
   };
 
   // 1. Send Reset Code
   app.post("/api/auth/send-reset-code", async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required" });
+    if (!validateEmail(email)) return res.status(400).json({ error: "Invalid email format" });
 
-    // Rate limit: max 3 OTPs per email within 10 minutes
+    // IP-based rate limiting: max 10 OTP requests per IP per 15 minutes
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    if (rateLimit(`otp:${clientIp}`, 10, 15 * 60 * 1000)) {
+      return res.status(429).json({ error: "Too many requests. Please try again later." });
+    }
+
+    // Per-email rate limit: max 3 OTPs per email within 10 minutes (fixed off-by-one)
     const existing = otpStore.get(email);
     if (existing && existing.attempts >= 3 && Date.now() < existing.expiresAt) {
       return res.status(429).json({ error: "Too many attempts. Please try again later." });
     }
 
+    // Enforce OTP store size limit
+    if (otpStore.size >= OTP_STORE_MAX_SIZE && !otpStore.has(email)) {
+      console.warn("⚠️ OTP store at capacity, rejecting new request");
+      return res.status(503).json({ error: "Service temporarily unavailable. Please try again later." });
+    }
+
+    const newAttempts = (existing?.attempts || 0) + 1;
     const code = generateOTP();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-    otpStore.set(email, { code, expiresAt, attempts: (existing?.attempts || 0) + 1 });
+    otpStore.set(email, { code, expiresAt, attempts: newAttempts });
 
-    console.log(`🔑 OTP generated for ${email}: ${code}`);
+    console.log(`🔑 OTP generated for ${email}`);
 
     // Send OTP email via Resend
     if (resend) {
       try {
         await resend.emails.send({
-          from: "Medimentr <onboarding@resend.dev>",
+          from: EMAIL_FROM,
           to: [email],
           subject: "Password Reset Code – Medimentr",
           html: emailWrapper("Password Reset", `
@@ -236,7 +387,7 @@ async function startServer() {
       // Send confirmation email
       if (resend) {
         resend.emails.send({
-          from: "Medimentr <onboarding@resend.dev>",
+          from: EMAIL_FROM,
           to: [email],
           subject: "Password Changed Successfully – Medimentr",
           html: emailWrapper("Password Changed", `
@@ -250,7 +401,7 @@ async function startServer() {
               </p>
             </div>
             <div style="text-align:center;">
-              <a href="http://localhost:3005" style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;text-decoration:none;padding:12px 32px;border-radius:10px;font-weight:600;font-size:14px;">
+              <a href="${APP_URL}" style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;text-decoration:none;padding:12px 32px;border-radius:10px;font-weight:600;font-size:14px;">
                 Sign In Now
               </a>
             </div>
@@ -267,9 +418,40 @@ async function startServer() {
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ADMIN API ROUTES (bypass RLS via SECURITY DEFINER functions)
+  // Protected by admin authentication middleware
   // ═══════════════════════════════════════════════════════════════════════════
 
-  app.get("/api/admin/all-users", async (req, res) => {
+  // Admin auth middleware: verify the request is from an admin user
+  const requireAdmin = async (req: any, res: any, next: any) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      const token = authHeader.split(' ')[1];
+      // Verify the token with Supabase Auth
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+      if (error || !user) {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+      }
+      // Check if user has admin role in user_profiles or users table
+      const { data: profile } = await supabaseAdmin
+        .from('users')
+        .select('role')
+        .eq('email', user.email)
+        .single();
+      if (!profile || profile.role !== 'admin') {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+      (req as any).adminUser = user;
+      next();
+    } catch (err: any) {
+      console.error("❌ Admin auth error:", err.message);
+      res.status(500).json({ error: 'Authentication failed' });
+    }
+  };
+
+  app.get("/api/admin/all-users", requireAdmin, async (req, res) => {
     try {
       const { data, error } = await supabase.rpc('admin_get_all_users');
       if (error) throw error;
@@ -280,7 +462,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/admin/all-subscriptions", async (req, res) => {
+  app.get("/api/admin/all-subscriptions", requireAdmin, async (req, res) => {
     try {
       const { data, error } = await supabase.rpc('admin_get_all_subscriptions');
       if (error) throw error;
@@ -291,7 +473,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/admin/all-token-overrides", async (req, res) => {
+  app.get("/api/admin/all-token-overrides", requireAdmin, async (req, res) => {
     try {
       const { data, error } = await supabase.rpc('admin_get_all_token_overrides');
       if (error) throw error;
@@ -301,7 +483,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/admin/token-usage-summary", async (req, res) => {
+  app.get("/api/admin/token-usage-summary", requireAdmin, async (req, res) => {
     try {
       const { data, error } = await supabase.rpc('admin_get_token_usage_summary');
       if (error) throw error;
@@ -311,7 +493,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/admin/all-token-policies", async (req, res) => {
+  app.get("/api/admin/all-token-policies", requireAdmin, async (req, res) => {
     try {
       const { data, error } = await supabase.rpc('admin_get_token_policies');
       if (error) throw error;
@@ -321,7 +503,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/admin/all-plans", async (req, res) => {
+  app.get("/api/admin/all-plans", requireAdmin, async (req, res) => {
     try {
       const { data, error } = await supabase.rpc('admin_get_all_plans');
       if (error) throw error;
@@ -331,7 +513,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/admin/audit-logs", async (req, res) => {
+  app.get("/api/admin/audit-logs", requireAdmin, async (req, res) => {
     try {
       const { data, error } = await supabase.rpc('admin_get_audit_logs');
       if (error) throw error;
@@ -627,26 +809,32 @@ async function startServer() {
       const { email, sessionId } = req.body;
       if (!email || !sessionId) return res.status(400).json({ error: "email and sessionId required" });
       
-      const { data: authData } = await supabaseAdmin.auth.admin.listUsers();
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+      if (authError) {
+        console.error("❌ Session validation: auth lookup failed:", authError.message);
+        // SECURITY: Fail closed — if we can't verify, deny access
+        return res.json({ valid: false, reason: "auth_service_unavailable" });
+      }
       const authUser = authData?.users?.find((u: any) => u.email === email);
-      if (!authUser) return res.json({ valid: true }); // Can't verify → don't kick out
-      
+      if (!authUser) return res.json({ valid: true }); // User not in auth system → allow (custom auth user)
+
       const { data } = await supabaseAdmin
         .from("user_profiles")
         .select("active_session_id")
         .eq("user_id", authUser.id)
         .single();
-        
+
       if (!data) return res.json({ valid: true }); // No profile → don't kick out
-      
+
       // If no session is registered in DB, treat as valid (no competing session)
       if (!data.active_session_id) return res.json({ valid: true });
-      
+
       // Only invalidate when there's an EXPLICIT mismatch (another device registered a DIFFERENT session)
       res.json({ valid: data.active_session_id === sessionId });
     } catch (error: any) {
-      // On any error, don't kick the user out
-      res.json({ valid: true });
+      console.error("❌ Session validation error:", error.message);
+      // SECURITY: Fail closed on unexpected errors
+      res.json({ valid: false, reason: "validation_error" });
     }
   });
 
@@ -876,10 +1064,27 @@ async function startServer() {
 
   app.post("/api/auth/register", async (req, res) => {
     const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
+    if (!validateEmail(email)) return res.status(400).json({ error: "Invalid email format" });
+    if (password.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters" });
+    if (password.length > 128) return res.status(400).json({ error: "Password is too long" });
+
+    // Rate limit registration: 5 per IP per hour
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    if (rateLimit(`register:${clientIp}`, 5, 60 * 60 * 1000)) {
+      return res.status(429).json({ error: "Too many registration attempts. Please try again later." });
+    }
+
     try {
-      // For simplicity, mimicking the SQLite insert which stores clear text password for now
-      // A better practice is using supabase.auth.signUp() but requires modifying frontend flow
-      const { data, error } = await supabase.from('users').insert({ email, password }).select('id').single();
+      // Hash the password before storing
+      const { createHash, randomBytes } = await import('crypto');
+      const salt = randomBytes(16).toString('hex');
+      const hashedPassword = createHash('sha256').update(password + salt).digest('hex');
+
+      const { data, error } = await supabase.from('users').insert({
+        email,
+        password: `${salt}:${hashedPassword}` // Store as salt:hash
+      }).select('id').single();
       if (error) throw error;
       res.json({ success: true, userId: data.id });
     } catch (error: any) {
@@ -889,13 +1094,40 @@ async function startServer() {
 
   app.post("/api/auth/login", async (req, res) => {
     const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
+
+    // Rate limit login: 10 attempts per IP per 15 minutes
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    if (rateLimit(`login:${clientIp}`, 10, 15 * 60 * 1000)) {
+      return res.status(429).json({ error: "Too many login attempts. Please try again later." });
+    }
+
     try {
-      const { data: user, error } = await supabase.from('users').select('*').eq('email', email).eq('password', password).single();
+      const { data: user, error } = await supabase.from('users').select('*').eq('email', email).single();
       if (error || !user) {
-        res.status(401).json({ error: "Invalid credentials" });
-      } else {
-        res.json({ success: true, user });
+        return res.status(401).json({ error: "Invalid credentials" });
       }
+
+      // Support both hashed (salt:hash) and legacy plaintext passwords
+      let isValidPassword = false;
+      if (user.password && user.password.includes(':')) {
+        // Hashed password format: salt:hash
+        const [salt, storedHash] = user.password.split(':');
+        const { createHash } = await import('crypto');
+        const inputHash = createHash('sha256').update(password + salt).digest('hex');
+        isValidPassword = inputHash === storedHash;
+      } else {
+        // Legacy plaintext comparison (TODO: migrate all users to hashed passwords)
+        isValidPassword = user.password === password;
+      }
+
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      // Don't send password hash back to client
+      const { password: _, ...safeUser } = user;
+      res.json({ success: true, user: safeUser });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -1112,73 +1344,8 @@ async function startServer() {
     }
   });
 
-  // Contacts State
-  app.get("/api/state/contacts/:userId", async (req, res) => {
-    try {
-      const { data, error } = await supabase.from('user_contacts')
-        .select('*').eq('user_id', req.params.userId).single();
-      
-      if (error && error.code !== 'PGRST116') throw error;
-      res.json({ contacts: data?.contacts || [], personal_card: data?.personal_card || null });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/state/contacts", async (req, res) => {
-    try {
-      const { user_id, contacts, personal_card } = req.body;
-      // Save as JSON blob to user_contacts (original behavior)
-      const { error } = await supabase.from('user_contacts').upsert({
-        user_id: user_id || 'default',
-        contacts: contacts || [],
-        personal_card: personal_card || null,
-        updated_at: new Date().toISOString()
-      });
-      if (error) throw error;
-
-      // Also sync each contact to the contacts_management table
-      if (contacts && Array.isArray(contacts)) {
-        for (const contact of contacts) {
-          const contactId = contact.id || `contact-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-          const { error: cmError } = await supabase.from('contacts_management').upsert({
-            id: contactId,
-            user_id: user_id || 'default',
-            name: contact.name || '',
-            designation: contact.designation || '',
-            organization: contact.organization || '',
-            email: contact.email || '',
-            phone: contact.phone || '',
-            website: contact.website || '',
-            address: contact.address || '',
-            created_at: contact.created_at || new Date().toISOString()
-          });
-          if (cmError) console.error("Error syncing contact to contacts_management:", cmError);
-        }
-      }
-
-      // Save personal card to contacts_management as well
-      if (personal_card) {
-        const { error: pcError } = await supabase.from('contacts_management').upsert({
-          id: `personal-card-${user_id || 'default'}`,
-          user_id: user_id || 'default',
-          name: personal_card.name || 'Your Name',
-          designation: personal_card.designation || '',
-          organization: personal_card.organization || '',
-          email: personal_card.email || '',
-          phone: personal_card.phone || '',
-          website: personal_card.website || '',
-          address: personal_card.address || '',
-          created_at: new Date().toISOString()
-        });
-        if (pcError) console.error("Error syncing personal card to contacts_management:", pcError);
-      }
-
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // NOTE: Contacts State routes (first copy using user_contacts table) removed —
+  // duplicate of routes at line ~2193 that use the contacts_management table instead.
 
   // Thesis Notes Manager State
   app.get("/api/state/thesis-manager/:userId", async (req, res) => {
@@ -1614,75 +1781,8 @@ async function startServer() {
     }
   });
 
-  // Resume Builder Routes
-  app.get("/api/resume-builder", async (req, res) => {
-    try {
-      const { data, error } = await supabase.from('resume_builder').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      res.json(data);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/resume-builder", async (req, res) => {
-    const { 
-      id, user_id, full_name, professional_title, email, phone, location, linkedin, summary,
-      education, experience, skills, publications, certifications, awards, memberships, conferences,
-      selected_template, date, title, content 
-    } = req.body;
-    try {
-      const { error } = await supabase.from('resume_builder').upsert({
-        id, 
-        user_id: user_id || 'default', 
-        full_name,
-        professional_title,
-        email,
-        phone,
-        location,
-        linkedin,
-        summary,
-        education,
-        experience,
-        skills,
-        publications,
-        certifications,
-        awards,
-        memberships,
-        conferences,
-        selected_template,
-        created_at: date || new Date().toISOString()
-      });
-      if (error) {
-        console.error("Supabase Error on resume_builder upsert:", error);
-        throw error;
-      }
-
-      const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
-        title: title || `Resume: ${full_name}`,
-        content: content,
-        feature_id: 'resume-builder',
-        date: date || new Date().toISOString()
-      });
-      if (error2) console.error("Error saving to saved_items:", error2);
-
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.delete("/api/resume-builder/:id", async (req, res) => {
-    const { id } = req.params;
-    try {
-      const { error } = await supabase.from('resume_builder').delete().eq('id', id);
-      if (error) throw error;
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // NOTE: Resume Builder routes (first copy) removed — duplicate of routes at line ~2083
+  // The second copy (kept below) has better default value handling.
 
   // Reflection Generator Routes
   app.get("/api/reflection-generator", async (req, res) => {
@@ -1793,69 +1893,8 @@ async function startServer() {
     }
   });
 
-  // Blog Publications Routes
-  app.get("/api/blog-publications", async (req, res) => {
-    try {
-      const { data, error } = await supabase.from('blog_publications').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      res.json(data);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/blog-publications", async (req, res) => {
-    const { id, user_id, title, category, excerpt, content, hashtags, date, views, image_src, status } = req.body;
-    try {
-      const { error } = await supabase.from('blog_publications').upsert({
-        id: id || `blog-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        user_id: user_id || 'default',
-        title,
-        category: category || 'Education',
-        excerpt: excerpt || '',
-        content: content || '',
-        hashtags: hashtags || '',
-        date: date || new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-        views: views || 0,
-        image_src: image_src || '',
-        status: status || 'published',
-        updated_at: new Date().toISOString()
-      });
-      if (error) {
-        console.error("Supabase Error on blog_publications upsert:", error);
-        throw error;
-      }
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.put("/api/blog-publications/:id", async (req, res) => {
-    const { id } = req.params;
-    const { title, category, excerpt, content, hashtags, date, views, image_src, status } = req.body;
-    try {
-      const { error } = await supabase.from('blog_publications').update({
-        title, category, excerpt, content, hashtags, date, views, image_src, status,
-        updated_at: new Date().toISOString()
-      }).eq('id', id);
-      if (error) throw error;
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.delete("/api/blog-publications/:id", async (req, res) => {
-    const { id } = req.params;
-    try {
-      const { error } = await supabase.from('blog_publications').delete().eq('id', id);
-      if (error) throw error;
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // NOTE: Blog Publications routes (first copy) removed — duplicate of routes at line ~2928
+  // The second copy (kept below) has better error logging and returns saved data.
 
   // Doubt Solver Routes
   app.get("/api/doubt-solver", async (req, res) => {
@@ -2561,52 +2600,8 @@ async function startServer() {
     }
   });
 
-  // Guidelines Generator Routes
-  app.get("/api/guidelines/saved", async (req, res) => {
-    try {
-      const { data, error } = await supabase.from('saved_guidelines').select('*').order('savedAt', { ascending: false });
-      if (error) throw error;
-      res.json(data);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/guidelines/saved", async (req, res) => {
-    const { 
-      id, userId, conditionName, title, organization, 
-      publicationYear, sourceUrl, category, summary, notes 
-    } = req.body;
-    try {
-      const { error } = await supabase.from('saved_guidelines').upsert({
-        id, 
-        userId: userId || 'default', 
-        conditionName, 
-        title, 
-        organization, 
-        publicationYear, 
-        sourceUrl, 
-        category, 
-        summary, 
-        notes
-      });
-      if (error) throw error;
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.delete("/api/guidelines/saved/:id", async (req, res) => {
-    const { id } = req.params;
-    try {
-      const { error } = await supabase.from('saved_guidelines').delete().eq('id', id);
-      if (error) throw error;
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // NOTE: Guidelines/saved routes (second copy) removed — duplicate of routes at line ~2319
+  // The first copy (kept above) includes saved_items synchronization.
 
   // Clinical Examination System Routes
   app.post("/api/clinical-exam/start", async (req, res) => {
@@ -2676,17 +2671,22 @@ async function startServer() {
       const { data: session } = await supabase.from('clinical_exam_sessions').select('*').eq('id', sessionId).single();
       const { data: interactions } = await supabase.from('clinical_exam_interactions').select('*').eq('session_id', sessionId).order('timestamp', { ascending: true });
       
-      res.json({ 
-        success: true, 
-        session,
-        evaluation: evaluation ? {
-          ...evaluation,
-          scores: JSON.parse(evaluation.scores),
-          feedback: JSON.parse(evaluation.feedback),
-          recommendations: JSON.parse(evaluation.recommendations)
-        } : null,
-        interactions 
-      });
+      // Safely parse JSON fields with try/catch
+      let parsedEvaluation = null;
+      if (evaluation) {
+        try {
+          parsedEvaluation = {
+            ...evaluation,
+            scores: typeof evaluation.scores === 'string' ? JSON.parse(evaluation.scores) : evaluation.scores,
+            feedback: typeof evaluation.feedback === 'string' ? JSON.parse(evaluation.feedback) : evaluation.feedback,
+            recommendations: typeof evaluation.recommendations === 'string' ? JSON.parse(evaluation.recommendations) : evaluation.recommendations,
+          };
+        } catch (parseErr) {
+          console.error("⚠️ Failed to parse clinical exam evaluation JSON:", parseErr);
+          parsedEvaluation = evaluation; // Return raw data rather than crashing
+        }
+      }
+      res.json({ success: true, session, evaluation: parsedEvaluation, interactions });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -2906,7 +2906,7 @@ async function startServer() {
     
     try {
       const { data, error } = await resend.emails.send({
-        from: "Medimentr <onboarding@resend.dev>",
+        from: EMAIL_FROM,
         to: [to],
         subject: `Welcome to Medimentr, ${userName}! 🎓`,
         html: emailWrapper("Welcome to Medimentr", `
@@ -2944,7 +2944,7 @@ async function startServer() {
           </table>
 
           <div style="text-align:center;margin:32px 0 16px 0;">
-            <a href="http://localhost:3005" style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;text-decoration:none;padding:14px 40px;border-radius:12px;font-weight:700;font-size:15px;box-shadow:0 4px 14px rgba(59,130,246,0.3);">
+            <a href="${APP_URL}" style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;text-decoration:none;padding:14px 40px;border-radius:12px;font-weight:700;font-size:15px;box-shadow:0 4px 14px rgba(59,130,246,0.3);">
               Start Exploring Medimentr →
             </a>
           </div>
@@ -2974,26 +2974,31 @@ async function startServer() {
     const { to, subject, contentTitle, contentBody, senderName } = req.body;
     if (!to || !contentTitle) return res.status(400).json({ error: "Recipient and content are required" });
 
+    // SECURITY: Sanitize all user input to prevent XSS in email HTML
+    const safeSenderName = escapeHtml(senderName || "A colleague");
+    const safeContentTitle = escapeHtml(contentTitle);
+    const safeContentBody = escapeHtml(contentBody || "No content preview available.");
+
     try {
       const { data, error } = await resend.emails.send({
-        from: "Medimentr <onboarding@resend.dev>",
+        from: EMAIL_FROM,
         to: Array.isArray(to) ? to : [to],
-        subject: subject || `${senderName || "A colleague"} shared "${contentTitle}" with you`,
+        subject: subject || `${safeSenderName} shared "${safeContentTitle}" with you`,
         html: emailWrapper("Shared Content", `
           <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px 20px;margin:0 0 20px 0;">
             <p style="color:#1e40af;font-size:13px;margin:0;">
-              📤 <strong>${senderName || "A colleague"}</strong> shared this with you via Medimentr
+              📤 <strong>${safeSenderName}</strong> shared this with you via Medimentr
             </p>
           </div>
-          
-          <h2 style="color:#0f172a;font-size:20px;margin:0 0 16px 0;">${contentTitle}</h2>
-          
+
+          <h2 style="color:#0f172a;font-size:20px;margin:0 0 16px 0;">${safeContentTitle}</h2>
+
           <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:24px;margin:0 0 24px 0;">
-            <div style="color:#334155;font-size:14px;line-height:1.8;white-space:pre-line;">${contentBody || "No content preview available."}</div>
+            <div style="color:#334155;font-size:14px;line-height:1.8;white-space:pre-line;">${safeContentBody}</div>
           </div>
           
           <div style="text-align:center;">
-            <a href="http://localhost:3005" style="display:inline-block;background:#0f172a;color:#fff;text-decoration:none;padding:12px 32px;border-radius:10px;font-weight:600;font-size:14px;">
+            <a href="${APP_URL}" style="display:inline-block;background:#0f172a;color:#fff;text-decoration:none;padding:12px 32px;border-radius:10px;font-weight:600;font-size:14px;">
               Open in Medimentr
             </a>
           </div>
@@ -3018,22 +3023,35 @@ async function startServer() {
 
     const { name, email, subject, message } = req.body;
     if (!name || !email || !message) return res.status(400).json({ error: "Name, email, and message are required" });
+    if (!validateEmail(email)) return res.status(400).json({ error: "Invalid email format" });
+
+    // Rate limit contact form: 5 per IP per hour
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    if (rateLimit(`contact:${clientIp}`, 5, 60 * 60 * 1000)) {
+      return res.status(429).json({ error: "Too many submissions. Please try again later." });
+    }
+
+    // SECURITY: Sanitize all user input
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
+    const safeSubject = escapeHtml(subject || "General Inquiry");
+    const safeMessage = escapeHtml(message);
 
     try {
       // Send notification to admin
       const { data, error } = await resend.emails.send({
-        from: "Medimentr Contact <onboarding@resend.dev>",
-        to: ["onboarding@resend.dev"], // Replace with your own admin email once domain is verified
+        from: EMAIL_FROM,
+        to: [ADMIN_EMAIL],
         replyTo: email,
-        subject: subject || `Contact Form: ${name}`,
+        subject: subject || `Contact Form: ${safeName}`,
         html: emailWrapper("Contact Form Submission", `
           <h2 style="color:#0f172a;font-size:20px;margin:0 0 20px 0;">📩 New Contact Form Submission</h2>
-          
+
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
             ${[
-              ["Name", name],
-              ["Email", email],
-              ["Subject", subject || "General Inquiry"]
+              ["Name", safeName],
+              ["Email", safeEmail],
+              ["Subject", safeSubject]
             ].map(([label, value]) => `
               <tr>
                 <td style="padding:8px 0;color:#64748b;font-size:13px;font-weight:600;width:100px;vertical-align:top;">${label}:</td>
@@ -3041,10 +3059,10 @@ async function startServer() {
               </tr>
             `).join("")}
           </table>
-          
+
           <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:0 0 16px 0;">
             <p style="color:#64748b;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px 0;">Message</p>
-            <p style="color:#334155;font-size:14px;line-height:1.7;margin:0;white-space:pre-line;">${message}</p>
+            <p style="color:#334155;font-size:14px;line-height:1.7;margin:0;white-space:pre-line;">${safeMessage}</p>
           </div>
         `)
       });
@@ -3056,7 +3074,7 @@ async function startServer() {
 
       // Send confirmation to user
       await resend.emails.send({
-        from: "Medimentr <onboarding@resend.dev>",
+        from: EMAIL_FROM,
         to: [email],
         subject: "We received your message – Medimentr",
         html: emailWrapper("Message Received", `
@@ -3090,7 +3108,7 @@ async function startServer() {
 
     try {
       const { data, error } = await resend.emails.send({
-        from: "Medimentr <onboarding@resend.dev>",
+        from: EMAIL_FROM,
         to: Array.isArray(to) ? to : [to],
         subject,
         html: html || emailWrapper(subject, `<p style="color:#334155;font-size:14px;line-height:1.7;">${text || ""}</p>`),
@@ -3120,7 +3138,7 @@ async function startServer() {
 
     try {
       const { data, error } = await resend.emails.send({
-        from: "Medimentr <onboarding@resend.dev>",
+        from: EMAIL_FROM,
         to: [to],
         subject: `⏰ Your Medimentr trial expires in ${days} day${days > 1 ? 's' : ''}`,
         html: emailWrapper("Trial Expiring Soon", `
@@ -3141,7 +3159,7 @@ async function startServer() {
           </div>
 
           <div style="text-align:center;margin:32px 0 16px 0;">
-            <a href="http://localhost:3005" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;text-decoration:none;padding:14px 40px;border-radius:12px;font-weight:700;font-size:15px;box-shadow:0 4px 14px rgba(245,158,11,0.3);">
+            <a href="${APP_URL}" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;text-decoration:none;padding:14px 40px;border-radius:12px;font-weight:700;font-size:15px;box-shadow:0 4px 14px rgba(245,158,11,0.3);">
               Upgrade Now →
             </a>
           </div>

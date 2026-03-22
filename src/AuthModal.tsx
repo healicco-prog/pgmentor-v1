@@ -23,8 +23,7 @@ interface AuthModalProps {
 
 // ─── Field config ─────────────────────────────────────────────────────────────
 const PROFESSION_OPTIONS = [
-  'MBBS Doctor', 'MD/MS Resident', 'DM/MCh Fellow', 'Nursing', 'Pharmacy',
-  'Physiotherapy', 'Dentistry', 'Ayurveda / BAMS', 'Medical Student', 'Other'
+  'Post Graduate Resident', 'Practicing Doctor', 'Other'
 ];
 
 const SPECIALTY_OPTIONS = [

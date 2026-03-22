@@ -12,16 +12,18 @@ export const generateMedicalContent = async (
   prompt: string | any[],
   systemInstruction: string,
   responseMimeType: string = "text/plain",
-  useSearch: boolean = false
+  useSearch: boolean = false,
+  userRole?: string
 ) => {
   try {
     const response = await fetch(`${AI_PROXY_BASE}/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, systemInstruction, responseMimeType, useSearch }),
+      body: JSON.stringify({ prompt, systemInstruction, responseMimeType, useSearch, userRole }),
     });
     if (!response.ok) {
       const errData = await response.json().catch(() => ({ error: 'AI request failed' }));
+      console.error("AI Service Error Detail:", errData.error);
       throw new Error(errData.error || `AI request failed with status ${response.status}`);
     }
     const data = await response.json();

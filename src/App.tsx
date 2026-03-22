@@ -15281,7 +15281,7 @@ Return ONLY valid JSON, no markdown code fences.`;
       const systemInstruction = 'You are a senior medical education content writer and SEO specialist. Write authoritative, well-researched articles targeting postgraduate medical students. Always return valid JSON only, without code fences or markdown wrapping.';
       
       console.log('[Blog AI] Starting content generation for:', blogForm.title);
-      const result = await generateMedicalContent(prompt, systemInstruction, 'application/json');
+      const result = await generateMedicalContent(prompt, systemInstruction, 'application/json', false, cpRole);
       console.log('[Blog AI] Raw result:', typeof result, result ? result.substring(0, 200) : 'null/undefined');
       
       if (!result || result.trim().length === 0) {
@@ -15325,7 +15325,7 @@ Write the article directly in Markdown. Include:
 
 Write the article now:`;
         
-        const fallbackResult = await generateMedicalContent(fallbackPrompt, 'You are a senior medical education content writer. Write the article in Markdown format.', 'text/plain');
+        const fallbackResult = await generateMedicalContent(fallbackPrompt, 'You are a senior medical education content writer. Write the article in Markdown format.', 'text/plain', false, cpRole);
         
         if (fallbackResult && fallbackResult.trim().length > 100) {
           console.log('[Blog AI] Fallback succeeded, content length:', fallbackResult.length);
@@ -15466,7 +15466,7 @@ Return a JSON object with fields: title, category, excerpt, content, hashtags, d
 Return ONLY the JSON object, no extra text.`;
 
           const systemInstruction = 'You are a senior medical education content writer and SEO specialist. Write authoritative, well-researched articles targeting postgraduate medical students. The article must be 800-1200 words with proper Markdown formatting. Always return valid JSON.';
-          const result = await generateMedicalContent(prompt, systemInstruction, 'application/json');
+          const result = await generateMedicalContent(prompt, systemInstruction, 'application/json', false, cpRole);
           
           // Clean and parse JSON response
           let cleanedResult = (result || '').trim();
@@ -15685,7 +15685,7 @@ Return ONLY the JSON object, no extra text.`;
           Back (Answer): [Concise answer]`;
         }
 
-        const content = await generateMedicalContent(prompt, "You are an expert medical professor and author generating authoritative clinical content for a Learning Management System.", "text/plain", false);
+        const content = await generateMedicalContent(prompt, "You are an expert medical professor and author generating authoritative clinical content for a Learning Management System.", "text/plain", false, cpRole);
         
         // Use the captured currentTab to write to the CORRECT content field
         for (const c of updatedCurriculum) {

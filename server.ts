@@ -97,6 +97,18 @@ if (!geminiApiKey) {
   console.log("✅ Gemini AI client initialized (server-side).");
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// TIERED AI MODEL SELECTION
+// Super Admin → gemini-3.1-pro-preview (highest quality)
+// Public users / others → gemini-2.5-flash (fast, cost-efficient)
+// ═══════════════════════════════════════════════════════════════════════════
+function selectAIModel(userRole?: string): string {
+  if (userRole === 'Super Admin') {
+    return 'gemini-3.1-pro-preview';
+  }
+  return 'gemini-2.5-flash';
+}
+
 async function startServer() {
   const app = express();
   const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -156,17 +168,20 @@ async function startServer() {
 
   app.post("/api/ai/generate", async (req, res) => {
     if (!genAI) return res.status(503).json({ error: "AI service not configured" });
-    const { prompt, systemInstruction, responseMimeType, useSearch } = req.body;
+    const { prompt, systemInstruction, responseMimeType, useSearch, userRole } = req.body;
     if (!prompt) return res.status(400).json({ error: "prompt is required" });
+
+    const model = selectAIModel(userRole);
+    console.log(`🤖 AI generate request — model: ${model} (role: ${userRole || 'public'})`);
 
     try {
       const config: any = { systemInstruction, temperature: 0.7, responseMimeType: responseMimeType || "text/plain" };
       if (useSearch) config.tools = [{ googleSearch: {} }];
-      const response = await genAI.models.generateContent({ model: "gemini-2.5-flash", contents: prompt, config });
+      const response = await genAI.models.generateContent({ model, contents: prompt, config });
       res.json({ text: response.text });
     } catch (error: any) {
-      console.error("❌ AI generate error:", error.message);
-      res.status(500).json({ error: "AI generation failed" });
+      console.error(`❌ AI generate error (model: ${model}):`, error.message, error.stack?.slice(0, 500));
+      res.status(500).json({ error: `AI generation failed: ${error.message}` });
     }
   });
 
@@ -178,7 +193,7 @@ async function startServer() {
     try {
       const systemInstruction = `You are an OCR specialist. Extract contact information from the provided visiting card image. Return JSON with: name, designation, organization, email, phone, website, address. If a field is not found, leave it as an empty string.`;
       const prompt = { parts: [{ text: "Extract contact info from this visiting card." }, { inlineData: { mimeType: "image/png", data: image.split(',')[1] || image } }] };
-      const response = await genAI.models.generateContent({ model: "gemini-2.5-flash", contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } });
+      const response = await genAI.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } });
       res.json(JSON.parse(response.text || '{}'));
     } catch (error: any) {
       console.error("❌ AI extract-contact error:", error.message);
@@ -194,7 +209,7 @@ async function startServer() {
     try {
       const systemInstruction = `You are an expert AI healthcare systems evaluator. Analyze the provided medical prescription based on WHO Good Prescription Guidelines. Return a structured JSON report with: overall_score, quality_level, scores (patient_information, prescriber_details, clinical_documentation, drug_information, rational_drug_use, safety_compliance), strengths, deficiencies, recommendations.`;
       const prompt = { parts: [{ text: "Analyze this prescription and generate the evaluation JSON report." }, { inlineData: { mimeType: "image/jpeg", data: image.split(',')[1] || image } }] };
-      const response = await genAI.models.generateContent({ model: "gemini-2.5-flash", contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } });
+      const response = await genAI.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } });
       res.json(JSON.parse(response.text || '{}'));
     } catch (error: any) {
       console.error("❌ AI analyze-prescription error:", error.message);
@@ -210,7 +225,7 @@ async function startServer() {
     try {
       const systemInstruction = `You are an expert AI extraction tool. Accurately transcribe the uploaded medical question paper. Maintain exact formatting, structure, question numbers. Return as plain text in Markdown.`;
       const prompt = { parts: [{ text: "Extract and format the question paper text exactly as shown." }, { inlineData: { mimeType: "image/jpeg", data: image.split(',')[1] || image } }] };
-      const response = await genAI.models.generateContent({ model: "gemini-2.5-flash", contents: [prompt], config: { systemInstruction, responseMimeType: "text/plain" } });
+      const response = await genAI.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "text/plain" } });
       res.json({ text: response.text });
     } catch (error: any) {
       console.error("❌ AI extract-paper error:", error.message);

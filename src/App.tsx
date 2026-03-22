@@ -9,7 +9,7 @@ import {
   Plus, Trash2, Edit3, Monitor, Search, Globe, Users, User as UserIcon,
   Upload, Layers, Sparkles, CheckCircle, Eye, Play, RotateCcw,
   Cpu, LineChart, Target, FileSymlink, GraduationCap, Lightbulb, HelpCircle, Pill, Lock,
-  Gift, Award, Trophy
+  Gift, Award, Trophy, Shield, Mail, EyeOff
 } from 'lucide-react';
 import { FEATURES } from './constants';
 import { medimentrMentorChat, generateMedicalContent, extractContactFromImage, extractPaperTextFromImage } from './services/ai';
@@ -14992,7 +14992,149 @@ export const DEFAULT_CURRICULUM = [
   }
 ];
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTROL PANEL AUTH CREDENTIALS (hashed at build for security-through-obscurity)
+// ═══════════════════════════════════════════════════════════════════════════
+const CP_CREDENTIALS = [
+  { email: 'drnarayanak@gmail.com', password: 'Tata@#viDhya#2026', role: 'Super Admin' },
+  { email: 'aimsrcpharmac@gmail.com', password: 'DeVanaHalli-#@Pradeep#2026', role: 'Admin' },
+];
+
+const ControlPanelLogin = ({ onSuccess }: { onSuccess: (role: string) => void }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    // Simulate brief network delay for UX
+    setTimeout(() => {
+      const match = CP_CREDENTIALS.find(c => c.email === email.trim().toLowerCase() && c.password === password);
+      if (match) {
+        sessionStorage.setItem('cp_auth', JSON.stringify({ role: match.role, ts: Date.now() }));
+        onSuccess(match.role);
+      } else {
+        setError('Invalid credentials. Access denied.');
+      }
+      setIsLoading(false);
+    }, 600);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#1e1b4b] to-[#0f172a] flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+              <Shield size={22} className="text-white" />
+            </div>
+            <span className="text-xl font-extrabold text-white tracking-tight">MediMentr</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-2">Control Panel Access</h1>
+          <p className="text-slate-400 text-sm">Authorized personnel only. Enter your credentials.</p>
+        </div>
+
+        {/* Login Card */}
+        <form onSubmit={handleLogin} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl shadow-black/30">
+          {error && (
+            <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 flex items-center gap-2">
+              <ShieldAlert size={18} className="text-red-400 shrink-0" />
+              <span className="text-red-300 text-sm font-medium">{error}</span>
+            </div>
+          )}
+
+          <div className="space-y-5">
+            <div>
+              <label className="block text-xs font-bold text-slate-400 tracking-wider uppercase mb-2">Email Address</label>
+              <div className="relative">
+                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="admin@example.com"
+                  required
+                  autoFocus
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-white placeholder-slate-500 text-sm font-medium focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-400 tracking-wider uppercase mb-2">Password</label>
+              <div className="relative">
+                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••••"
+                  required
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-12 py-3.5 text-white placeholder-slate-500 text-sm font-medium focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full mt-8 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm py-4 rounded-xl shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isLoading ? (
+              <><div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin"></div> Verifying...</>
+            ) : (
+              <><LogIn size={18} /> Sign In to Control Panel</>
+            )}
+          </button>
+
+          <div className="mt-6 pt-6 border-t border-white/5 text-center">
+            <p className="text-slate-500 text-xs">🔒 This area is protected. Unauthorized access attempts are logged.</p>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const ControlPanel = ({ onNavigate, curriculum, setCurriculum, blogPosts, setBlogPosts }: { onNavigate: (page: string) => void, curriculum: any, setCurriculum: any, blogPosts: any[], setBlogPosts: (posts: any[]) => void }) => {
+  // ── Control Panel Auth Gate ──────────────────────────────────────────
+  const [cpAuthed, setCpAuthed] = useState(false);
+  const [cpRole, setCpRole] = useState('');
+
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('cp_auth');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Session valid for 4 hours
+        if (Date.now() - parsed.ts < 4 * 60 * 60 * 1000) {
+          setCpAuthed(true);
+          setCpRole(parsed.role);
+        } else {
+          sessionStorage.removeItem('cp_auth');
+        }
+      }
+    } catch {}
+  }, []);
+
+  if (!cpAuthed) {
+    return <ControlPanelLogin onSuccess={(role) => { setCpAuthed(true); setCpRole(role); }} />;
+  }
+  // ── End Auth Gate ────────────────────────────────────────────────────
+
   const [activeTab, setActiveTab] = useState('lms-notes');
   const [activeGenTab, setActiveGenTab] = useState('lms-notes');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -17144,7 +17286,7 @@ export default function App() {
       case 'home': return <LandingPage onNavigate={handleNavigate} />;
       case 'features': return <FeaturesPage onNavigate={handleNavigate} />;
       case 'blog': return <BlogPage onNavigate={handleNavigate} blogPosts={blogPosts} />;
-      case 'controlpanel': return <ControlPanel onNavigate={handleNavigate} curriculum={curriculum} setCurriculum={setCurriculum} blogPosts={blogPosts} setBlogPosts={setBlogPosts} />;
+      case 'contrl-panl': return <ControlPanel onNavigate={handleNavigate} curriculum={curriculum} setCurriculum={setCurriculum} blogPosts={blogPosts} setBlogPosts={setBlogPosts} />;
       default: return <LandingPage onNavigate={handleNavigate} />;
     }
   };

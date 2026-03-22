@@ -2,26 +2,41 @@
   command = "npm run build"
   publish = "dist"
 
-# Redirect all /api/* requests to the Cloud Run backend
-# The API key is injected server-side via custom headers
+[build.environment]
+  NODE_VERSION = "20"
+
+# ═══════════════════════════════════════════════════════════════
+# API Proxy — Route /api/* requests to Cloud Run backend
+# The X-API-Key header is injected server-side (not visible to browsers)
+# ═══════════════════════════════════════════════════════════════
 [[redirects]]
   from = "/api/*"
-  to = "https://CLOUD_RUN_BACKEND_URL/api/:splat"
+  to = "https://medimentr-backend-668524975962.asia-south1.run.app/api/:splat"
   status = 200
   force = true
   [redirects.headers]
-    X-API-Key = "BACKEND_API_KEY_VALUE"
+    X-API-Key = "8c79db32a6134110a841b688b1f9bce7417b31448d57e43fb874970915c"
 
-# SPA fallback — serve index.html for all non-file routes
+# ═══════════════════════════════════════════════════════════════
+# Blog OG Card Proxy — Route /blog/* to backend for SSR meta tags
+# ═══════════════════════════════════════════════════════════════
+[[redirects]]
+  from = "/blog/*"
+  to = "https://medimentr-backend-668524975962.asia-south1.run.app/blog/:splat"
+  status = 200
+  force = true
+
+# ═══════════════════════════════════════════════════════════════
+# SPA Fallback — Serve index.html for all non-file routes
+# ═══════════════════════════════════════════════════════════════
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-[build.environment]
-  NODE_VERSION = "20"
-
-# Security headers
+# ═══════════════════════════════════════════════════════════════
+# Security Headers
+# ═══════════════════════════════════════════════════════════════
 [[headers]]
   for = "/*"
   [headers.values]
@@ -29,3 +44,11 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# ═══════════════════════════════════════════════════════════════
+# Static Asset Caching — Vite hashed assets get long cache
+# ═══════════════════════════════════════════════════════════════
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

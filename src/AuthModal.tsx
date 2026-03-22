@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { createClient } from '@supabase/supabase-js';
 import {
@@ -90,7 +90,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
         .then(data => {
           if (data.found) setRefReferrerId(data.referrer_user_id);
         })
-        .catch(() => {});
+        .catch((err) => { console.error('Referral lookup failed:', err); });
     }
   }, []);
 
@@ -103,6 +103,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cleanup cooldown timer on unmount
+  useEffect(() => {
+    return () => {
+      if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+    };
+  }, []);
 
   const resetForm = () => {
     setError('');
@@ -173,11 +181,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
       if (!res.ok) { setError(data.error || 'Failed to send code.'); return; }
       setSuccess('Verification code sent! Check your email.');
       setResetStep('code');
-      // Start 60s cooldown for resend
+      // Start 60s cooldown for resend (clear any existing timer first)
+      if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
       setCooldown(60);
-      const timer = setInterval(() => {
+      cooldownTimerRef.current = setInterval(() => {
         setCooldown(prev => {
-          if (prev <= 1) { clearInterval(timer); return 0; }
+          if (prev <= 1) {
+            if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+            cooldownTimerRef.current = null;
+            return 0;
+          }
           return prev - 1;
         });
       }, 1000);

@@ -102,7 +102,7 @@ async function startServer() {
   const PORT = parseInt(process.env.PORT || '3000', 10);
   const IS_PRODUCTION = process.env.NODE_ENV === 'production';
   const APP_URL = process.env.APP_URL || (IS_PRODUCTION ? 'https://www.medimentr.com' : `http://localhost:${PORT}`);
-  const EMAIL_FROM = process.env.EMAIL_FROM || 'Medimentr <onboarding@resend.dev>';
+  const EMAIL_FROM = process.env.EMAIL_FROM || 'Medimentr <noreply@medimentr.com>';
   const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'healicco@gmail.com';
 
   app.use(express.json({ limit: '50mb' }));

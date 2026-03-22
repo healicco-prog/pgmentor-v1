@@ -249,6 +249,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
         const data = await res.json();
         if (data.hasActiveSession) {
           setShowOverrideConfirm(true);
+          setLoading(false); // Reset loading so OK button is clickable
           overrideTriggered = true;
           return; // Stop here, wait for manual override click
         }

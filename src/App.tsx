@@ -15865,8 +15865,13 @@ Return ONLY the JSON object, no extra text.`;
         
         <div className="shrink-0 p-4 pb-6 mt-2 border-t border-slate-800">
           <button 
-            onClick={() => onNavigate('dashboard')} 
-            className="w-full flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-2xl font-bold transition-all"
+            onClick={() => {
+              sessionStorage.removeItem('cp_auth');
+              setCpAuthed(false);
+              setCpRole('');
+              onNavigate('home');
+            }} 
+            className="w-full flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:text-slate-200 hover:bg-red-900/30 rounded-2xl font-bold transition-all"
             style={{ fontSize: '15px' }}
           >
             <LogOut size={20} className="rotate-180" />

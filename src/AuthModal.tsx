@@ -486,12 +486,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
           {mode === 'signin' && (
             showOverrideConfirm ? (
               <div className="space-y-4 text-center">
-                <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-blue-500/20">
-                  <AlertCircle size={28} className="text-blue-400" />
+                <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-amber-500/20">
+                  <AlertCircle size={28} className="text-amber-400" />
                 </div>
                 <h3 className="text-lg font-bold text-white">Active Session Detected</h3>
                 <p className="text-slate-300 text-sm leading-relaxed px-4">
                   You are already logged in on another device. Logging in here will log you out from the previous session.
+                </p>
+                <p className="text-slate-400 text-xs leading-relaxed px-4">
+                  If it is OK, click <strong className="text-white">"OK"</strong> to continue.
                 </p>
                 <div className="flex gap-3 pt-4">
                   <button
@@ -507,7 +510,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                     onClick={() => handleSignIn(undefined, true)}
                     className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 text-sm"
                   >
-                    {loading ? <><Loader2 size={16} className="animate-spin" /> Logging in...</> : 'Continue Login'}
+                    {loading ? <><Loader2 size={16} className="animate-spin" /> Logging in...</> : 'OK'}
                   </button>
                 </div>
               </div>

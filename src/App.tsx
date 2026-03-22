@@ -2476,6 +2476,42 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
         setIsLoading(false);
         return;
       }
+
+      // --- PRIORITY 1.5: Fetch saved curriculum from database and check for content ---
+      try {
+        const currRes = await fetch('/api/state/curriculum/default');
+        if (currRes.ok) {
+          const { data: savedData } = await currRes.json();
+          if (savedData) {
+            const parsed = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
+            if (Array.isArray(parsed)) {
+              for (const c of parsed) {
+                if (!c.papers) continue;
+                for (const p of c.papers) {
+                  if (!p.sections) continue;
+                  for (const s of p.sections) {
+                    if (!s.topics) continue;
+                    const t = s.topics.find((x: any) => x && x.id === klTopicId);
+                    if (t) {
+                      const contentKey = featureId === 'knowledge-library' ? 'generatedContent'
+                        : featureId === 'essay-library' ? 'generatedEssayContent'
+                        : featureId === 'mcq-library' ? 'generatedMcqContent'
+                        : 'generatedFlashCardsContent';
+                      if (t[contentKey]) {
+                        setOutput(t[contentKey]);
+                        setIsLoading(false);
+                        return;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Priority 1.5 curriculum DB fetch failed:', e);
+      }
       
       // --- PRIORITY 2: Fallback to Supabase API tables ---
       const apiEndpoint = featureId === 'knowledge-library' ? '/api/knowledge' 
@@ -15663,6 +15699,18 @@ Return ONLY the JSON object, no extra text.`;
       }
       setCurriculum(updatedCurriculum);
       
+      // Explicitly save to database immediately (don't rely solely on debounced auto-save)
+      try {
+        await fetch('/api/state/curriculum', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: 'default', data: updatedCurriculum })
+        });
+        console.log('✅ Curriculum saved to database after LMS generation');
+      } catch (saveErr) {
+        console.error('⚠️ Failed to save curriculum after generation:', saveErr);
+      }
+      
       // Sync the Editor context dropdowns to match the generation context
       if (currentGenCourseId) setLmsCourseId(currentGenCourseId);
       if (currentGenPaperId !== 'all') {
@@ -16888,7 +16936,7 @@ Return ONLY the JSON object, no extra text.`;
                       </div>
                       <div className="flex gap-3 w-full md:w-auto">
                         <button onClick={() => { setEditingNoteId(null); setEditingContent(''); }} className="flex-1 md:flex-none px-5 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-50 border border-slate-200 transition-colors">Cancel</button>
-                        <button onClick={() => {
+                        <button onClick={async () => {
                           let updatedCurriculum = JSON.parse(JSON.stringify(curriculum));
                           for (const c of updatedCurriculum) {
                             if (!c.papers) continue;
@@ -16907,6 +16955,14 @@ Return ONLY the JSON object, no extra text.`;
                             }
                           }
                           setCurriculum(updatedCurriculum);
+                          // Explicitly save to database immediately
+                          try {
+                            await fetch('/api/state/curriculum', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ user_id: 'default', data: updatedCurriculum })
+                            });
+                          } catch (e) { console.error('Save failed:', e); }
                           setEditingNoteId(null);
                         }} className="flex-1 md:flex-none px-5 py-2.5 rounded-xl font-bold bg-[#10b981] hover:bg-[#059669] text-white flex justify-center items-center gap-2 shadow-sm transition-colors"><CheckCircle size={18} /> Save Changes</button>
                       </div>

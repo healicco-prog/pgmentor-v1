@@ -15144,6 +15144,7 @@ const ControlPanel = ({ onNavigate, curriculum, setCurriculum, blogPosts, setBlo
   const [lmsCourseId, setLmsCourseId] = useState('c1');
   const [lmsPaperId, setLmsPaperId] = useState('');
   const [lmsSectionId, setLmsSectionId] = useState('');
+  const [isGeneratingLMS, setIsGeneratingLMS] = useState(false);
 
   useEffect(() => {
     try {
@@ -15533,7 +15534,6 @@ Return ONLY the JSON object, no extra text.`;
     }
   };
 
-  const [isGeneratingLMS, setIsGeneratingLMS] = useState(false);
   const handleGenerateLMSNotes = async () => {
     if (selectedTopics.length === 0) {
       alert("Please select at least one topic to generate notes.");

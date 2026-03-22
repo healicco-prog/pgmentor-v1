@@ -1213,12 +1213,12 @@ const ReferralCard = () => {
 const COURSE_OPTIONS_LIST = [
   'Mastering Anatomy', 'Mastering Physiology', 'Mastering Biochemistry',
   'Mastering Pharmacology', 'Mastering Pathology', 'Mastering Microbiology',
-  'Mastering Forensic Medicine', 'Mastering Community Medicine / PSM',
+  'Mastering Forensic Medicine & Toxicology', 'Mastering PSM / Community Medicine',
   'Mastering General Medicine', 'Mastering General Surgery',
-  'Mastering Obstetrics & Gynaecology', 'Mastering Paediatrics',
+  'Mastering Obstetrics & Gynecology', 'Mastering Pediatrics',
   'Mastering ENT', 'Mastering Ophthalmology', 'Mastering Orthopaedics',
-  'Mastering Dermatology', 'Mastering Psychiatry', 'Mastering Anaesthesiology',
-  'Mastering Radiodiagnosis'
+  'Mastering Dermatology (DVL)', 'Mastering Psychiatry', 'Mastering Anaesthesiology',
+  'Mastering Radio Diagnosis'
 ];
 
 const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
@@ -2200,9 +2200,11 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
   // ─── Course Lock Effect: Auto-set all course dropdowns to the active course ───
   const applyCourselock = (courseName: string) => {
     setLockedCourseName(courseName);
-    // Find the matching curriculum entry by name
+    // Find the matching curriculum entry by name (with fuzzy fallback)
     if (curriculum) {
-      const matched = curriculum.find((c: any) => c.name === courseName);
+      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const matched = curriculum.find((c: any) => c.name === courseName) 
+        || curriculum.find((c: any) => normalize(c.name) === normalize(courseName));
       if (matched) {
         setKlCourseId(matched.id?.toString() || '');
         setKlPaperId('');

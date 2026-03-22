@@ -39,12 +39,12 @@ const SPECIALTY_OPTIONS = [
 const COURSE_OPTIONS = [
   'Mastering Anatomy', 'Mastering Physiology', 'Mastering Biochemistry',
   'Mastering Pharmacology', 'Mastering Pathology', 'Mastering Microbiology',
-  'Mastering Forensic Medicine', 'Mastering Community Medicine / PSM',
+  'Mastering Forensic Medicine & Toxicology', 'Mastering PSM / Community Medicine',
   'Mastering General Medicine', 'Mastering General Surgery',
-  'Mastering Obstetrics & Gynaecology', 'Mastering Paediatrics',
+  'Mastering Obstetrics & Gynecology', 'Mastering Pediatrics',
   'Mastering ENT', 'Mastering Ophthalmology', 'Mastering Orthopaedics',
-  'Mastering Dermatology', 'Mastering Psychiatry', 'Mastering Anaesthesiology',
-  'Mastering Radiodiagnosis'
+  'Mastering Dermatology (DVL)', 'Mastering Psychiatry', 'Mastering Anaesthesiology',
+  'Mastering Radio Diagnosis'
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────

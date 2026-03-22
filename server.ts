@@ -417,6 +417,153 @@ async function startServer() {
     }
   });
 
+  // Create or update user profile (bypasses RLS for sign-up)
+  app.post("/api/user/profile", async (req, res) => {
+    try {
+      const profileData = req.body;
+      if (!profileData.user_id) return res.status(400).json({ error: "user_id is required" });
+
+      const { data, error } = await supabaseAdmin
+        .from("user_profiles")
+        .upsert(profileData, { onConflict: 'user_id' })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("❌ Profile upsert error:", error.message);
+        return res.status(500).json({ error: error.message });
+      }
+
+      console.log(`✅ User profile created/updated for ${profileData.user_id}`);
+      res.json(data);
+    } catch (error: any) {
+      console.error("❌ Profile creation failed:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SUBSCRIPTION MANAGEMENT (bypasses RLS via supabaseAdmin)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Create a trial subscription for a new user (called during sign-up)
+  app.post("/api/user/subscription", async (req, res) => {
+    try {
+      const { userId, planId, isTrial, trialStartDate, trialEndDate } = req.body;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+
+      const { data, error } = await supabaseAdmin
+        .from("subscriptions")
+        .upsert({
+          user_id: userId,
+          plan_id: planId || 'trial',
+          status: 'active',
+          is_trial: isTrial !== undefined ? isTrial : true,
+          trial_start_date: trialStartDate || new Date().toISOString(),
+          trial_end_date: trialEndDate || new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+          start_date: new Date().toISOString(),
+        }, { onConflict: 'user_id' })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("❌ Subscription upsert error:", error.message);
+        // Fallback: try insert if upsert fails (no unique constraint on user_id)
+        const { data: insertData, error: insertError } = await supabaseAdmin
+          .from("subscriptions")
+          .insert({
+            user_id: userId,
+            plan_id: planId || 'trial',
+            status: 'active',
+            is_trial: isTrial !== undefined ? isTrial : true,
+            trial_start_date: trialStartDate || new Date().toISOString(),
+            trial_end_date: trialEndDate || new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+            start_date: new Date().toISOString(),
+          })
+          .select()
+          .single();
+        if (insertError) {
+          console.error("❌ Subscription insert error:", insertError.message);
+          return res.status(500).json({ error: insertError.message });
+        }
+        console.log(`✅ Trial subscription created (insert) for user ${userId}`);
+        return res.json(insertData);
+      }
+
+      console.log(`✅ Trial subscription created for user ${userId}`);
+      res.json(data);
+    } catch (error: any) {
+      console.error("❌ Subscription creation failed:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get a user's active subscription (bypasses RLS for reliable reads)
+  app.get("/api/user/subscription/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+
+      const { data, error } = await supabaseAdmin
+        .from("subscriptions")
+        .select("plan_id, is_trial, trial_end_date, status")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error || !data) {
+        // No active subscription found
+        return res.json({ plan_id: 'free', is_trial: false, trial_end_date: null, status: 'active' });
+      }
+
+      // Check if trial has expired
+      if (data.plan_id === 'trial' && data.trial_end_date) {
+        const trialEnd = new Date(data.trial_end_date);
+        if (trialEnd < new Date()) {
+          // Trial expired → auto-downgrade to free
+          await supabaseAdmin
+            .from("subscriptions")
+            .update({ plan_id: 'free', is_trial: false, status: 'active' })
+            .eq("user_id", userId)
+            .eq("plan_id", "trial");
+          console.log(`⏰ Trial expired for user ${userId}, downgraded to free`);
+          return res.json({ plan_id: 'free', is_trial: false, trial_end_date: data.trial_end_date, status: 'active', trial_expired: true });
+        }
+      }
+
+      res.json(data);
+    } catch (error: any) {
+      console.error("❌ Subscription fetch error:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update subscription plan (for admin or upgrade flows)
+  app.put("/api/user/subscription", async (req, res) => {
+    try {
+      const { userId, planId, isTrial } = req.body;
+      if (!userId || !planId) return res.status(400).json({ error: "userId and planId are required" });
+
+      const { error } = await supabaseAdmin
+        .from("subscriptions")
+        .update({ plan_id: planId, is_trial: isTrial || false })
+        .eq("user_id", userId)
+        .eq("status", "active");
+
+      if (error) {
+        console.error("❌ Subscription update error:", error.message);
+        return res.status(500).json({ error: error.message });
+      }
+
+      console.log(`✅ Subscription updated to ${planId} for user ${userId}`);
+      res.json({ success: true, plan_id: planId });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ═══════════════════════════════════════════════════════════════════════════
   // SESSION MANAGEMENT (Single Device Login Enforcement)
   // ═══════════════════════════════════════════════════════════════════════════

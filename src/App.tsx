@@ -17019,39 +17019,24 @@ export default function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  // Fetch user's subscription plan and check trial expiry
+  // Fetch user's subscription plan via server API (bypasses RLS)
   useEffect(() => {
     if (!authSession?.user?.id) return;
-    _supabase
-      .from('subscriptions')
-      .select('plan_id, is_trial, trial_end_date, status')
-      .eq('user_id', authSession.user.id)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-      .then(({ data }) => {
-        if (!data) {
-          // No active subscription → free user
+    fetch(`/api/user/subscription/${authSession.user.id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data || !data.plan_id) {
           setUserPlan('free');
           return;
         }
-        // Check if trial has expired
-        if (data.plan_id === 'trial' && data.trial_end_date) {
-          const trialEnd = new Date(data.trial_end_date);
-          if (trialEnd < new Date()) {
-            // Trial expired → auto-downgrade to free
-            setUserPlan('free');
-            // Update in database
-            _supabase.from('subscriptions')
-              .update({ plan_id: 'free', is_trial: false, status: 'active' })
-              .eq('user_id', authSession.user.id)
-              .eq('plan_id', 'trial')
-              .then(() => {});
-            return;
-          }
-        }
         setUserPlan(data.plan_id);
+        if (data.trial_expired) {
+          console.log('⏰ Trial period has expired. Downgraded to free plan.');
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch subscription:', err);
+        setUserPlan('free');
       });
   }, [authSession?.user?.id]);
 

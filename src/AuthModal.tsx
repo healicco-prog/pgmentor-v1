@@ -315,35 +315,54 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
 
       const userId = data.user?.id;
       if (userId) {
-        // 2. Insert user_profile
-        await supabase.from('user_profiles').upsert({
-          user_id: userId,
-          full_name: fullName,
-          mobile,
-          profession,
-          specialty,
-          selected_course: selectedCourse || null,
-          highest_qualification: qualification,
-          current_stage: currentStage,
-          country,
-          state,
-          city,
-          account_status: 'active',
-          email_verified: false,
-          disclaimer_accepted: disclaimerAccepted,
-          terms_accepted: true,
-        }, { onConflict: 'user_id' });
+        // 2. Insert user_profile (via server API to bypass RLS)
+        try {
+          await fetch('/api/user/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: userId,
+              full_name: fullName,
+              mobile,
+              profession,
+              specialty,
+              selected_course: selectedCourse || null,
+              highest_qualification: qualification,
+              current_stage: currentStage,
+              country,
+              state,
+              city,
+              account_status: 'active',
+              email_verified: false,
+              disclaimer_accepted: disclaimerAccepted,
+              terms_accepted: true,
+            })
+          });
+        } catch (profileErr) {
+          console.error('Failed to create user profile:', profileErr);
+        }
 
-        // 3. Assign free trial subscription
-        await supabase.from('subscriptions').insert({
-          user_id: userId,
-          plan_id: 'trial',
-          status: 'active',
-          is_trial: true,
-          trial_start_date: new Date().toISOString(),
-          trial_end_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-          start_date: new Date().toISOString(),
-        });
+        // 3. Assign free trial subscription (via server API to bypass RLS)
+        try {
+          const subRes = await fetch('/api/user/subscription', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId,
+              planId: 'trial',
+              isTrial: true,
+              trialStartDate: new Date().toISOString(),
+              trialEndDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+            })
+          });
+          if (!subRes.ok) {
+            console.error('Subscription API error:', await subRes.text());
+          } else {
+            console.log('✅ Trial subscription created via server API');
+          }
+        } catch (subErr) {
+          console.error('Failed to create trial subscription:', subErr);
+        }
 
         // 4. Generate referral code for the new user
         try {

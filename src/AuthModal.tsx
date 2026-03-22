@@ -392,6 +392,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
         }).catch(err => console.error('Welcome email failed:', err));
       }
 
+      // Save course and user info to localStorage so dashboard/features pick it up immediately
+      if (selectedCourse) {
+        localStorage.setItem('medimentr_selected_course', selectedCourse);
+      }
+      localStorage.setItem('user', JSON.stringify({ email }));
+
       setSuccess('Account created! Signing you in...');
       setTimeout(onSuccess, 800);
     } catch {

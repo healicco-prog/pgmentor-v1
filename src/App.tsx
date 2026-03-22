@@ -1253,6 +1253,10 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
           if (res.ok) {
             const profile = await res.json();
             setActiveCourse(profile.selected_course || null);
+            // Sync to localStorage so FeatureModule picks it up
+            if (profile.selected_course) {
+              localStorage.setItem('medimentr_selected_course', profile.selected_course);
+            }
             setIsRealUser(true);
             return;
           }
@@ -2194,36 +2198,56 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
   const [isGeneratingResults, setIsGeneratingResults] = useState(false);
 
   // ─── Course Lock Effect: Auto-set all course dropdowns to the active course ───
-  useEffect(() => {
-    const savedCourse = localStorage.getItem('medimentr_selected_course');
-    if (!savedCourse || !curriculum) return;
-    setLockedCourseName(savedCourse);
-
+  const applyCourselock = (courseName: string) => {
+    setLockedCourseName(courseName);
     // Find the matching curriculum entry by name
-    const matched = curriculum.find((c: any) => c.name === savedCourse);
-    if (matched) {
-      // Lock Knowledge Library / Essay / MCQ / Flash Cards
-      setKlCourseId(matched.id?.toString() || '');
-      setKlPaperId('');
-      setKlSectionId('');
-      setKlTopicId('');
+    if (curriculum) {
+      const matched = curriculum.find((c: any) => c.name === courseName);
+      if (matched) {
+        setKlCourseId(matched.id?.toString() || '');
+        setKlPaperId('');
+        setKlSectionId('');
+        setKlTopicId('');
+        setPrepCourseId(matched.id?.toString() || '');
+      }
+    }
+    // Lock name-based course states
+    setQuestionPaperCourse(courseName);
+    setEssayCourse(courseName);
+    setProtocolCourse(courseName);
+    setManuscriptCourse(courseName);
+    setStatCourse(courseName);
+    setAnalyzerSubject(courseName);
+    setSimSubject(courseName);
+    setMcqSubject(courseName);
+    setSeminarDiscipline(courseName);
+    setJcDiscipline(courseName);
+    setRefSubject(courseName);
+  };
 
-      // Lock AI Exam Prep
-      setPrepCourseId(matched.id?.toString() || '');
+  useEffect(() => {
+    // First try localStorage
+    const savedCourse = localStorage.getItem('medimentr_selected_course');
+    if (savedCourse) {
+      applyCourselock(savedCourse);
+      return;
     }
 
-    // Lock name-based course states
-    setQuestionPaperCourse(savedCourse);
-    setEssayCourse(savedCourse);
-    setProtocolCourse(savedCourse);
-    setManuscriptCourse(savedCourse);
-    setStatCourse(savedCourse);
-    setAnalyzerSubject(savedCourse);
-    setSimSubject(savedCourse);
-    setMcqSubject(savedCourse);
-    setSeminarDiscipline(savedCourse);
-    setJcDiscipline(savedCourse);
-    setRefSubject(savedCourse);
+    // Fallback: try loading from server API
+    const email = (() => {
+      try { const raw = localStorage.getItem('user'); return raw ? JSON.parse(raw)?.email : null; } catch { return null; }
+    })();
+    if (email) {
+      fetch(`/api/user/profile-by-email?email=${encodeURIComponent(email)}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(profile => {
+          if (profile?.selected_course) {
+            localStorage.setItem('medimentr_selected_course', profile.selected_course);
+            applyCourselock(profile.selected_course);
+          }
+        })
+        .catch(() => {});
+    }
   }, [curriculum]);
 
   // Specialized states for Contacts Management System

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { createClient } from '@supabase/supabase-js';
 import {
   Eye, EyeOff, X, Mail, Lock, User, Stethoscope,
-  GraduationCap, ChevronRight, Loader2, CheckCircle, AlertCircle, Home,
+  ChevronRight, Loader2, CheckCircle, AlertCircle, Home,
   KeyRound, ArrowLeft, ShieldCheck, BookOpen, MailCheck, RefreshCw
 } from 'lucide-react';
 
@@ -22,19 +22,7 @@ interface AuthModalProps {
 }
 
 // ─── Field config ─────────────────────────────────────────────────────────────
-const PROFESSION_OPTIONS = [
-  'Post Graduate Resident', 'Practicing Doctor', 'Other'
-];
 
-const SPECIALTY_OPTIONS = [
-  'General Medicine', 'General Surgery', 'Paediatrics', 'Obstetrics & Gynaecology',
-  'Orthopaedics', 'Pharmacology', 'Pathology', 'Microbiology', 'Anatomy', 'Physiology',
-  'Biochemistry', 'Community Medicine', 'Forensic Medicine', 'Cardiology', 'Neurology',
-  'Pulmonology', 'Nephrology', 'Gastroenterology', 'Oncology', 'Psychiatry',
-  'Dermatology & Venereology', 'Radiodiagnosis', 'Anaesthesiology', 'ENT', 'Ophthalmology',
-  'Emergency Medicine', 'Critical Care Medicine', 'Nursing', 'Pharmacy', 'Physiotherapy',
-  'Dentistry', 'Ayurveda', 'Other'
-];
 
 const COURSE_OPTIONS = [
   'Mastering Anatomy', 'Mastering Physiology', 'Mastering Biochemistry',
@@ -54,7 +42,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [step, setStep] = useState<1 | 2>(1); // signup has 2 steps
+
   const [showOverrideConfirm, setShowOverrideConfirm] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
@@ -67,16 +55,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Sign Up extra fields
+  // Sign Up fields
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
-  const [profession, setProfession] = useState('');
-  const [specialty, setSpecialty] = useState('');
-  const [qualification, setQualification] = useState('');
-  const [country, setCountry] = useState('India');
-  const [state, setState] = useState('');
-  const [city, setCity] = useState('');
-  const [currentStage, setCurrentStage] = useState<'studying' | 'practicing' | 'both'>('studying');
   const [selectedCourse, setSelectedCourse] = useState('');
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
@@ -138,18 +119,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
   const resetForm = () => {
     setError('');
     setSuccess('');
-    setStep(1);
     setEmail('');
     setPassword('');
     setFullName('');
     setMobile('');
-    setProfession('');
-    setSpecialty('');
-    setQualification('');
-    setCountry('India');
-    setState('');
-    setCity('');
-    setCurrentStage('studying');
+    setSelectedCourse('');
     setDisclaimerAccepted(false);
     setResetStep('email');
     setResetEmail('');
@@ -341,20 +315,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
     }
   };
 
-  // ── Sign Up step 1 → step 2 ─────────────────────────────────────────────────
-  const handleStep1 = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password || !fullName) {
-      setError('Please fill in Name, Email and Password.');
-      return;
-    }
-    if (!isPasswordValid(password)) {
-      setError(getPasswordError(password));
-      return;
-    }
-    setError('');
-    setStep(2);
-  };
+
 
   // ── Resend verification email handler ────────────────────────────────────────
   const handleResendVerification = async () => {
@@ -385,14 +346,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
     }
   };
 
-  // ── Sign Up step 2 → create account ────────────────────────────────────────
+  // ── Sign Up → create account (single page) ────────────────────────────────
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password || !fullName) {
+      setError('Please fill in Name, Email and Password.');
+      return;
+    }
+    if (!isPasswordValid(password)) {
+      setError(getPasswordError(password));
+      return;
+    }
     if (!disclaimerAccepted) { setError('Please accept the disclaimer to continue.'); return; }
     setError('');
     setLoading(true);
     try {
-      // Create account via server-side API (uses admin API to avoid Supabase email rate limits)
+      // Create account via server-side API
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -401,14 +370,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
           password,
           fullName,
           mobile,
-          profession,
-          specialty,
           selectedCourse: selectedCourse || null,
-          qualification,
-          currentStage,
-          country,
-          state,
-          city,
           disclaimerAccepted,
           refReferrerId,
           refCode,
@@ -418,7 +380,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
       const data = await res.json();
 
       if (!res.ok) {
-        // Show user-friendly error messages
         if (res.status === 409) {
           setError('An account with this email already exists. Please sign in instead.');
         } else if (res.status === 429) {
@@ -431,12 +392,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
 
       const userId = data.userId;
 
-      // Save course to localStorage for later use
       if (selectedCourse) {
         localStorage.setItem('medimentr_selected_course', selectedCourse);
       }
 
-      // Show verification screen
       setVerificationEmail(email);
       setVerificationName(fullName);
       setVerificationUserId(userId || '');
@@ -560,7 +519,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
             <h2 className="text-2xl font-bold text-white">
               {mode === 'forgotPassword'
                 ? resetStep === 'done' ? 'All Done!' : 'Reset Password'
-                : mode === 'signin' ? 'Welcome Back' : step === 1 ? 'Create Account' : 'Complete Profile'}
+                : mode === 'signin' ? 'Welcome Back' : 'Create Account'}
             </h2>
             <p className="text-slate-400 text-sm mt-1">
               {mode === 'forgotPassword'
@@ -570,9 +529,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                   : 'Your password has been updated'
                 : mode === 'signin'
                   ? 'Sign in to your Medimentr account'
-                  : step === 1
-                    ? 'Join thousands of medical professionals'
-                    : 'Tell us about your medical background'}
+                  : 'Join thousands of medical professionals'}
             </p>
           </div>
 
@@ -825,13 +782,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
             </div>
           )}
 
-          {/* ── SIGN UP STEP 1 ───────────────────────────────── */}
-          {mode === 'signup' && step === 1 && (
-            <form onSubmit={handleStep1} className="space-y-4">
+          {/* ── SIGN UP (Single Page) ──────────────────────────── */}
+          {mode === 'signup' && (
+            <form onSubmit={handleSignUp} className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
               <InputField
                 label="Full Name" type="text" value={fullName}
                 onChange={setFullName} icon={<User size={16} />}
                 placeholder="Dr. First Last" required
+              />
+              <InputField
+                label="Mobile Number" type="tel" value={mobile}
+                onChange={setMobile} icon={<Stethoscope size={16} />}
+                placeholder="+91 9876543210"
               />
               <InputField
                 label="Email Address" type="email" value={email}
@@ -860,52 +822,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                       </div>
                     );
                   })}
-                  <div className="col-span-2 mt-1 text-[10px] text-slate-600 flex items-center gap-1">
-                    <ShieldCheck size={10} /> Tip: Use a password manager for best security
-                  </div>
                 </div>
               )}
-              <button
-                type="submit"
-                className="w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
-              >
-                Continue <ChevronRight size={18} />
-              </button>
-              <p className="text-center text-xs text-slate-500 pt-2">
-                Already have an account?{' '}
-                <button type="button" onClick={() => switchMode('signin')} className="text-blue-400 hover:text-blue-300 font-semibold">
-                  Sign In
-                </button>
-              </p>
-            </form>
-          )}
 
-          {/* ── SIGN UP STEP 2 ───────────────────────────────── */}
-          {mode === 'signup' && step === 2 && (
-            <form onSubmit={handleSignUp} className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
-              {/* Mobile */}
-              <InputField
-                label="Mobile Number" type="tel" value={mobile}
-                onChange={setMobile} icon={<Mail size={16} />}
-                placeholder="+91 9876543210"
-              />
-
-              {/* Profession */}
-              <div className="space-y-1.5">
-                <label className="block text-slate-300 text-sm font-medium">Profession</label>
-                <div className="relative">
-                  <Stethoscope size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <select
-                    value={profession} onChange={e => setProfession(e.target.value)}
-                    className="w-full appearance-none bg-slate-800 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
-                  >
-                    <option value="">-- Select Profession --</option>
-                    {PROFESSION_OPTIONS.map(o => <option key={o}>{o}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Select Your Course */}
+              {/* Select Course */}
               <div className="space-y-1.5">
                 <label className="block text-slate-300 text-sm font-medium">Select Your Course</label>
                 <div className="relative">
@@ -920,47 +840,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                 </div>
               </div>
 
-              {/* Qualification */}
-              <InputField
-                label="Highest Qualification" type="text" value={qualification}
-                onChange={setQualification} icon={<GraduationCap size={16} />}
-                placeholder="e.g. MBBS, MD Pharmacology"
-              />
-
-              {/* Stage */}
-              <div className="space-y-1.5">
-                <label className="block text-slate-300 text-sm font-medium">Current Stage</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {([['studying', 'Studying'], ['practicing', 'Practicing'], ['both', 'Both']] as const).map(([val, lbl]) => (
-                    <button
-                      key={val} type="button"
-                      onClick={() => setCurrentStage(val)}
-                      className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
-                        currentStage === val
-                          ? 'bg-blue-600 border-blue-500 text-white'
-                          : 'bg-slate-800 border-white/10 text-slate-400 hover:border-white/20'
-                      }`}
-                    >
-                      {lbl}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Location */}
-              <div className="grid grid-cols-2 gap-3">
-                <InputField
-                  label="State" type="text" value={state}
-                  onChange={setState} placeholder="e.g. Karnataka"
-                />
-                <InputField
-                  label="City" type="text" value={city}
-                  onChange={setCity} placeholder="e.g. Bangalore"
-                />
-              </div>
-
               {/* Disclaimer */}
-              <label className="flex items-start gap-3 bg-slate-800/60 border border-white/10 rounded-xl p-3 cursor-pointer hover:border-blue-500/30 transition-colors mt-2">
+              <label className="flex items-start gap-3 bg-slate-800/60 border border-white/10 rounded-xl p-3 cursor-pointer hover:border-blue-500/30 transition-colors">
                 <input
                   type="checkbox" checked={disclaimerAccepted}
                   onChange={e => setDisclaimerAccepted(e.target.checked)}
@@ -971,24 +852,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                 </span>
               </label>
 
-              {/* Buttons */}
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button" onClick={() => { setStep(1); setError(''); }}
-                  className="flex-1 py-3 rounded-xl border border-white/10 text-slate-400 hover:bg-white/5 font-semibold text-sm transition-colors"
-                >
-                  Back
+              {/* Create Account button */}
+              <button
+                type="submit" disabled={loading || !!success}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2"
+              >
+                {loading
+                  ? <><Loader2 size={16} className="animate-spin" /> Creating Account...</>
+                  : <><CheckCircle size={16} /> Create Account</>
+                }
+              </button>
+              <p className="text-center text-xs text-slate-500 pt-1">
+                Already have an account?{' '}
+                <button type="button" onClick={() => switchMode('signin')} className="text-blue-400 hover:text-blue-300 font-semibold">
+                  Sign In
                 </button>
-                <button
-                  type="submit" disabled={loading || !!success}
-                  className="flex-[2] bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 text-sm"
-                >
-                  {loading
-                    ? <><Loader2 size={16} className="animate-spin" /> Creating Account...</>
-                    : <><CheckCircle size={16} /> Create Account</>
-                  }
-                </button>
-              </div>
+              </p>
             </form>
           )}
 

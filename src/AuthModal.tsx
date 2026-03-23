@@ -441,8 +441,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
       setVerificationName(fullName);
       setVerificationUserId(userId || '');
       setVerificationSent(true);
-    } catch {
-      setError('An unexpected error occurred. Please try again.');
+    } catch (err) {
+      console.error('Signup fetch error:', err);
+      setError('Unable to connect to the server. Please check your internet connection and try again.');
     } finally {
       setLoading(false);
     }

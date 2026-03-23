@@ -1078,8 +1078,9 @@ async function startServer() {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SERVER-SIDE SIGNUP — Uses Admin API to bypass Supabase email rate limits
+  // SERVER-SIDE SIGNUP — Hybrid approach: Admin API → fallback to signUp
   // Creates user via admin API (no automatic confirmation email from Supabase)
+  // Falls back to regular signUp if admin API fails (e.g., network issues)
   // Then sends custom verification email via Resend
   // ═══════════════════════════════════════════════════════════════════════════
   app.post("/api/auth/signup", async (req, res) => {
@@ -1101,32 +1102,68 @@ async function startServer() {
     }
 
     try {
-      // 1. Create auth user via ADMIN API — does NOT send Supabase confirmation email
-      //    This avoids the "email rate limit exceeded" error
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: false, // Do NOT auto-confirm — require our custom verification
-        user_metadata: { full_name: fullName }
-      });
+      let userId: string | undefined;
+      let usedAdminApi = false;
 
-      if (authError) {
-        // Handle duplicate user error gracefully
-        if (authError.message.includes('already') || authError.message.includes('duplicate') || authError.message.includes('exists')) {
-          return res.status(409).json({ error: "An account with this email already exists. Please sign in instead." });
+      // Strategy 1: Try Admin API (best — no Supabase confirmation email, no rate limits)
+      if (supabaseServiceKey) {
+        try {
+          console.log(`🔑 Attempting admin createUser for: ${email}`);
+          const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: false,
+            user_metadata: { full_name: fullName }
+          });
+
+          if (authError) {
+            if (authError.message.includes('already') || authError.message.includes('duplicate') || authError.message.includes('exists')) {
+              return res.status(409).json({ error: "An account with this email already exists. Please sign in instead." });
+            }
+            console.warn(`⚠️ Admin createUser returned error: ${authError.message}. Falling back to signUp.`);
+          } else if (authData?.user?.id) {
+            userId = authData.user.id;
+            usedAdminApi = true;
+            console.log(`✅ User created via admin API: ${email} (${userId})`);
+          }
+        } catch (adminErr: any) {
+          console.warn(`⚠️ Admin createUser threw: ${adminErr.message}. Falling back to signUp.`);
         }
-        console.error("❌ Admin createUser error:", authError.message);
-        return res.status(400).json({ error: authError.message });
       }
 
-      const userId = authData.user?.id;
+      // Strategy 2: Fallback to regular signUp (may trigger Supabase's confirmation email)
       if (!userId) {
-        return res.status(500).json({ error: "Failed to create user account" });
+        console.log(`🔄 Using fallback signUp for: ${email}`);
+        const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { full_name: fullName } }
+        });
+
+        if (signUpErr) {
+          console.error(`❌ Signup error: ${signUpErr.message}`);
+          // Handle specific Supabase errors with user-friendly messages
+          if (signUpErr.message.includes('rate limit')) {
+            return res.status(429).json({ error: "Email rate limit exceeded. Please wait a few minutes and try again." });
+          }
+          if (signUpErr.message.includes('already') || signUpErr.message.includes('exists')) {
+            return res.status(409).json({ error: "An account with this email already exists. Please sign in instead." });
+          }
+          return res.status(400).json({ error: signUpErr.message });
+        }
+
+        userId = signUpData.user?.id;
+        if (!userId) {
+          return res.status(500).json({ error: "Failed to create user account" });
+        }
+
+        console.log(`✅ User created via signUp fallback: ${email} (${userId})`);
+
+        // Sign out the session created by signUp (user needs to verify first)
+        try { await supabase.auth.signOut(); } catch {}
       }
 
-      console.log(`✅ User created via admin API: ${email} (${userId})`);
-
-      // 2. Create user profile (bypasses RLS)
+      // 2. Create user profile (bypasses RLS via admin client)
       try {
         await supabaseAdmin.from("user_profiles").upsert({
           user_id: userId,
@@ -1145,6 +1182,7 @@ async function startServer() {
           disclaimer_accepted: disclaimerAccepted || false,
           terms_accepted: true,
         }, { onConflict: 'user_id' });
+        console.log(`✅ User profile created for ${userId}`);
       } catch (profileErr: any) {
         console.error("⚠️ Profile creation warning:", profileErr.message);
       }
@@ -1196,13 +1234,14 @@ async function startServer() {
         }
       }
 
-      // 6. Send verification email via Resend (NOT Supabase's built-in email)
+      // 6. Send verification email via Resend (only if admin API was used OR as a supplement)
+      //    If signUp fallback was used, Supabase may have sent its own email, but we send ours too
       let verificationSent = false;
       if (resend) {
         try {
           const verifyToken = crypto.randomBytes(32).toString('hex');
           const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
-          verificationTokenStore.set(verifyToken, { email, userId, expiresAt });
+          verificationTokenStore.set(verifyToken, { email, userId: userId!, expiresAt });
           
           const verifyUrl = `${APP_URL}/api/auth/verify-email?token=${verifyToken}`;
           const userName = escapeHtml(fullName || "Doctor");
@@ -1251,10 +1290,11 @@ async function startServer() {
         success: true, 
         userId, 
         verificationSent,
+        usedAdminApi,
         message: "Account created successfully. Please check your email to verify your account."
       });
     } catch (error: any) {
-      console.error("❌ Signup failed:", error.message);
+      console.error("❌ Signup failed:", error.message, error.stack?.slice(0, 500));
       res.status(500).json({ error: "An unexpected error occurred. Please try again." });
     }
   });

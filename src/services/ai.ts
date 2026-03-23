@@ -1,9 +1,28 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// AI Service — Routes all AI requests through the backend proxy
-// SECURITY: API keys are NEVER exposed to the client
+// AI Service — Routes all AI requests through the backend
+// In production: calls Cloud Run backend DIRECTLY (bypasses Netlify 26s proxy timeout)
+// In development: calls /api/ai/* (same origin, proxied by Vite/Express dev server)
+// SECURITY: Gemini API key stays server-side only
 // ═══════════════════════════════════════════════════════════════════════════
 
-const AI_PROXY_BASE = '/api/ai';
+// In production (Netlify), use direct Cloud Run URL to avoid 26-second proxy timeout.
+// VITE_BACKEND_URL and VITE_BACKEND_API_KEY are set in Netlify environment variables.
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+const BACKEND_API_KEY = import.meta.env.VITE_BACKEND_API_KEY || '';
+
+function getAIBaseUrl(): string {
+  // If VITE_BACKEND_URL is set (production), call Cloud Run directly
+  if (BACKEND_URL) return `${BACKEND_URL}/api/ai`;
+  // Otherwise (development), use relative path (same-origin proxy)
+  return '/api/ai';
+}
+
+function getHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  // In production, include the API key for Cloud Run authentication
+  if (BACKEND_API_KEY) headers['X-API-Key'] = BACKEND_API_KEY;
+  return headers;
+}
 
 /**
  * Generic content generation via backend proxy
@@ -16,9 +35,10 @@ export const generateMedicalContent = async (
   userRole?: string
 ) => {
   try {
-    const response = await fetch(`${AI_PROXY_BASE}/generate`, {
+    const baseUrl = getAIBaseUrl();
+    const response = await fetch(`${baseUrl}/generate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify({ prompt, systemInstruction, responseMimeType, useSearch, userRole }),
     });
     if (!response.ok) {
@@ -63,9 +83,10 @@ export const medimentrMentorChat = async (message: string) => {
  */
 export const extractContactFromImage = async (base64Image: string) => {
   try {
-    const response = await fetch(`${AI_PROXY_BASE}/extract-contact`, {
+    const baseUrl = getAIBaseUrl();
+    const response = await fetch(`${baseUrl}/extract-contact`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify({ image: base64Image }),
     });
     if (!response.ok) {
@@ -84,9 +105,10 @@ export const extractContactFromImage = async (base64Image: string) => {
  */
 export const analyzePrescriptionImage = async (base64Image: string) => {
   try {
-    const response = await fetch(`${AI_PROXY_BASE}/analyze-prescription`, {
+    const baseUrl = getAIBaseUrl();
+    const response = await fetch(`${baseUrl}/analyze-prescription`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify({ image: base64Image }),
     });
     if (!response.ok) {
@@ -105,9 +127,10 @@ export const analyzePrescriptionImage = async (base64Image: string) => {
  */
 export const extractPaperTextFromImage = async (base64Image: string) => {
   try {
-    const response = await fetch(`${AI_PROXY_BASE}/extract-paper`, {
+    const baseUrl = getAIBaseUrl();
+    const response = await fetch(`${baseUrl}/extract-paper`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify({ image: base64Image }),
     });
     if (!response.ok) {

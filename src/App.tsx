@@ -15616,6 +15616,9 @@ Return ONLY the JSON object, no extra text.`;
     
     setIsGeneratingLMS(true);
     let updatedCurriculum = JSON.parse(JSON.stringify(curriculum));
+    let successCount = 0;
+    let failedTopics: string[] = [];
+    let lastError = '';
     
     try {
       for (const topicId of selectedTopics) {
@@ -15635,73 +15638,83 @@ Return ONLY the JSON object, no extra text.`;
         
         if (!topicName) continue;
         
-        let prompt = `Provide a comprehensive clinical note for the knowledge library on the following topic:\nTopic: ${topicName}\nCourse Context: ${courseName}\n
-        Ideal Structure of Expert Notes:
-        1. Definition: Short precise definition.
-        2. Historical background (optional): Major discoveries or milestones.
-        3. Basic concepts: Physiology, Pathophysiology, Mechanism.
-        4. Classification: Use tables or flowcharts (represented in text/markdown).
-        5. Detailed description: Explain major subtopics.
-        6. Clinical relevance: Diagnosis, Investigations, Treatment.
-        7. Guidelines / protocols: Mention current guidelines.
-        8. Recent advances: Include new drugs, technologies, therapies.
-        9. Adverse effects / limitations.
-        10. Summary / key points.
-        11. References: Standard textbooks, Review articles, Guidelines.`;
+        try {
+          let prompt = `Provide a comprehensive clinical note for the knowledge library on the following topic:\nTopic: ${topicName}\nCourse Context: ${courseName}\n
+          Ideal Structure of Expert Notes:
+          1. Definition: Short precise definition.
+          2. Historical background (optional): Major discoveries or milestones.
+          3. Basic concepts: Physiology, Pathophysiology, Mechanism.
+          4. Classification: Use tables or flowcharts (represented in text/markdown).
+          5. Detailed description: Explain major subtopics.
+          6. Clinical relevance: Diagnosis, Investigations, Treatment.
+          7. Guidelines / protocols: Mention current guidelines.
+          8. Recent advances: Include new drugs, technologies, therapies.
+          9. Adverse effects / limitations.
+          10. Summary / key points.
+          11. References: Standard textbooks, Review articles, Guidelines.`;
 
-        if (currentTab === 'essay-questions') {
-          prompt = `Generate 5 high-quality, long-form clinical essay questions based on the following topic:\nTopic: ${topicName}\nCourse Context: ${courseName}\n
-          CRITICAL INSTRUCTION: You MUST completely replace "I" with "our team of Experts" when introducing yourself. You MUST begin your response exactly with the following paragraph (filling in the topic and course names):
-          
-          "As an expert medical professor and author, our team of Experts have crafted 5 high-quality, long-form clinical essay questions focusing on ${topicName} for your ${courseName} course. Each question includes a detailed clinical vignette and a comprehensive answer that serves as a rubric, outlining all expected points for a thorough response."
+          if (currentTab === 'essay-questions') {
+            prompt = `Generate 5 high-quality, long-form clinical essay questions based on the following topic:\nTopic: ${topicName}\nCourse Context: ${courseName}\n
+            CRITICAL INSTRUCTION: You MUST completely replace "I" with "our team of Experts" when introducing yourself. You MUST begin your response exactly with the following paragraph (filling in the topic and course names):
+            
+            "As an expert medical professor and author, our team of Experts have crafted 5 high-quality, long-form clinical essay questions focusing on ${topicName} for your ${courseName} course. Each question includes a detailed clinical vignette and a comprehensive answer that serves as a rubric, outlining all expected points for a thorough response."
 
-          CRITICAL INSTRUCTION 2: You MUST output the actual Question AND its detailed Answer together. Do not just output an answer outline without the question.
+            CRITICAL INSTRUCTION 2: You MUST output the actual Question AND its detailed Answer together. Do not just output an answer outline without the question.
 
-          Format for each of the 5 questions:
-          
-          **Question [Number]:**
-          [Provide a detailed clinical vignette or the full text of the essay question here]
-          
-          **Detailed Answer & Rubric:**
-          [Provide the full, comprehensive answer here, including any expected bullet points, pathophysiology, diagnosis, and treatment steps the student should cover]`;
-        } else if (currentTab === 'mcq-questions') {
-          prompt = `Generate 10 multiple-choice questions (MCQs) for medical students on the following topic:\nTopic: ${topicName}\nCourse Context: ${courseName}\n
-          CRITICAL INSTRUCTION: You MUST output the original Question text, all options, and the Correct Answer together.
+            Format for each of the 5 questions:
+            
+            **Question [Number]:**
+            [Provide a detailed clinical vignette or the full text of the essay question here]
+            
+            **Detailed Answer & Rubric:**
+            [Provide the full, comprehensive answer here, including any expected bullet points, pathophysiology, diagnosis, and treatment steps the student should cover]`;
+          } else if (currentTab === 'mcq-questions') {
+            prompt = `Generate 10 multiple-choice questions (MCQs) for medical students on the following topic:\nTopic: ${topicName}\nCourse Context: ${courseName}\n
+            CRITICAL INSTRUCTION: You MUST output the original Question text, all options, and the Correct Answer together.
 
-          Format each question as:
-          
-          **Q[Number]: [Question text, typically a short clinical vignette]**
-          A) [Option A]
-          B) [Option B]
-          C) [Option C]
-          D) [Option D]
-          
-          **Correct Answer:** [Letter]
-          **Explanation:** [Brief explanation of why it's correct and why others are incorrect]`;
-        } else if (currentTab === 'flash-cards') {
-          prompt = `Generate 10 spaced-repetition flashcards on the following topic:\nTopic: ${topicName}\nCourse Context: ${courseName}\n
-          Format each flashcard as:
-          Front (Question): [Recall question]
-          Back (Answer): [Concise answer]`;
-        }
+            Format each question as:
+            
+            **Q[Number]: [Question text, typically a short clinical vignette]**
+            A) [Option A]
+            B) [Option B]
+            C) [Option C]
+            D) [Option D]
+            
+            **Correct Answer:** [Letter]
+            **Explanation:** [Brief explanation of why it's correct and why others are incorrect]`;
+          } else if (currentTab === 'flash-cards') {
+            prompt = `Generate 10 spaced-repetition flashcards on the following topic:\nTopic: ${topicName}\nCourse Context: ${courseName}\n
+            Format each flashcard as:
+            Front (Question): [Recall question]
+            Back (Answer): [Concise answer]`;
+          }
 
-        const content = await generateMedicalContent(prompt, "You are an expert medical professor and author generating authoritative clinical content for a Learning Management System.", "text/plain", false, cpRole);
-        
-        // Use the captured currentTab to write to the CORRECT content field
-        for (const c of updatedCurriculum) {
-          for (const p of c.papers) {
-            for (const s of p.sections) {
-              const t = s.topics.find((x: any) => x.id === topicId);
-              if (t) {
-                if (currentTab === 'lms-notes') t.generatedContent = content;
-                else if (currentTab === 'essay-questions') t.generatedEssayContent = content;
-                else if (currentTab === 'mcq-questions') t.generatedMcqContent = content;
-                else if (currentTab === 'flash-cards') t.generatedFlashCardsContent = content;
+          console.log(`🔄 Generating ${currentTab} for topic: ${topicName} (role: ${cpRole})`);
+          const content = await generateMedicalContent(prompt, "You are an expert medical professor and author generating authoritative clinical content for a Learning Management System.", "text/plain", false, cpRole);
+          console.log(`✅ Generated ${currentTab} for topic: ${topicName}, length: ${content?.length || 0}`);
+          
+          // Use the captured currentTab to write to the CORRECT content field
+          for (const c of updatedCurriculum) {
+            for (const p of c.papers) {
+              for (const s of p.sections) {
+                const t = s.topics.find((x: any) => x.id === topicId);
+                if (t) {
+                  if (currentTab === 'lms-notes') t.generatedContent = content;
+                  else if (currentTab === 'essay-questions') t.generatedEssayContent = content;
+                  else if (currentTab === 'mcq-questions') t.generatedMcqContent = content;
+                  else if (currentTab === 'flash-cards') t.generatedFlashCardsContent = content;
+                }
               }
             }
           }
+          successCount++;
+        } catch (topicErr: any) {
+          console.error(`❌ Failed to generate for topic "${topicName}":`, topicErr);
+          failedTopics.push(topicName);
+          lastError = topicErr?.message || String(topicErr);
         }
       }
+      
       setCurriculum(updatedCurriculum);
       
       // Explicitly save to database immediately (don't rely solely on debounced auto-save)
@@ -15739,10 +15752,16 @@ Return ONLY the JSON object, no extra text.`;
       else if (currentTab === 'mcq-questions') setActiveTab('mcq-questions-editor');
       else if (currentTab === 'flash-cards') setActiveTab('flash-cards-editor');
 
-      alert("Successfully auto-generated content! You are now in the Editor.");
-    } catch (e) {
-      console.error(e);
-      alert("Error generating content.");
+      if (failedTopics.length > 0 && successCount > 0) {
+        alert(`Partially generated! ${successCount} topic(s) succeeded, ${failedTopics.length} failed:\n${failedTopics.join(', ')}\n\nError: ${lastError}`);
+      } else if (failedTopics.length > 0 && successCount === 0) {
+        alert(`Error generating content for all topics.\n\nError: ${lastError}`);
+      } else {
+        alert("Successfully auto-generated content! You are now in the Editor.");
+      }
+    } catch (e: any) {
+      console.error('❌ LMS generation fatal error:', e);
+      alert(`Error generating content.\n\nDetails: ${e?.message || String(e)}`);
     } finally {
       setIsGeneratingLMS(false);
     }

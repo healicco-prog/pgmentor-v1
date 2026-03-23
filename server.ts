@@ -1077,6 +1077,188 @@ async function startServer() {
     }
   });
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SERVER-SIDE SIGNUP — Uses Admin API to bypass Supabase email rate limits
+  // Creates user via admin API (no automatic confirmation email from Supabase)
+  // Then sends custom verification email via Resend
+  // ═══════════════════════════════════════════════════════════════════════════
+  app.post("/api/auth/signup", async (req, res) => {
+    const { email, password, fullName, mobile, profession, specialty, selectedCourse,
+            qualification, currentStage, country, state, city, disclaimerAccepted,
+            refReferrerId, refCode } = req.body;
+
+    if (!email || !password || !fullName) {
+      return res.status(400).json({ error: "Email, password, and full name are required" });
+    }
+    if (!validateEmail(email)) return res.status(400).json({ error: "Invalid email format" });
+    if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+    if (password.length > 128) return res.status(400).json({ error: "Password is too long" });
+
+    // Rate limit registration: 5 per IP per hour
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    if (rateLimit(`signup:${clientIp}`, 5, 60 * 60 * 1000)) {
+      return res.status(429).json({ error: "Too many registration attempts. Please try again later." });
+    }
+
+    try {
+      // 1. Create auth user via ADMIN API — does NOT send Supabase confirmation email
+      //    This avoids the "email rate limit exceeded" error
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: false, // Do NOT auto-confirm — require our custom verification
+        user_metadata: { full_name: fullName }
+      });
+
+      if (authError) {
+        // Handle duplicate user error gracefully
+        if (authError.message.includes('already') || authError.message.includes('duplicate') || authError.message.includes('exists')) {
+          return res.status(409).json({ error: "An account with this email already exists. Please sign in instead." });
+        }
+        console.error("❌ Admin createUser error:", authError.message);
+        return res.status(400).json({ error: authError.message });
+      }
+
+      const userId = authData.user?.id;
+      if (!userId) {
+        return res.status(500).json({ error: "Failed to create user account" });
+      }
+
+      console.log(`✅ User created via admin API: ${email} (${userId})`);
+
+      // 2. Create user profile (bypasses RLS)
+      try {
+        await supabaseAdmin.from("user_profiles").upsert({
+          user_id: userId,
+          full_name: validateString(fullName, 'fullName', 200),
+          mobile: validateString(mobile, 'mobile', 20),
+          profession: validateString(profession, 'profession', 100),
+          specialty: validateString(specialty, 'specialty', 100),
+          selected_course: selectedCourse || null,
+          highest_qualification: validateString(qualification, 'qualification', 200),
+          current_stage: currentStage || 'studying',
+          country: validateString(country, 'country', 100),
+          state: validateString(state, 'state', 100),
+          city: validateString(city, 'city', 100),
+          account_status: 'active',
+          email_verified: false,
+          disclaimer_accepted: disclaimerAccepted || false,
+          terms_accepted: true,
+        }, { onConflict: 'user_id' });
+      } catch (profileErr: any) {
+        console.error("⚠️ Profile creation warning:", profileErr.message);
+      }
+
+      // 3. Create trial subscription
+      try {
+        await supabaseAdmin.from("subscriptions").upsert({
+          user_id: userId,
+          plan_id: 'trial',
+          status: 'active',
+          is_trial: true,
+          trial_start_date: new Date().toISOString(),
+          trial_end_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+          start_date: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+        console.log(`✅ Trial subscription created for ${userId}`);
+      } catch (subErr: any) {
+        console.error("⚠️ Subscription creation warning:", subErr.message);
+      }
+
+      // 4. Generate referral code
+      try {
+        const { data: existingRef } = await supabaseAdmin
+          .from("referrals")
+          .select("referral_code")
+          .eq("user_id", userId)
+          .single();
+        if (!existingRef) {
+          const code = fullName.replace(/[^A-Za-z]/g, '').slice(0, 4).toUpperCase() +
+                       Math.random().toString(36).slice(2, 6).toUpperCase();
+          await supabaseAdmin.from("referrals").insert({
+            user_id: userId,
+            referral_code: code,
+          });
+        }
+      } catch {}
+
+      // 5. Record referral if they came via a referral link
+      if (refReferrerId && refCode) {
+        try {
+          await supabaseAdmin.from("referral_records").insert({
+            referrer_user_id: refReferrerId,
+            referred_user_id: userId,
+            referral_code: refCode,
+            referred_user_email: email,
+          });
+        } catch (refErr: any) {
+          console.error("⚠️ Referral record warning:", refErr.message);
+        }
+      }
+
+      // 6. Send verification email via Resend (NOT Supabase's built-in email)
+      let verificationSent = false;
+      if (resend) {
+        try {
+          const verifyToken = crypto.randomBytes(32).toString('hex');
+          const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+          verificationTokenStore.set(verifyToken, { email, userId, expiresAt });
+          
+          const verifyUrl = `${APP_URL}/api/auth/verify-email?token=${verifyToken}`;
+          const userName = escapeHtml(fullName || "Doctor");
+          
+          await resend.emails.send({
+            from: EMAIL_FROM,
+            to: [email],
+            subject: `Verify your email – Medimentr`,
+            html: emailWrapper("Verify Your Email", `
+              <h2 style="color:#0f172a;font-size:22px;margin:0 0 16px 0;">Verify Your Email Address ✉️</h2>
+              <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 20px 0;">
+                Hi <strong>${userName}</strong>, thank you for creating a Medimentr account! 
+                Please verify your email address to activate your account and start your learning journey.
+              </p>
+              
+              <div style="text-align:center;margin:32px 0;">
+                <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:16px 48px;border-radius:12px;font-weight:700;font-size:16px;box-shadow:0 4px 14px rgba(16,185,129,0.3);">
+                  ✅ Verify My Email
+                </a>
+              </div>
+              
+              <div style="background:#f1f5f9;border-radius:12px;padding:16px 20px;margin:0 0 24px 0;">
+                <p style="color:#64748b;font-size:13px;margin:0 0 8px 0;">Or copy and paste this link in your browser:</p>
+                <p style="color:#3b82f6;font-size:12px;margin:0;word-break:break-all;">${verifyUrl}</p>
+              </div>
+              
+              <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:16px 20px;margin:0 0 20px 0;">
+                <p style="color:#92400e;font-size:13px;margin:0;line-height:1.5;">
+                  ⚠️ This link expires in <strong>24 hours</strong>. If you didn't create an account, please ignore this email.
+                </p>
+              </div>
+              
+              <p style="color:#94a3b8;font-size:13px;margin:0;text-align:center;">
+                Once verified, you can sign in and start exploring Medimentr's AI-powered medical education tools.
+              </p>
+            `)
+          });
+          verificationSent = true;
+          console.log(`📧 Verification email sent to: ${email}`);
+        } catch (emailErr: any) {
+          console.error("⚠️ Verification email failed:", emailErr.message);
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        userId, 
+        verificationSent,
+        message: "Account created successfully. Please check your email to verify your account."
+      });
+    } catch (error: any) {
+      console.error("❌ Signup failed:", error.message);
+      res.status(500).json({ error: "An unexpected error occurred. Please try again." });
+    }
+  });
+
   app.post("/api/auth/register", async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: "Email and password are required" });

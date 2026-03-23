@@ -392,106 +392,51 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
     setError('');
     setLoading(true);
     try {
-      // 1. Create auth user (do NOT auto-confirm — require email verification)
-      const { data, error: signUpErr } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName } }
+      // Create account via server-side API (uses admin API to avoid Supabase email rate limits)
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName,
+          mobile,
+          profession,
+          specialty,
+          selectedCourse: selectedCourse || null,
+          qualification,
+          currentStage,
+          country,
+          state,
+          city,
+          disclaimerAccepted,
+          refReferrerId,
+          refCode,
+        })
       });
-      if (signUpErr) { setError(signUpErr.message); return; }
 
-      const userId = data.user?.id;
-      if (userId) {
-        // 2. Insert user_profile (via server API to bypass RLS)
-        try {
-          await fetch('/api/user/profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              user_id: userId,
-              full_name: fullName,
-              mobile,
-              profession,
-              specialty,
-              selected_course: selectedCourse || null,
-              highest_qualification: qualification,
-              current_stage: currentStage,
-              country,
-              state,
-              city,
-              account_status: 'active',
-              email_verified: false,
-              disclaimer_accepted: disclaimerAccepted,
-              terms_accepted: true,
-            })
-          });
-        } catch (profileErr) {
-          console.error('Failed to create user profile:', profileErr);
+      const data = await res.json();
+
+      if (!res.ok) {
+        // Show user-friendly error messages
+        if (res.status === 409) {
+          setError('An account with this email already exists. Please sign in instead.');
+        } else if (res.status === 429) {
+          setError('Too many registration attempts. Please wait a few minutes and try again.');
+        } else {
+          setError(data.error || 'Failed to create account. Please try again.');
         }
-
-        // 3. Assign free trial subscription (via server API to bypass RLS)
-        try {
-          const subRes = await fetch('/api/user/subscription', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId,
-              planId: 'trial',
-              isTrial: true,
-              trialStartDate: new Date().toISOString(),
-              trialEndDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-            })
-          });
-          if (!subRes.ok) {
-            console.error('Subscription API error:', await subRes.text());
-          } else {
-            console.log('✅ Trial subscription created via server API');
-          }
-        } catch (subErr) {
-          console.error('Failed to create trial subscription:', subErr);
-        }
-
-        // 4. Generate referral code for the new user
-        try {
-          const codeRes = await fetch(`/api/referral/stats/${userId}`);
-          await codeRes.json(); // This auto-generates a code if missing
-        } catch {} 
-
-        // 5. Record referral if they came via a referral link
-        if (refReferrerId && refCode) {
-          fetch('/api/referral/record', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              referrer_user_id: refReferrerId,
-              referred_user_id: userId,
-              referral_code: refCode,
-              referred_user_email: email
-            })
-          }).catch(err => console.error('Referral record failed:', err));
-        }
-
-        // 6. Send verification email (instead of welcome — verify first!)
-        try {
-          await fetch('/api/auth/send-verification-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, name: fullName, userId })
-          });
-        } catch (emailErr) {
-          console.error('Verification email failed:', emailErr);
-        }
-
-        // Sign out the user — they must verify email first
-        await supabase.auth.signOut();
+        return;
       }
+
+      const userId = data.userId;
 
       // Save course to localStorage for later use
       if (selectedCourse) {
         localStorage.setItem('medimentr_selected_course', selectedCourse);
       }
 
-      // Show verification screen instead of auto sign-in
+      // Show verification screen
       setVerificationEmail(email);
       setVerificationName(fullName);
       setVerificationUserId(userId || '');

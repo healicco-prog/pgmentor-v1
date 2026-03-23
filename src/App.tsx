@@ -15613,6 +15613,34 @@ Return ONLY the JSON object, no extra text.`;
     const currentGenCourseId = genCourseId;
     const currentGenPaperId = genPaperId;
     const currentGenSectionId = genSectionId;
+
+    // --- Overwrite Confirmation: Check if any selected topic already has content ---
+    const contentKeyForTab = currentTab === 'lms-notes' ? 'generatedContent'
+      : currentTab === 'essay-questions' ? 'generatedEssayContent'
+      : currentTab === 'mcq-questions' ? 'generatedMcqContent'
+      : 'generatedFlashCardsContent';
+    const topicsWithExistingContent: string[] = [];
+    for (const topicId of selectedTopics) {
+      for (const c of curriculum) {
+        if (!c.papers) continue;
+        for (const p of c.papers) {
+          if (!p.sections) continue;
+          for (const s of p.sections) {
+            if (!s.topics) continue;
+            const t = s.topics.find((x: any) => x.id === topicId);
+            if (t && t[contentKeyForTab]) {
+              topicsWithExistingContent.push(t.name);
+            }
+          }
+        }
+      }
+    }
+    if (topicsWithExistingContent.length > 0) {
+      const proceed = window.confirm(
+        `Content already exists for ${topicsWithExistingContent.length} topic(s):\n${topicsWithExistingContent.join(', ')}\n\nDo you want to overwrite the existing content?`
+      );
+      if (!proceed) return;
+    }
     
     setIsGeneratingLMS(true);
     let updatedCurriculum = JSON.parse(JSON.stringify(curriculum));
@@ -15715,16 +15743,44 @@ Return ONLY the JSON object, no extra text.`;
         }
       }
       
+      // Log what was attached to verify content was stored properly
+      let attachedCount = 0;
+      const contentKey = currentTab === 'lms-notes' ? 'generatedContent'
+        : currentTab === 'essay-questions' ? 'generatedEssayContent'
+        : currentTab === 'mcq-questions' ? 'generatedMcqContent'
+        : 'generatedFlashCardsContent';
+      for (const c of updatedCurriculum) {
+        if (!c.papers) continue;
+        for (const p of c.papers) {
+          if (!p.sections) continue;
+          for (const s of p.sections) {
+            if (!s.topics) continue;
+            for (const t of s.topics) {
+              if (t[contentKey] && selectedTopics.includes(t.id)) {
+                attachedCount++;
+                console.log(`📝 Content attached to topic "${t.name}": ${String(t[contentKey]).substring(0, 100)}...`);
+              }
+            }
+          }
+        }
+      }
+      console.log(`📊 Total topics with content attached: ${attachedCount}/${selectedTopics.length} (tab: ${currentTab}, key: ${contentKey})`);
+
       setCurriculum(updatedCurriculum);
       
       // Explicitly save to database immediately (don't rely solely on debounced auto-save)
       try {
-        await fetch('/api/state/curriculum', {
+        const saveRes = await fetch('/api/state/curriculum', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: 'default', data: updatedCurriculum })
         });
-        console.log('✅ Curriculum saved to database after LMS generation');
+        const saveResult = await saveRes.json();
+        if (saveRes.ok) {
+          console.log('✅ Curriculum saved to database after LMS generation', saveResult);
+        } else {
+          console.error('❌ Save returned error:', saveRes.status, saveResult);
+        }
       } catch (saveErr) {
         console.error('⚠️ Failed to save curriculum after generation:', saveErr);
       }

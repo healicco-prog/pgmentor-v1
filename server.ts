@@ -1556,7 +1556,7 @@ async function startServer() {
   // Curriculum State
   app.get("/api/state/curriculum/:userId", async (req, res) => {
     try {
-      const { data, error } = await supabase.from('user_curriculum')
+      const { data, error } = await supabaseAdmin.from('user_curriculum')
         .select('*').eq('user_id', req.params.userId).single();
       
       if (error && error.code !== 'PGRST116') throw error; // ignore no-row error
@@ -1569,14 +1569,20 @@ async function startServer() {
   app.post("/api/state/curriculum", async (req, res) => {
     try {
       const { user_id, data } = req.body;
-      const { error } = await supabase.from('user_curriculum').upsert({
+      console.log(`📥 Saving curriculum for user: ${user_id || 'default'}, data length: ${JSON.stringify(data).length}, has essay: ${JSON.stringify(data).includes('generatedEssayContent')}`);
+      const { error } = await supabaseAdmin.from('user_curriculum').upsert({
         user_id: user_id || 'default',
         data,
         updated_at: new Date().toISOString()
       });
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Curriculum save error:', error);
+        throw error;
+      }
+      console.log('✅ Curriculum saved successfully');
       res.json({ success: true });
     } catch (error: any) {
+      console.error('❌ Curriculum save exception:', error.message);
       res.status(500).json({ error: error.message });
     }
   });

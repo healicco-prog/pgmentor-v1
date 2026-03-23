@@ -382,6 +382,20 @@ const UserDetailModal = ({ user, plans, onClose, onUpdate }: {
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
+// Helper: fetch with admin auth token
+const adminFetch = async (url: string) => {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+};
+
 export const UserManagementSystem: React.FC = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -406,13 +420,12 @@ export const UserManagementSystem: React.FC = () => {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      // Use server-side admin routes that bypass RLS
       const [profilesRes, subsRes, overridesRes, usageRes, policiesRes] = await Promise.all([
-        fetch('/api/admin/all-users').then(r => r.json()),
-        fetch('/api/admin/all-subscriptions').then(r => r.json()),
-        fetch('/api/admin/all-token-overrides').then(r => r.json()),
-        fetch('/api/admin/token-usage-summary').then(r => r.json()),
-        fetch('/api/admin/all-token-policies').then(r => r.json()),
+        adminFetch('/api/admin/all-users'),
+        adminFetch('/api/admin/all-subscriptions'),
+        adminFetch('/api/admin/all-token-overrides'),
+        adminFetch('/api/admin/token-usage-summary'),
+        adminFetch('/api/admin/all-token-policies'),
       ]);
 
       const profiles = profilesRes || [];
@@ -438,7 +451,7 @@ export const UserManagementSystem: React.FC = () => {
         const tokenLimit = overrideByUser[p.user_id] ?? planLimit;
         return {
           id: p.user_id,
-          email: p.email || p.user_id, // email now comes from auth.users via RPC
+          email: p.email || p.user_id,
           created_at: p.created_at,
           profile: p,
           subscription: sub,
@@ -456,7 +469,7 @@ export const UserManagementSystem: React.FC = () => {
 
   const fetchPlans = useCallback(async () => {
     try {
-      const data = await fetch('/api/admin/all-plans').then(r => r.json());
+      const data = await adminFetch('/api/admin/all-plans');
       setPlans(data || []);
     } catch (err) {
       console.error("Failed to fetch plans:", err);
@@ -465,7 +478,7 @@ export const UserManagementSystem: React.FC = () => {
 
   const fetchTokenPolicies = useCallback(async () => {
     try {
-      const data = await fetch('/api/admin/all-token-policies').then(r => r.json());
+      const data = await adminFetch('/api/admin/all-token-policies');
       setTokenPolicies(data || []);
       const edited: Record<string, number> = {};
       (data || []).forEach((p: any) => { edited[p.plan_id] = p.plan_id === 'trial' ? p.trial_tokens : p.monthly_tokens; });
@@ -477,7 +490,7 @@ export const UserManagementSystem: React.FC = () => {
 
   const fetchAuditLogs = useCallback(async () => {
     try {
-      const data = await fetch('/api/admin/audit-logs').then(r => r.json());
+      const data = await adminFetch('/api/admin/audit-logs');
       setAuditLogs(data || []);
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
@@ -486,7 +499,7 @@ export const UserManagementSystem: React.FC = () => {
 
   const fetchSubscriptions = useCallback(async () => {
     try {
-      const data = await fetch('/api/admin/all-subscriptions').then(r => r.json());
+      const data = await adminFetch('/api/admin/all-subscriptions');
       setSubscriptions(data || []);
     } catch (err) {
       console.error("Failed to fetch subscriptions:", err);

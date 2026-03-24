@@ -15609,6 +15609,7 @@ Return ONLY the JSON object, no extra text.`;
     
     // CRITICAL: Capture activeTab at function call time to avoid stale closure issues during async operations
     const currentTab = activeTab;
+    console.log(`🎯 handleGenerateLMSNotes called. activeTab="${activeTab}", currentTab="${currentTab}", selectedTopics=${selectedTopics.length}`);
     // Also capture the current generation context IDs
     const currentGenCourseId = genCourseId;
     const currentGenPaperId = genPaperId;
@@ -15731,6 +15732,8 @@ Return ONLY the JSON object, no extra text.`;
                   else if (currentTab === 'essay-questions') t.generatedEssayContent = content;
                   else if (currentTab === 'mcq-questions') t.generatedMcqContent = content;
                   else if (currentTab === 'flash-cards') t.generatedFlashCardsContent = content;
+                  else console.error(`⚠️ UNKNOWN currentTab="${currentTab}" — content NOT saved to any field!`);
+                  console.log(`✏️ Wrote content to field for currentTab="${currentTab}" on topic "${topicName}" (id: ${topicId}), hasNotes=${!!t.generatedContent}, hasEssay=${!!t.generatedEssayContent}, hasMcq=${!!t.generatedMcqContent}, hasFlash=${!!t.generatedFlashCardsContent}`);
                 }
               }
             }

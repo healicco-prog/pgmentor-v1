@@ -1569,7 +1569,8 @@ async function startServer() {
   app.post("/api/state/curriculum", async (req, res) => {
     try {
       const { user_id, data } = req.body;
-      console.log(`📥 Saving curriculum for user: ${user_id || 'default'}, data length: ${JSON.stringify(data).length}, has essay: ${JSON.stringify(data).includes('generatedEssayContent')}`);
+      const dataStr = JSON.stringify(data);
+      console.log(`📥 Saving curriculum for user: ${user_id || 'default'}, data length: ${dataStr.length}, hasNotes: ${dataStr.includes('generatedContent')}, hasEssay: ${dataStr.includes('generatedEssayContent')}, hasMcq: ${dataStr.includes('generatedMcqContent')}, hasFlash: ${dataStr.includes('generatedFlashCardsContent')}`);
       const { error } = await supabaseAdmin.from('user_curriculum').upsert({
         user_id: user_id || 'default',
         data,

@@ -382,18 +382,11 @@ const UserDetailModal = ({ user, plans, onClose, onUpdate }: {
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-// Helper: fetch with admin auth token
-const adminFetch = async (url: string) => {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-  const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `HTTP ${res.status}`);
-  }
-  return res.json();
+// Helper: call Supabase RPC directly (SECURITY DEFINER functions bypass RLS)
+const adminRpc = async (fnName: string) => {
+  const { data, error } = await supabase.rpc(fnName);
+  if (error) throw new Error(`RPC ${fnName}: ${error.message}`);
+  return data || [];
 };
 
 export const UserManagementSystem: React.FC = () => {
@@ -421,11 +414,11 @@ export const UserManagementSystem: React.FC = () => {
     setLoading(true);
     try {
       const [profilesRes, subsRes, overridesRes, usageRes, policiesRes] = await Promise.all([
-        adminFetch('/api/admin/all-users'),
-        adminFetch('/api/admin/all-subscriptions'),
-        adminFetch('/api/admin/all-token-overrides'),
-        adminFetch('/api/admin/token-usage-summary'),
-        adminFetch('/api/admin/all-token-policies'),
+        adminRpc('admin_get_all_users'),
+        adminRpc('admin_get_all_subscriptions'),
+        adminRpc('admin_get_all_token_overrides'),
+        adminRpc('admin_get_token_usage_summary'),
+        adminRpc('admin_get_token_policies'),
       ]);
 
       const profiles = profilesRes || [];
@@ -469,7 +462,7 @@ export const UserManagementSystem: React.FC = () => {
 
   const fetchPlans = useCallback(async () => {
     try {
-      const data = await adminFetch('/api/admin/all-plans');
+      const data = await adminRpc('admin_get_all_plans');
       setPlans(data || []);
     } catch (err) {
       console.error("Failed to fetch plans:", err);
@@ -478,7 +471,7 @@ export const UserManagementSystem: React.FC = () => {
 
   const fetchTokenPolicies = useCallback(async () => {
     try {
-      const data = await adminFetch('/api/admin/all-token-policies');
+      const data = await adminRpc('admin_get_token_policies');
       setTokenPolicies(data || []);
       const edited: Record<string, number> = {};
       (data || []).forEach((p: any) => { edited[p.plan_id] = p.plan_id === 'trial' ? p.trial_tokens : p.monthly_tokens; });
@@ -490,7 +483,7 @@ export const UserManagementSystem: React.FC = () => {
 
   const fetchAuditLogs = useCallback(async () => {
     try {
-      const data = await adminFetch('/api/admin/audit-logs');
+      const data = await adminRpc('admin_get_audit_logs');
       setAuditLogs(data || []);
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
@@ -499,7 +492,7 @@ export const UserManagementSystem: React.FC = () => {
 
   const fetchSubscriptions = useCallback(async () => {
     try {
-      const data = await adminFetch('/api/admin/all-subscriptions');
+      const data = await adminRpc('admin_get_all_subscriptions');
       setSubscriptions(data || []);
     } catch (err) {
       console.error("Failed to fetch subscriptions:", err);

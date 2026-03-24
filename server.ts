@@ -441,23 +441,31 @@ async function startServer() {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.warn("⚠️ Admin auth: No Authorization header");
         return res.status(401).json({ error: 'Authentication required' });
       }
       const token = authHeader.split(' ')[1];
       // Verify the token with Supabase Auth
       const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
       if (error || !user) {
+        console.warn("⚠️ Admin auth: Invalid token -", error?.message);
         return res.status(401).json({ error: 'Invalid or expired token' });
       }
-      // Check if user has admin role in user_profiles or users table
-      const { data: profile } = await supabaseAdmin
+      // Check if user has admin role in users table
+      const { data: profile, error: profileError } = await supabaseAdmin
         .from('users')
         .select('role')
         .eq('email', user.email)
         .single();
-      if (!profile || profile.role !== 'admin') {
+      if (profileError) {
+        console.error("❌ Admin auth: DB lookup failed for", user.email, "-", profileError.message);
+      }
+      const ADMIN_ROLES = ['admin', 'super_admin'];
+      if (!profile || !ADMIN_ROLES.includes(profile.role)) {
+        console.warn(`⚠️ Admin auth: Access denied for ${user.email} (role: ${profile?.role || 'not found'})`);
         return res.status(403).json({ error: 'Admin access required' });
       }
+      console.log(`✅ Admin auth: ${user.email} (role: ${profile.role})`);
       (req as any).adminUser = user;
       next();
     } catch (err: any) {

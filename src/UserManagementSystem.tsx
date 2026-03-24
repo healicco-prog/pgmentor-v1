@@ -389,6 +389,189 @@ const adminRpc = async (fnName: string) => {
   return data || [];
 };
 
+// ─── Inline Edit Modal ────────────────────────────────────────────────────────
+
+const InlineEditModal = ({ user, plans, onClose, onSave }: {
+  user: UserRow; plans: Plan[]; onClose: () => void; onSave: () => void;
+}) => {
+  const [plan, setPlan] = useState(user.subscription?.plan_id || 'trial');
+  const [status, setStatus] = useState(user.profile?.account_status || 'active');
+  const [specialty, setSpecialty] = useState(user.profile?.specialty || '');
+  const [tokenLimit, setTokenLimit] = useState(user.token_limit);
+  const [overrideReason, setOverrideReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const hasChanges = plan !== (user.subscription?.plan_id || 'trial') ||
+    status !== (user.profile?.account_status || 'active') ||
+    specialty !== (user.profile?.specialty || '') ||
+    tokenLimit !== user.token_limit;
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      // Plan change
+      if (plan !== (user.subscription?.plan_id || 'trial')) {
+        await supabase.from('subscriptions').upsert({ user_id: user.id, plan_id: plan, status: 'active', is_trial: plan === 'trial' });
+        await supabase.from('admin_audit_logs').insert({ action_type: 'plan_change', performed_by: 'Super Admin', target_user_id: user.id, target_user_email: user.email, details: { old_plan: user.subscription?.plan_id, new_plan: plan } });
+      }
+      // Status change
+      if (status !== (user.profile?.account_status || 'active')) {
+        await supabase.from('user_profiles').update({ account_status: status }).eq('user_id', user.id);
+        await supabase.from('admin_audit_logs').insert({ action_type: 'status_change', performed_by: 'Super Admin', target_user_id: user.id, target_user_email: user.email, details: { old_status: user.profile?.account_status, new_status: status } });
+      }
+      // Specialty change
+      if (specialty !== (user.profile?.specialty || '')) {
+        await supabase.from('user_profiles').update({ specialty }).eq('user_id', user.id);
+        await supabase.from('admin_audit_logs').insert({ action_type: 'profile_update', performed_by: 'Super Admin', target_user_id: user.id, target_user_email: user.email, details: { field: 'specialty', old: user.profile?.specialty, new: specialty } });
+      }
+      // Token limit override
+      if (tokenLimit !== user.token_limit) {
+        await supabase.from('user_token_overrides').upsert({ user_id: user.id, token_limit: tokenLimit, override_reason: overrideReason || 'Admin adjustment', overridden_by: 'Super Admin', is_active: true });
+        await supabase.from('admin_audit_logs').insert({ action_type: 'token_override', performed_by: 'Super Admin', target_user_id: user.id, target_user_email: user.email, details: { old_limit: user.token_limit, new_limit: tokenLimit, reason: overrideReason } });
+      }
+      setToast('Changes saved successfully!');
+      setTimeout(() => { onSave(); }, 800);
+    } catch (err: any) {
+      console.error('Save error:', err);
+      setToast('Error saving changes');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const SPECIALTIES = [
+    'Anatomy', 'Physiology', 'Biochemistry', 'Pathology', 'Pharmacology',
+    'Microbiology', 'Forensic Medicine', 'Community Medicine', 'ENT',
+    'Ophthalmology', 'Medicine', 'Surgery', 'Obstetrics & Gynecology',
+    'Pediatrics', 'Orthopedics', 'Radiology', 'Anesthesiology',
+    'Dermatology', 'Psychiatry', 'Dental', 'Nursing', 'Physiotherapy', 'Other'
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow">
+              {(user.profile?.full_name || user.email || 'U')[0].toUpperCase()}
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">{user.profile?.full_name || 'Unknown'}</h2>
+              <p className="text-xs text-slate-400">{user.email}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 text-slate-400"><X size={18} /></button>
+        </div>
+
+        {/* Toast */}
+        {toast && (
+          <div className={`mx-5 mt-4 px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 ${toast.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
+            {toast.includes('Error') ? <XCircle size={15} /> : <CheckCircle size={15} />}
+            {toast}
+          </div>
+        )}
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {/* Plan */}
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Subscription Plan</label>
+            <div className="grid grid-cols-5 gap-1.5">
+              {plans.map(p => {
+                const c = PLAN_COLORS[p.id] || PLAN_COLORS.trial;
+                return (
+                  <button key={p.id} onClick={() => setPlan(p.id)}
+                    className={`p-2.5 rounded-xl border-2 text-center transition-all ${plan === p.id ? 'shadow-md' : 'opacity-70 hover:opacity-100'}`}
+                    style={{ borderColor: plan === p.id ? c.text : '#e2e8f0', background: plan === p.id ? c.bg : 'white' }}>
+                    <p className="text-xs font-bold capitalize" style={{ color: c.text }}>{p.id}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{p.price_monthly === 0 ? 'Free' : `₹${p.price_monthly}`}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Account Status</label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {(['active', 'suspended', 'blocked', 'pending'] as const).map(s => {
+                const c = STATUS_COLORS[s];
+                return (
+                  <button key={s} onClick={() => setStatus(s)}
+                    className={`p-2.5 rounded-xl border-2 text-center transition-all capitalize text-xs font-bold ${status === s ? 'shadow-md' : 'opacity-70 hover:opacity-100'}`}
+                    style={{ borderColor: status === s ? c.text : '#e2e8f0', background: status === s ? c.bg : 'white', color: c.text }}>
+                    {s === 'active' && <UserCheck size={13} className="inline mr-1" />}
+                    {s === 'suspended' && <AlertTriangle size={13} className="inline mr-1" />}
+                    {s === 'blocked' && <UserX size={13} className="inline mr-1" />}
+                    {s === 'pending' && <Clock size={13} className="inline mr-1" />}
+                    {s}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Specialty */}
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Specialty</label>
+            <select value={specialty} onChange={e => setSpecialty(e.target.value)}
+              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white">
+              <option value="">— Select Specialty —</option>
+              {SPECIALTIES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
+          {/* Token Limit */}
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Token Limit</label>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setTokenLimit(Math.max(0, tokenLimit - 10000))}
+                className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 text-lg font-bold">−</button>
+              <input type="number" value={tokenLimit} onChange={e => setTokenLimit(Number(e.target.value))}
+                className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 text-center focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              <button onClick={() => setTokenLimit(tokenLimit + 10000)}
+                className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 text-lg font-bold">+</button>
+            </div>
+            <div className="flex gap-2 mt-2">
+              {[50000, 100000, 200000, 500000, 1000000].map(v => (
+                <button key={v} onClick={() => setTokenLimit(v)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${tokenLimit === v ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100'}`}>
+                  {v >= 1000000 ? `${v/1000000}M` : `${v/1000}K`}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2">
+              <p className="text-[11px] text-slate-400 mb-1">Current usage: <span className="font-bold text-slate-600">{user.token_used.toLocaleString()} / {user.token_limit.toLocaleString()}</span></p>
+              <TokenMeter used={user.token_used} total={tokenLimit} size="sm" />
+            </div>
+          </div>
+
+          {/* Override Reason (only show if token limit changed) */}
+          {tokenLimit !== user.token_limit && (
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Override Reason (optional)</label>
+              <input value={overrideReason} onChange={e => setOverrideReason(e.target.value)} placeholder="e.g. Bonus tokens for workshop participation"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-5 border-t border-slate-100 flex items-center justify-between">
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-100 transition-colors">Cancel</button>
+          <button onClick={handleSave} disabled={saving || !hasChanges}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 disabled:opacity-40 transition-colors shadow-sm">
+            <Save size={15} /> {saving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const UserManagementSystem: React.FC = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -401,6 +584,7 @@ export const UserManagementSystem: React.FC = () => {
   const [filterPlan, setFilterPlan] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
+  const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [savingPolicies, setSavingPolicies] = useState(false);
   const [editedPolicies, setEditedPolicies] = useState<Record<string, number>>({});
 
@@ -654,10 +838,16 @@ export const UserManagementSystem: React.FC = () => {
                         {user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}
                       </td>
                       <td className="px-4 py-4">
-                        <button onClick={() => setSelectedUser(user)}
-                          className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors">
-                          <Eye size={15} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setEditingUser(user)} title="Edit user"
+                            className="p-2 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                            <Edit3 size={15} />
+                          </button>
+                          <button onClick={() => setSelectedUser(user)} title="View details"
+                            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors">
+                            <Eye size={15} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -832,6 +1022,16 @@ export const UserManagementSystem: React.FC = () => {
           plans={plans}
           onClose={() => setSelectedUser(null)}
           onUpdate={() => { setSelectedUser(null); fetchUsers(); }}
+        />
+      )}
+
+      {/* Inline Edit Modal */}
+      {editingUser && (
+        <InlineEditModal
+          user={editingUser}
+          plans={plans}
+          onClose={() => setEditingUser(null)}
+          onSave={() => { setEditingUser(null); fetchUsers(); }}
         />
       )}
     </div>

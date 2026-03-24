@@ -1469,13 +1469,16 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
   );
 };
 
-const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPlan = 'trial' }: { onNavigate: (page: string) => void, currentPage?: string, children?: React.ReactNode, curriculum?: any[], userPlan?: string }) => {
+const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPlan = 'trial', authSession }: { onNavigate: (page: string) => void, currentPage?: string, children?: React.ReactNode, curriculum?: any[], userPlan?: string, authSession?: any }) => {
   const [activeCategory, setActiveCategory] = useState("Dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [lockedTooltip, setLockedTooltip] = useState<string | null>(null);
 
   const allowedCategories = PLAN_CATEGORY_ACCESS[userPlan] || PLAN_CATEGORY_ACCESS.free;
   const isCategoryAllowed = (cat: string) => allowedCategories.includes(cat);
+
+  const userName = authSession?.user?.user_metadata?.full_name || authSession?.user?.user_metadata?.name || '';
+  const userEmail = authSession?.user?.email || '';
 
   return (
     <div className="min-h-screen flex bg-slate-950 relative">
@@ -1497,7 +1500,7 @@ const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPl
         className={`fixed md:sticky top-0 left-0 z-50 h-screen w-[280px] md:w-80 border-r border-white/10 bg-slate-900 md:bg-slate-900/50 flex flex-col gap-2 shrink-0 overflow-y-auto transition-transform duration-300 md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="p-6 flex flex-col gap-2">
-          <div className="flex justify-between items-center mb-4 px-4">
+          <div className="flex justify-between items-center mb-2 px-4">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('home')}>
               <img src="/logo.jpg" alt="MediMentr Logo" className="w-8 h-8 object-contain rounded-xl" />
               <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">MediMentr</span>
@@ -1506,6 +1509,20 @@ const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPl
               <X size={20} />
             </button>
           </div>
+          {/* User Info */}
+          {userEmail && (
+            <div className="mx-2 mb-3 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-lg shadow-blue-500/20">
+                  {(userName || userEmail).charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  {userName && <p className="text-[13px] font-semibold text-white truncate leading-tight">{userName}</p>}
+                  <p className="text-[11px] text-slate-400 truncate leading-tight mt-0.5">{userEmail}</p>
+                </div>
+              </div>
+            </div>
+          )}
           {userPlan === 'trial' && (
             <div className="mx-2 mb-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20">
               <div className="flex items-center gap-2">
@@ -17464,7 +17481,7 @@ export default function App() {
             className={isDashboardArea ? 'flex-1 flex flex-col' : ''}
           >
             {isDashboardArea ? (
-              <DashboardLayout onNavigate={handleNavigate} currentPage={currentPage} curriculum={curriculum} userPlan={userPlan}>
+              <DashboardLayout onNavigate={handleNavigate} currentPage={currentPage} curriculum={curriculum} userPlan={userPlan} authSession={authSession}>
                 {currentPage === 'feature-ai-tutor' ? (
                   <AiTutorWelcome onNavigate={handleNavigate} curriculum={curriculum} />
                 ) : currentPage.startsWith('feature-') && (

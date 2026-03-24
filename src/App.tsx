@@ -16453,30 +16453,120 @@ Return ONLY the JSON object, no extra text.`;
                       <div className="space-y-3 pt-2">
                         <div className="flex items-center justify-between ml-1 mb-2">
                           <label className="text-[11px] font-bold text-[#8b5cf6] tracking-widest uppercase">Select Topics to Generate</label>
-                          <button onClick={toggleAllTopics} className="text-[12px] font-bold text-[#4f46e5] hover:text-[#3730a3]">
-                            {selectedTopics.length === genActiveTopics.length && genActiveTopics.length > 0 ? 'deselect all' : 'select all'}
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <button 
+                              onClick={() => {
+                                const contentKey = activeTab === 'lms-notes' ? 'generatedContent'
+                                  : activeTab === 'essay-questions' ? 'generatedEssayContent'
+                                  : activeTab === 'mcq-questions' ? 'generatedMcqContent'
+                                  : 'generatedFlashCardsContent';
+                                const uncreatedIds = genActiveTopics.filter((t: any) => !t[contentKey]).map((t: any) => t.id);
+                                setSelectedTopics(uncreatedIds);
+                              }}
+                              className="text-[11px] font-bold text-[#f59e0b] hover:text-[#d97706] bg-[#fffbeb] px-2 py-1 rounded-lg border border-[#fde68a] transition-colors"
+                            >
+                              select uncreated
+                            </button>
+                            <button onClick={toggleAllTopics} className="text-[12px] font-bold text-[#4f46e5] hover:text-[#3730a3]">
+                              {selectedTopics.length === genActiveTopics.length && genActiveTopics.length > 0 ? 'deselect all' : 'select all'}
+                            </button>
+                          </div>
                         </div>
+
+                        {/* Content Status Summary Bar */}
+                        {genActiveTopics.length > 0 && (() => {
+                          const contentKey = activeTab === 'lms-notes' ? 'generatedContent'
+                            : activeTab === 'essay-questions' ? 'generatedEssayContent'
+                            : activeTab === 'mcq-questions' ? 'generatedMcqContent'
+                            : 'generatedFlashCardsContent';
+                          const createdCount = genActiveTopics.filter((t: any) => t[contentKey]).length;
+                          const pendingCount = genActiveTopics.length - createdCount;
+                          const percentage = Math.round((createdCount / genActiveTopics.length) * 100);
+                          return (
+                            <div className="bg-[#f8fafc] rounded-xl p-3 border border-slate-100 mb-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                  {activeTab === 'lms-notes' ? 'Notes' : activeTab === 'essay-questions' ? 'Essay' : activeTab === 'mcq-questions' ? 'MCQ' : 'Flash Cards'} Progress
+                                </span>
+                                <span className="text-[12px] font-bold text-slate-700">{createdCount}/{genActiveTopics.length} created</span>
+                              </div>
+                              <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full rounded-full transition-all duration-500" 
+                                  style={{ 
+                                    width: `${percentage}%`, 
+                                    background: percentage === 100 ? '#10b981' : percentage > 50 ? '#3b82f6' : '#f59e0b' 
+                                  }} 
+                                />
+                              </div>
+                              <div className="flex items-center gap-4 mt-2">
+                                <span className="flex items-center gap-1 text-[11px] font-medium text-[#10b981]">
+                                  <span className="w-2 h-2 rounded-full bg-[#10b981]"></span> {createdCount} Created
+                                </span>
+                                <span className="flex items-center gap-1 text-[11px] font-medium text-[#f59e0b]">
+                                  <span className="w-2 h-2 rounded-full bg-[#f59e0b]"></span> {pendingCount} Pending
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                         
                         <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2 scrollbar-thin">
                           {genActiveTopics.length === 0 ? (
                             <div className="text-[13px] text-slate-400 italic">No topics found in the selected context.</div>
                           ) : (
-                            genActiveTopics.map(topic => (
-                              <div 
-                                key={topic.id}
-                                onClick={() => toggleTopicSelection(topic.id)}
-                                className={`bg-white border rounded-xl p-4 flex items-center justify-between shadow-[0_2px_4px_rgba(0,0,0,0.01)] transition-all cursor-pointer ${selectedTopics.includes(topic.id) ? 'border-[#10b981]' : 'border-[#e2e8f0] hover:border-[#cbd5e1] opacity-70 hover:opacity-100'}`}
-                              >
-                                <div className="flex items-center gap-4">
-                                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${selectedTopics.includes(topic.id) ? 'bg-[#10b981] border-[#10b981]' : 'border-slate-200'}`}>
-                                    {selectedTopics.includes(topic.id) && <CheckSquare size={14} className="text-white" />}
+                            genActiveTopics.map(topic => {
+                              const hasNotes = !!(topic as any).generatedContent;
+                              const hasEssay = !!(topic as any).generatedEssayContent;
+                              const hasMcq = !!(topic as any).generatedMcqContent;
+                              const hasFlash = !!(topic as any).generatedFlashCardsContent;
+                              const currentContentKey = activeTab === 'lms-notes' ? 'generatedContent'
+                                : activeTab === 'essay-questions' ? 'generatedEssayContent'
+                                : activeTab === 'mcq-questions' ? 'generatedMcqContent'
+                                : 'generatedFlashCardsContent';
+                              const hasCurrentContent = !!(topic as any)[currentContentKey];
+                              const allCreated = hasNotes && hasEssay && hasMcq && hasFlash;
+                              return (
+                                <div 
+                                  key={topic.id}
+                                  onClick={() => toggleTopicSelection(topic.id)}
+                                  className={`bg-white border rounded-xl p-4 flex flex-col gap-2 shadow-[0_2px_4px_rgba(0,0,0,0.01)] transition-all cursor-pointer ${selectedTopics.includes(topic.id) ? 'border-[#10b981]' : hasCurrentContent ? 'border-[#e2e8f0] opacity-80 hover:opacity-100' : 'border-[#fde68a] hover:border-[#f59e0b] opacity-90 hover:opacity-100'}`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0 ${selectedTopics.includes(topic.id) ? 'bg-[#10b981] border-[#10b981]' : 'border-slate-200'}`}>
+                                        {selectedTopics.includes(topic.id) && <CheckSquare size={14} className="text-white" />}
+                                      </div>
+                                      <span className={`font-bold text-[13px] ${selectedTopics.includes(topic.id) ? 'text-[#0f172a]' : 'text-[#334155]'}`}>{topic.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {allCreated ? (
+                                        <span className="flex items-center gap-1 text-[10px] font-bold text-[#10b981] bg-[#ecfdf5] px-2 py-0.5 rounded-full border border-[#d1fae5]">
+                                          <CheckCircle size={12} /> All Done
+                                        </span>
+                                      ) : (
+                                        selectedTopics.includes(topic.id) && <CheckCircle size={18} className="text-[#10b981]" />
+                                      )}
+                                    </div>
                                   </div>
-                                  <span className={`font-bold text-[14px] ${selectedTopics.includes(topic.id) ? 'text-[#0f172a]' : 'text-[#334155]'}`}>{topic.name}</span>
+                                  {/* Content Status Badges */}
+                                  <div className="flex items-center gap-1.5 ml-8">
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${hasNotes ? 'bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]' : 'bg-[#fff7ed] text-[#c2410c] border-[#fed7aa]'}`}>
+                                      {hasNotes ? '✓' : '✗'} Notes
+                                    </span>
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${hasEssay ? 'bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]' : 'bg-[#fff7ed] text-[#c2410c] border-[#fed7aa]'}`}>
+                                      {hasEssay ? '✓' : '✗'} Essay
+                                    </span>
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${hasMcq ? 'bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]' : 'bg-[#fff7ed] text-[#c2410c] border-[#fed7aa]'}`}>
+                                      {hasMcq ? '✓' : '✗'} MCQ
+                                    </span>
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${hasFlash ? 'bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]' : 'bg-[#fff7ed] text-[#c2410c] border-[#fed7aa]'}`}>
+                                      {hasFlash ? '✓' : '✗'} Flash
+                                    </span>
+                                  </div>
                                 </div>
-                                {selectedTopics.includes(topic.id) && <CheckCircle size={20} className="text-[#10b981]" />}
-                              </div>
-                            ))
+                              );
+                            })
                           )}
                         </div>
                       </div>

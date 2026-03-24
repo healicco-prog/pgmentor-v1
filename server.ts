@@ -98,14 +98,11 @@ if (!geminiApiKey) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TIERED AI MODEL SELECTION
-// Super Admin → gemini-3.1-pro-preview (highest quality)
-// Public users / others → gemini-2.5-flash (fast, cost-efficient)
+// AI MODEL SELECTION
+// Using gemini-2.5-flash for all users — high quality + no quota limits
+// (gemini-3.1-pro-preview has a 250 req/day free-tier cap)
 // ═══════════════════════════════════════════════════════════════════════════
 function selectAIModel(userRole?: string): string {
-  if (userRole === 'Super Admin') {
-    return 'gemini-3.1-pro-preview';
-  }
   return 'gemini-2.5-flash';
 }
 

@@ -719,8 +719,30 @@ async function startServer() {
         .single();
 
       if (error || !data) {
-        // No active subscription found
-        return res.json({ plan_id: 'free', is_trial: false, trial_end_date: null, status: 'active' });
+        // No active subscription found — auto-create a 15-day trial
+        console.log(`📋 No subscription for user ${userId}, auto-creating trial...`);
+        const now = new Date();
+        const trialEnd = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000);
+        const trialSub = {
+          user_id: userId,
+          plan_id: 'trial',
+          is_trial: true,
+          trial_start_date: now.toISOString(),
+          trial_end_date: trialEnd.toISOString(),
+          start_date: now.toISOString(),
+          status: 'active'
+        };
+        const { data: newSub, error: insertError } = await supabaseAdmin
+          .from("subscriptions")
+          .insert(trialSub)
+          .select("plan_id, is_trial, trial_end_date, status")
+          .single();
+        if (insertError) {
+          console.error(`❌ Failed to auto-create trial for ${userId}:`, insertError.message);
+          return res.json({ plan_id: 'free', is_trial: false, trial_end_date: null, status: 'active' });
+        }
+        console.log(`✅ Auto-created 15-day trial for user ${userId}`);
+        return res.json(newSub);
       }
 
       // Check if trial has expired

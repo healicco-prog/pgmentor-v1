@@ -1506,6 +1506,15 @@ const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPl
               <X size={20} />
             </button>
           </div>
+          {userPlan === 'trial' && (
+            <div className="mx-2 mb-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20">
+              <div className="flex items-center gap-2">
+                <span className="text-emerald-400 text-xs">🎉</span>
+                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Trial Active</span>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">All features unlocked for 15 days</p>
+            </div>
+          )}
           {CATEGORIES.map(category => {
             const allowed = isCategoryAllowed(category);
             const requiredPlan = getRequiredPlan(category);

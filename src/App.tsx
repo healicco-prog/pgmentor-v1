@@ -15680,16 +15680,18 @@ Return ONLY the JSON object, no extra text.`;
     }
     
     setIsGeneratingLMS(true);
-    let updatedCurriculum = JSON.parse(JSON.stringify(curriculum));
     let successCount = 0;
     let failedTopics: string[] = [];
     let lastError = '';
+    // Keep a reference to the latest curriculum after each iterative save
+    let latestCurriculum = JSON.parse(JSON.stringify(curriculum));
     
     try {
       for (const topicId of selectedTopics) {
+        // Find topic name and course name from the LATEST curriculum state
         let topicName = '';
         let courseName = '';
-        for (const c of updatedCurriculum) {
+        for (const c of latestCurriculum) {
           for (const p of c.papers) {
             for (const s of p.sections) {
               const t = s.topics.find((x: any) => x.id === topicId);
@@ -15754,26 +15756,56 @@ Return ONLY the JSON object, no extra text.`;
             Back (Answer): [Concise answer]`;
           }
 
-          console.log(`🔄 Generating ${currentTab} for topic: ${topicName} (role: ${cpRole})`);
+          console.log(`🔄 Generating ${currentTab} for topic: ${topicName} (${successCount + 1}/${selectedTopics.length}) (role: ${cpRole})`);
           const content = await generateMedicalContent(prompt, "You are an expert medical professor and author generating authoritative clinical content for a Learning Management System.", "text/plain", false, cpRole);
           console.log(`✅ Generated ${currentTab} for topic: ${topicName}, length: ${content?.length || 0}`);
           
-          // Use the captured currentTab to write to the CORRECT content field
-          for (const c of updatedCurriculum) {
-            for (const p of c.papers) {
-              for (const s of p.sections) {
-                const t = s.topics.find((x: any) => x.id === topicId);
-                if (t) {
-                  if (currentTab === 'lms-notes') t.generatedContent = content;
-                  else if (currentTab === 'essay-questions') t.generatedEssayContent = content;
-                  else if (currentTab === 'mcq-questions') t.generatedMcqContent = content;
-                  else if (currentTab === 'flash-cards') t.generatedFlashCardsContent = content;
-                  else console.error(`⚠️ UNKNOWN currentTab="${currentTab}" — content NOT saved to any field!`);
-                  console.log(`✏️ Wrote content to field for currentTab="${currentTab}" on topic "${topicName}" (id: ${topicId}), hasNotes=${!!t.generatedContent}, hasEssay=${!!t.generatedEssayContent}, hasMcq=${!!t.generatedMcqContent}, hasFlash=${!!t.generatedFlashCardsContent}`);
+          // ═══════════════════════════════════════════════════════════════
+          // ITERATIVE SAVE: Use functional state update to avoid stale state
+          // ═══════════════════════════════════════════════════════════════
+          const savedCurriculum = await new Promise<any[]>((resolve) => {
+            setCurriculum((prevCurriculum: any[]) => {
+              const updated = JSON.parse(JSON.stringify(prevCurriculum));
+              // Find the topic and assign the generated content
+              for (const c of updated) {
+                for (const p of c.papers) {
+                  for (const s of p.sections) {
+                    const t = s.topics.find((x: any) => x.id === topicId);
+                    if (t) {
+                      if (currentTab === 'lms-notes') t.generatedContent = content;
+                      else if (currentTab === 'essay-questions') t.generatedEssayContent = content;
+                      else if (currentTab === 'mcq-questions') t.generatedMcqContent = content;
+                      else if (currentTab === 'flash-cards') t.generatedFlashCardsContent = content;
+                      console.log(`✏️ [Iterative] Wrote ${currentTab} to topic "${topicName}" (id: ${topicId})`);
+                    }
+                  }
                 }
               }
+              resolve(updated);
+              return updated;
+            });
+          });
+
+          // Keep our local reference up-to-date
+          latestCurriculum = savedCurriculum;
+
+          // Immediately persist to database after each topic
+          try {
+            const saveRes = await fetch('/api/state/curriculum', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: 'default', data: savedCurriculum })
+            });
+            if (saveRes.ok) {
+              console.log(`💾 [Iterative] Saved to DB after topic "${topicName}" (${successCount + 1}/${selectedTopics.length})`);
+            } else {
+              const errBody = await saveRes.json().catch(() => ({}));
+              console.error(`❌ [Iterative] DB save failed for "${topicName}":`, saveRes.status, errBody);
             }
+          } catch (saveErr) {
+            console.error(`⚠️ [Iterative] Network error saving "${topicName}":`, saveErr);
           }
+
           successCount++;
         } catch (topicErr: any) {
           console.error(`❌ Failed to generate for topic "${topicName}":`, topicErr);
@@ -15782,61 +15814,21 @@ Return ONLY the JSON object, no extra text.`;
         }
       }
       
-      // Log what was attached to verify content was stored properly
-      let attachedCount = 0;
-      const contentKey = currentTab === 'lms-notes' ? 'generatedContent'
-        : currentTab === 'essay-questions' ? 'generatedEssayContent'
-        : currentTab === 'mcq-questions' ? 'generatedMcqContent'
-        : 'generatedFlashCardsContent';
-      for (const c of updatedCurriculum) {
-        if (!c.papers) continue;
-        for (const p of c.papers) {
-          if (!p.sections) continue;
-          for (const s of p.sections) {
-            if (!s.topics) continue;
-            for (const t of s.topics) {
-              if (t[contentKey] && selectedTopics.includes(t.id)) {
-                attachedCount++;
-                console.log(`📝 Content attached to topic "${t.name}": ${String(t[contentKey]).substring(0, 100)}...`);
-              }
-            }
-          }
-        }
-      }
-      console.log(`📊 Total topics with content attached: ${attachedCount}/${selectedTopics.length} (tab: ${currentTab}, key: ${contentKey})`);
+      console.log(`📊 Generation complete: ${successCount}/${selectedTopics.length} succeeded, ${failedTopics.length} failed (tab: ${currentTab})`);
 
-      setCurriculum(updatedCurriculum);
-      
-      // Explicitly save to database immediately (don't rely solely on debounced auto-save)
-      try {
-        const saveRes = await fetch('/api/state/curriculum', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: 'default', data: updatedCurriculum })
-        });
-        const saveResult = await saveRes.json();
-        if (saveRes.ok) {
-          console.log('✅ Curriculum saved to database after LMS generation', saveResult);
-        } else {
-          console.error('❌ Save returned error:', saveRes.status, saveResult);
-        }
-      } catch (saveErr) {
-        console.error('⚠️ Failed to save curriculum after generation:', saveErr);
-      }
-      
       // Sync the Editor context dropdowns to match the generation context
       if (currentGenCourseId) setLmsCourseId(currentGenCourseId);
       if (currentGenPaperId !== 'all') {
         setLmsPaperId(currentGenPaperId);
       } else {
-        const c = updatedCurriculum.find((c: any) => c.id === currentGenCourseId);
+        const c = latestCurriculum.find((c: any) => c.id === currentGenCourseId);
         if (c && c.papers.length > 0) setLmsPaperId(c.papers[0].id);
       }
       
       if (currentGenSectionId !== 'all') {
         setLmsSectionId(currentGenSectionId);
       } else {
-        const c = updatedCurriculum.find((c: any) => c.id === currentGenCourseId);
+        const c = latestCurriculum.find((c: any) => c.id === currentGenCourseId);
         const p = c?.papers.find((p: any) => p.id === (currentGenPaperId !== 'all' ? currentGenPaperId : c.papers[0]?.id));
         if (p && p.sections.length > 0) setLmsSectionId(p.sections[0].id);
       }

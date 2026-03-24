@@ -1469,7 +1469,7 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
   );
 };
 
-const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPlan = 'trial', authSession }: { onNavigate: (page: string) => void, currentPage?: string, children?: React.ReactNode, curriculum?: any[], userPlan?: string, authSession?: any }) => {
+const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPlan = 'trial', authSession, trialEndDate }: { onNavigate: (page: string) => void, currentPage?: string, children?: React.ReactNode, curriculum?: any[], userPlan?: string, authSession?: any, trialEndDate?: string | null }) => {
   const [activeCategory, setActiveCategory] = useState("Dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [lockedTooltip, setLockedTooltip] = useState<string | null>(null);
@@ -1523,15 +1523,25 @@ const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPl
               </div>
             </div>
           )}
-          {userPlan === 'trial' && (
-            <div className="mx-2 mb-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20">
-              <div className="flex items-center gap-2">
-                <span className="text-emerald-400 text-xs">🎉</span>
-                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Trial Active</span>
+          {userPlan === 'trial' && (() => {
+            let daysLeft = 15;
+            if (trialEndDate) {
+              const end = new Date(trialEndDate);
+              const now = new Date();
+              daysLeft = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+            }
+            return (
+              <div className="mx-2 mb-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20">
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-400 text-xs">{daysLeft <= 3 ? '⚠️' : '🎉'}</span>
+                  <span className={`text-[11px] font-bold uppercase tracking-wider ${daysLeft <= 3 ? 'text-amber-400' : 'text-emerald-400'}`}>Trial Active</span>
+                </div>
+                <p className={`text-[10px] mt-1 ${daysLeft <= 3 ? 'text-amber-400/80' : 'text-slate-400'}`}>
+                  {daysLeft === 0 ? 'Trial expires today' : daysLeft === 1 ? '1 day left of trial' : `${daysLeft} days left of trial`}
+                </p>
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">All features unlocked for 15 days</p>
-            </div>
-          )}
+            );
+          })()}
           {CATEGORIES.map(category => {
             const allowed = isCategoryAllowed(category);
             const requiredPlan = getRequiredPlan(category);
@@ -17199,6 +17209,7 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authSession, setAuthSession] = useState<any>(null);
   const [userPlan, setUserPlan] = useState<string>('free');
+  const [trialEndDate, setTrialEndDate] = useState<string | null>(null);
 
   // Track supabase session and fetch user plan
   useEffect(() => {
@@ -17221,6 +17232,7 @@ export default function App() {
           return;
         }
         setUserPlan(data.plan_id);
+        if (data.trial_end_date) setTrialEndDate(data.trial_end_date);
         if (data.trial_expired) {
           console.log('⏰ Trial period has expired. Downgraded to free plan.');
         }
@@ -17481,7 +17493,7 @@ export default function App() {
             className={isDashboardArea ? 'flex-1 flex flex-col' : ''}
           >
             {isDashboardArea ? (
-              <DashboardLayout onNavigate={handleNavigate} currentPage={currentPage} curriculum={curriculum} userPlan={userPlan} authSession={authSession}>
+              <DashboardLayout onNavigate={handleNavigate} currentPage={currentPage} curriculum={curriculum} userPlan={userPlan} authSession={authSession} trialEndDate={trialEndDate}>
                 {currentPage === 'feature-ai-tutor' ? (
                   <AiTutorWelcome onNavigate={handleNavigate} curriculum={curriculum} />
                 ) : currentPage.startsWith('feature-') && (

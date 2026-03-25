@@ -1,6 +1,7 @@
 import { Feature } from "./types";
 
 export const FEATURES: Feature[] = [
+  { id: "search-topic", title: "Search Topic", description: "Search and discover topics across your entire curriculum instantly.", icon: "Search", path: "/features/search-topic", category: "Knowledge & Learning Resources" },
   { id: "knowledge-library", title: "Knowledge Library", description: "Evidence-based PG medical notes with clinical relevance and recent advances.", icon: "Library", path: "/features/knowledge-library", category: "Knowledge & Learning Resources" },
   { id: "essay-library", title: "Essay Library", description: "Access a wide range of pre-written medical essays.", icon: "FileText", path: "/features/essay-library", category: "Knowledge & Learning Resources" },
   { id: "mcq-library", title: "MCQ Library", description: "Practice with extensive multiple-choice questions for exam prep.", icon: "CheckSquare", path: "/features/mcq-library", category: "Knowledge & Learning Resources" },

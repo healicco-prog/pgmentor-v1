@@ -10,3 +10,6 @@ coverage/
 .env.cloudrun.yaml
 !.env.example
 .testsprite/
+
+# Local Netlify folder
+.netlify

@@ -560,6 +560,7 @@ const LANDING_PRICING_PLANS = [
       {
         title: "Knowledge & Learning Resources",
         items: [
+          "Search Topic",
           "Knowledge Library- LMS Notes",
           "Essay Library",
           "MCQ Library",
@@ -5802,6 +5803,124 @@ Return the response in JSON format with the following schema:
                   )}
                 </AnimatePresence>
               </div>
+            ) : featureId === 'search-topic' ? (
+              <div className="space-y-6">
+                <div className="bg-slate-900 border border-white/10 rounded-2xl p-6">
+                  <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                    <Search className="text-blue-500" /> Search Topics
+                  </h3>
+                  <div className="relative mb-6">
+                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      placeholder="Type to search topics across your curriculum..."
+                      className="w-full bg-slate-800 border border-white/10 rounded-xl pl-12 pr-4 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-[15px]"
+                    />
+                    {input && (
+                      <button onClick={() => setInput('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
+                        <X size={18} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Search Results */}
+                  {(() => {
+                    if (!input.trim() || !curriculum || !Array.isArray(curriculum)) {
+                      return (
+                        <div className="text-center py-12">
+                          <Search size={48} className="text-slate-700 mx-auto mb-4" />
+                          <p className="text-slate-500 text-sm">Start typing to search across all topics in your curriculum</p>
+                          <p className="text-slate-600 text-xs mt-2">Results will show notes, essays, MCQs, and flash cards availability</p>
+                        </div>
+                      );
+                    }
+
+                    const query = input.toLowerCase().trim();
+                    const results: { topicId: string; topicName: string; courseName: string; paperName: string; sectionName: string; courseId: string; paperId: string; sectionId: string; hasNotes: boolean; hasEssay: boolean; hasMcq: boolean; hasFlash: boolean }[] = [];
+
+                    for (const c of curriculum) {
+                      for (const p of (c.papers || [])) {
+                        for (const s of (p.sections || [])) {
+                          for (const t of (s.topics || [])) {
+                            if (t.name && t.name.toLowerCase().includes(query)) {
+                              results.push({
+                                topicId: t.id,
+                                topicName: t.name,
+                                courseName: c.name,
+                                paperName: p.name,
+                                sectionName: s.name,
+                                courseId: c.id,
+                                paperId: p.id,
+                                sectionId: s.id,
+                                hasNotes: !!t.generatedContent,
+                                hasEssay: !!t.generatedEssayContent,
+                                hasMcq: !!t.generatedMcqContent,
+                                hasFlash: !!t.generatedFlashCardsContent,
+                              });
+                            }
+                          }
+                        }
+                      }
+                    }
+
+                    if (results.length === 0) {
+                      return (
+                        <div className="text-center py-12">
+                          <Search size={48} className="text-slate-700 mx-auto mb-4" />
+                          <p className="text-slate-400 text-sm">No topics found matching "<span className="text-white font-semibold">{input}</span>"</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-2">
+                        <p className="text-slate-400 text-xs font-medium mb-3">{results.length} topic{results.length !== 1 ? 's' : ''} found</p>
+                        <div className="max-h-[500px] overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+                          {results.map((r) => (
+                            <div
+                              key={r.topicId}
+                              className="bg-slate-800/60 border border-white/5 hover:border-blue-500/30 rounded-xl p-4 cursor-pointer transition-all group"
+                              onClick={() => {
+                                // Navigate to knowledge-library with this topic pre-selected
+                                setKlCourseId(r.courseId);
+                                setKlPaperId(r.paperId);
+                                setKlSectionId(r.sectionId);
+                                setKlTopicId(r.topicId);
+                                onNavigate('feature-knowledge-library');
+                              }}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-white font-semibold text-[14px] group-hover:text-blue-400 transition-colors truncate">{r.topicName}</h4>
+                                  <p className="text-slate-500 text-[11px] mt-1 truncate">
+                                    {r.courseName} → {r.paperName} → {r.sectionName}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${r.hasNotes ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-700/50 text-slate-500'}`}>
+                                    {r.hasNotes ? '✓' : '✗'} Notes
+                                  </span>
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${r.hasEssay ? 'bg-blue-500/15 text-blue-400' : 'bg-slate-700/50 text-slate-500'}`}>
+                                    {r.hasEssay ? '✓' : '✗'} Essay
+                                  </span>
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${r.hasMcq ? 'bg-amber-500/15 text-amber-400' : 'bg-slate-700/50 text-slate-500'}`}>
+                                    {r.hasMcq ? '✓' : '✗'} MCQ
+                                  </span>
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${r.hasFlash ? 'bg-purple-500/15 text-purple-400' : 'bg-slate-700/50 text-slate-500'}`}>
+                                    {r.hasFlash ? '✓' : '✗'} Flash
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
             ) : ['knowledge-library', 'essay-library', 'mcq-library', 'flash-cards'].includes(featureId) ? (
               <div className="space-y-6">
                 <div className="bg-slate-900 border border-white/10 rounded-2xl p-6">
@@ -6544,7 +6663,7 @@ Return the response in JSON format with the following schema:
             <button 
               onClick={handleGenerate}
               disabled={isLoading || (featureId === 'ai-exam-prep' && !prepCourseId)}
-              className={`w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 ${(featureId === 'contacts-management' || featureId === 'knowledge-library' || featureId === 'essay-library' || featureId === 'mcq-library' || featureId === 'flash-cards' || featureId === 'thesis-notes' || featureId === 'clinical-decision-support' || (featureId === 'ai-exam-simulator' && (simExamActive || simUploadPhase || isEvaluatingSim || simEvaluationResult)) || (featureId === 'answer-analyser' && analyzerSelectedQuestion) || (featureId === 'mcqs-analyser' && mcqGeneratedList.length > 0)) ? 'hidden' : ''}`}
+              className={`w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 ${(featureId === 'contacts-management' || featureId === 'search-topic' || featureId === 'knowledge-library' || featureId === 'essay-library' || featureId === 'mcq-library' || featureId === 'flash-cards' || featureId === 'thesis-notes' || featureId === 'clinical-decision-support' || (featureId === 'ai-exam-simulator' && (simExamActive || simUploadPhase || isEvaluatingSim || simEvaluationResult)) || (featureId === 'answer-analyser' && analyzerSelectedQuestion) || (featureId === 'mcqs-analyser' && mcqGeneratedList.length > 0)) ? 'hidden' : ''}`}
             >
               {isLoading ? (
                 <>

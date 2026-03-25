@@ -5803,125 +5803,183 @@ Return the response in JSON format with the following schema:
                   )}
                 </AnimatePresence>
               </div>
-            ) : featureId === 'search-topic' ? (
-              <div className="space-y-6">
-                <div className="bg-slate-900 border border-white/10 rounded-2xl p-6">
-                  <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                    <Search className="text-blue-500" /> Search Topics
-                  </h3>
-                  <div className="relative mb-6">
-                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="text"
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder="Type to search topics across your curriculum..."
-                      className="w-full bg-slate-800 border border-white/10 rounded-xl pl-12 pr-4 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-[15px]"
-                    />
-                    {input && (
-                      <button onClick={() => setInput('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
-                        <X size={18} />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Search Results */}
-                  {(() => {
-                    if (!input.trim() || !curriculum || !Array.isArray(curriculum)) {
-                      return (
-                        <div className="text-center py-12">
-                          <Search size={48} className="text-slate-700 mx-auto mb-4" />
-                          <p className="text-slate-500 text-sm">Start typing to search across all topics in your curriculum</p>
-                          <p className="text-slate-600 text-xs mt-2">Results will show notes, essays, MCQs, and flash cards availability</p>
-                        </div>
-                      );
-                    }
-
-                    const query = input.toLowerCase().trim();
-                    const results: { topicId: string; topicName: string; courseName: string; paperName: string; sectionName: string; courseId: string; paperId: string; sectionId: string; hasNotes: boolean; hasEssay: boolean; hasMcq: boolean; hasFlash: boolean }[] = [];
-
-                    for (const c of curriculum) {
-                      for (const p of (c.papers || [])) {
-                        for (const s of (p.sections || [])) {
-                          for (const t of (s.topics || [])) {
-                            if (t.name && t.name.toLowerCase().includes(query)) {
-                              results.push({
-                                topicId: t.id,
-                                topicName: t.name,
-                                courseName: c.name,
-                                paperName: p.name,
-                                sectionName: s.name,
-                                courseId: c.id,
-                                paperId: p.id,
-                                sectionId: s.id,
-                                hasNotes: !!t.generatedContent,
-                                hasEssay: !!t.generatedEssayContent,
-                                hasMcq: !!t.generatedMcqContent,
-                                hasFlash: !!t.generatedFlashCardsContent,
-                              });
-                            }
-                          }
+            ) : featureId === 'search-topic' ? (() => {
+              // Build a flat list of all topics for searching
+              const allTopics = [] as any[];
+              if (curriculum && Array.isArray(curriculum)) {
+                for (const c of curriculum) {
+                  for (const p of (c.papers || [])) {
+                    for (const s of (p.sections || [])) {
+                      for (const t of (s.topics || [])) {
+                        if (t.name) {
+                          allTopics.push({
+                            topicId: t.id, topicName: t.name, courseName: c.name, paperName: p.name, sectionName: s.name,
+                            courseId: c.id, paperId: p.id, sectionId: s.id,
+                            hasNotes: !!t.generatedContent, hasEssay: !!t.generatedEssayContent, hasMcq: !!t.generatedMcqContent, hasFlash: !!t.generatedFlashCardsContent,
+                          });
                         }
                       }
                     }
+                  }
+                }
+              }
+              const query = input.toLowerCase().trim();
+              const filteredTopics = query ? allTopics.filter(t => t.topicName.toLowerCase().includes(query)) : [];
+              // Find selected topic details from klTopicId
+              const selectedSearchTopic = klTopicId ? allTopics.find(t => t.topicId === klTopicId) : null;
 
-                    if (results.length === 0) {
-                      return (
-                        <div className="text-center py-12">
-                          <Search size={48} className="text-slate-700 mx-auto mb-4" />
-                          <p className="text-slate-400 text-sm">No topics found matching "<span className="text-white font-semibold">{input}</span>"</p>
-                        </div>
-                      );
-                    }
+              return (
+                <div className="space-y-6">
+                  <div className="bg-slate-900 border border-white/10 rounded-2xl p-6">
+                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                      <Search className="text-blue-500" /> Search Topics
+                    </h3>
 
-                    return (
-                      <div className="space-y-2">
-                        <p className="text-slate-400 text-xs font-medium mb-3">{results.length} topic{results.length !== 1 ? 's' : ''} found</p>
-                        <div className="max-h-[500px] overflow-y-auto space-y-2 pr-1 scrollbar-thin">
-                          {results.map((r) => (
-                            <div
-                              key={r.topicId}
-                              className="bg-slate-800/60 border border-white/5 hover:border-blue-500/30 rounded-xl p-4 cursor-pointer transition-all group"
-                              onClick={() => {
-                                // Navigate to knowledge-library with this topic pre-selected
-                                setKlCourseId(r.courseId);
-                                setKlPaperId(r.paperId);
-                                setKlSectionId(r.sectionId);
-                                setKlTopicId(r.topicId);
-                                onNavigate('feature-knowledge-library');
-                              }}
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="text-white font-semibold text-[14px] group-hover:text-blue-400 transition-colors truncate">{r.topicName}</h4>
-                                  <p className="text-slate-500 text-[11px] mt-1 truncate">
-                                    {r.courseName} → {r.paperName} → {r.sectionName}
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
-                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${r.hasNotes ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-700/50 text-slate-500'}`}>
-                                    {r.hasNotes ? '✓' : '✗'} Notes
-                                  </span>
-                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${r.hasEssay ? 'bg-blue-500/15 text-blue-400' : 'bg-slate-700/50 text-slate-500'}`}>
-                                    {r.hasEssay ? '✓' : '✗'} Essay
-                                  </span>
-                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${r.hasMcq ? 'bg-amber-500/15 text-amber-400' : 'bg-slate-700/50 text-slate-500'}`}>
-                                    {r.hasMcq ? '✓' : '✗'} MCQ
-                                  </span>
-                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${r.hasFlash ? 'bg-purple-500/15 text-purple-400' : 'bg-slate-700/50 text-slate-500'}`}>
-                                    {r.hasFlash ? '✓' : '✗'} Flash
-                                  </span>
-                                </div>
-                              </div>
+                    {/* Search Keywords Input */}
+                    <div className="mb-2">
+                      <label className="block text-slate-300 font-semibold text-sm mb-2">Search Keywords:</label>
+                      <div className="relative">
+                        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
+                        <input
+                          type="text"
+                          value={selectedSearchTopic ? selectedSearchTopic.topicName : input}
+                          onChange={(e) => {
+                            setInput(e.target.value);
+                            // Clear previously selected topic when user edits
+                            if (klTopicId) {
+                              setKlTopicId('');
+                              setKlCourseId('');
+                              setKlPaperId('');
+                              setKlSectionId('');
+                            }
+                          }}
+                          onFocus={() => {
+                            // If a topic was selected and user clicks back into the input, clear it to show the dropdown again
+                            if (selectedSearchTopic) {
+                              setInput(selectedSearchTopic.topicName);
+                              setKlTopicId('');
+                              setKlCourseId('');
+                              setKlPaperId('');
+                              setKlSectionId('');
+                            }
+                          }}
+                          placeholder="Start typing a topic name..."
+                          className="w-full bg-slate-800 border border-white/10 rounded-xl pl-12 pr-10 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-[15px]"
+                        />
+                        {(input || selectedSearchTopic) && (
+                          <button
+                            onClick={() => {
+                              setInput('');
+                              setKlTopicId('');
+                              setKlCourseId('');
+                              setKlPaperId('');
+                              setKlSectionId('');
+                            }}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors z-10"
+                          >
+                            <X size={18} />
+                          </button>
+                        )}
+
+                        {/* Autocomplete Dropdown */}
+                        {query && !selectedSearchTopic && filteredTopics.length > 0 && (
+                          <div className="absolute left-0 right-0 top-full mt-1 bg-slate-800 border border-white/10 rounded-xl shadow-2xl shadow-black/40 z-50 max-h-[320px] overflow-y-auto">
+                            <p className="px-4 py-2 text-slate-500 text-[11px] font-medium border-b border-white/5">{filteredTopics.length} matching topic{filteredTopics.length !== 1 ? 's' : ''}</p>
+                            {filteredTopics.slice(0, 20).map((t) => (
+                              <button
+                                key={t.topicId}
+                                onClick={() => {
+                                  setKlCourseId(t.courseId);
+                                  setKlPaperId(t.paperId);
+                                  setKlSectionId(t.sectionId);
+                                  setKlTopicId(t.topicId);
+                                  setInput('');
+                                }}
+                                className="w-full text-left px-4 py-3 hover:bg-blue-600/10 transition-all border-b border-white/5 last:border-0 group"
+                              >
+                                <div className="text-white text-[13px] font-medium group-hover:text-blue-400 transition-colors">{t.topicName}</div>
+                                <div className="text-slate-500 text-[10px] mt-0.5">{t.courseName} → {t.paperName} → {t.sectionName}</div>
+                              </button>
+                            ))}
+                            {filteredTopics.length > 20 && (
+                              <p className="px-4 py-2 text-slate-600 text-[10px] text-center">Showing first 20 of {filteredTopics.length} results. Refine your search.</p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* No results */}
+                        {query && !selectedSearchTopic && filteredTopics.length === 0 && (
+                          <div className="absolute left-0 right-0 top-full mt-1 bg-slate-800 border border-white/10 rounded-xl shadow-2xl shadow-black/40 z-50 px-4 py-6 text-center">
+                            <p className="text-slate-400 text-sm">No topics found matching "<span className="text-white font-semibold">{input}</span>"</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Selected Topic Card + Library Buttons */}
+                    {selectedSearchTopic ? (
+                      <div className="mt-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {/* Selected topic info */}
+                        <div className="bg-slate-800/60 border border-blue-500/20 rounded-xl p-5 mb-6">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-wider mb-1">Selected Topic</p>
+                              <h4 className="text-white font-bold text-lg">{selectedSearchTopic.topicName}</h4>
+                              <p className="text-slate-500 text-[12px] mt-1">
+                                {selectedSearchTopic.courseName} → {selectedSearchTopic.paperName} → {selectedSearchTopic.sectionName}
+                              </p>
                             </div>
+                            <div className="flex items-center gap-1.5 shrink-0 mt-1 flex-wrap justify-end">
+                              <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${selectedSearchTopic.hasNotes ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-700/50 text-slate-500'}`}>
+                                {selectedSearchTopic.hasNotes ? '✓' : '✗'} Notes
+                              </span>
+                              <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${selectedSearchTopic.hasEssay ? 'bg-blue-500/15 text-blue-400' : 'bg-slate-700/50 text-slate-500'}`}>
+                                {selectedSearchTopic.hasEssay ? '✓' : '✗'} Essay
+                              </span>
+                              <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${selectedSearchTopic.hasMcq ? 'bg-amber-500/15 text-amber-400' : 'bg-slate-700/50 text-slate-500'}`}>
+                                {selectedSearchTopic.hasMcq ? '✓' : '✗'} MCQ
+                              </span>
+                              <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${selectedSearchTopic.hasFlash ? 'bg-purple-500/15 text-purple-400' : 'bg-slate-700/50 text-slate-500'}`}>
+                                {selectedSearchTopic.hasFlash ? '✓' : '✗'} Flash
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Library Navigation Tabs */}
+                        <div className="flex flex-wrap gap-3">
+                          {[
+                            { id: 'knowledge-library', label: 'Knowledge Library', icon: <Library size={18} /> },
+                            { id: 'essay-library', label: 'Essay Library', icon: <FileText size={18} /> },
+                            { id: 'mcq-library', label: 'MCQ Library', icon: <CheckSquare size={18} /> },
+                            { id: 'flash-cards', label: 'Flash Cards', icon: <Layers size={18} /> },
+                          ].map((lib) => (
+                            <button
+                              key={lib.id}
+                              onClick={() => {
+                                // klCourseId, klPaperId, klSectionId, klTopicId are already set
+                                onNavigate(`feature-${lib.id}`);
+                              }}
+                              className="flex-1 min-w-[140px] flex items-center justify-center gap-2.5 px-5 py-4 rounded-full font-bold text-[14px] transition-all bg-slate-800 border border-white/10 text-slate-300 hover:bg-slate-700 hover:text-white hover:border-white/20 hover:shadow-lg active:scale-[0.98]"
+                            >
+                              {lib.icon}
+                              {lib.label}
+                            </button>
                           ))}
                         </div>
                       </div>
-                    );
-                  })()}
+                    ) : !query && (
+                      <div className="text-center py-10 mt-2">
+                        <Search size={48} className="text-slate-700 mx-auto mb-4" />
+                        <p className="text-slate-500 text-sm">Start typing to search across all topics in your curriculum</p>
+                        <p className="text-slate-600 text-xs mt-2">Select a topic to access its Knowledge Library, Essay Library, MCQ Library, and Flash Cards</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ) : ['knowledge-library', 'essay-library', 'mcq-library', 'flash-cards'].includes(featureId) ? (
+              );
+            })()
+            : ['knowledge-library', 'essay-library', 'mcq-library', 'flash-cards'].includes(featureId) ? (
               <div className="space-y-6">
                 <div className="bg-slate-900 border border-white/10 rounded-2xl p-6">
                   <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">

@@ -1078,13 +1078,14 @@ async function startServer() {
   });
 
   app.post("/api/saved", async (req, res) => {
-    const { id, title, content, featureId } = req.body;
+    const { id, title, content, featureId, date } = req.body;
     try {
       const { error } = await supabase.from('saved_items').upsert({
         id,
         title,
         content,
-        feature_id: featureId
+        feature_id: featureId,
+        date: date || new Date().toISOString()
       });
       if (error) throw error;
       res.json({ success: true });

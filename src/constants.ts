@@ -6,6 +6,7 @@ export const FEATURES: Feature[] = [
   { id: "essay-library", title: "Essay Library", description: "Access a wide range of pre-written medical essays.", icon: "FileText", path: "/features/essay-library", category: "Knowledge & Learning Resources" },
   { id: "mcq-library", title: "MCQ Library", description: "Practice with extensive multiple-choice questions for exam prep.", icon: "CheckSquare", path: "/features/mcq-library", category: "Knowledge & Learning Resources" },
   { id: "flash-cards", title: "Flash Cards", description: "Create and study digital flashcards for quick revision.", icon: "Layers", path: "/features/flash-cards", category: "Knowledge & Learning Resources" },
+  { id: "brainstack", title: "BrainStack", description: "Upload your own content (PDFs, Google Docs, text, links, notes). Create your own output resource based only on your provided sources.", icon: "Upload", path: "/features/brainstack", category: "Knowledge & Learning Resources" },
 
   { id: "essay-generator", title: "Essay Generator", description: "Generate structured long/short essays and short notes for medical exams.", icon: "FileText", path: "/features/essay-generator", category: "Academic & Research Writing" },
   { id: "seminar-builder", title: "Seminar Builder", description: "Create professional 20-30 slide PPT structures and detailed seminar notes.", icon: "Presentation", path: "/features/seminar-builder", category: "Academic & Research Writing" },

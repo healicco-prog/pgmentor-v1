@@ -9,7 +9,7 @@ import {
   Plus, Trash2, Edit3, Monitor, Search, Globe, Users, User as UserIcon,
   Upload, Layers, Sparkles, CheckCircle, Eye, Play, RotateCcw,
   Cpu, LineChart, Target, FileSymlink, GraduationCap, Lightbulb, HelpCircle, Pill, Lock,
-  Gift, Award, Trophy, Shield, Mail, EyeOff
+  Gift, Award, Trophy, Shield, Mail, EyeOff, ChevronUp, ChevronDown, GripVertical
 } from 'lucide-react';
 import { FEATURES } from './constants';
 import { medimentrMentorChat, generateMedicalContent, extractContactFromImage, extractPaperTextFromImage } from './services/ai';
@@ -20,6 +20,7 @@ import PrescriptionAnalyser from './PrescriptionAnalyser';
 import ClinicalDecisionSupport from './ClinicalDecisionSupport';
 import ProfessionalResumeBuilder from './ProfessionalResumeBuilder';
 import DoubtSolver from './DoubtSolver';
+import BrainStack from './BrainStack';
 import DrugTreatmentAssistant from './DrugTreatmentAssistant';
 import LearningManagementDashboard from './LearningManagementDashboard';
 import AiTutorWelcome from './AiTutorWelcome';
@@ -2201,6 +2202,11 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
   const [modelPaperText, setModelPaperText] = useState('');
   const [isExtractingPaper, setIsExtractingPaper] = useState(false);
 
+  // Specialized states for BrainStack
+  const [brainstackDocsText, setBrainstackDocsText] = useState('');
+  const [isExtractingBrainstackDocs, setIsExtractingBrainstackDocs] = useState(false);
+
+
   // Specialized states for Essay Generator
   const [essayType, setEssayType] = useState('long');
   const [essayCourse, setEssayCourse] = useState('');
@@ -2697,7 +2703,7 @@ Required Word Count: ${refWordCount} words`;
       });
 
       let prompt: any = `Generate content for ${feature?.title}. Input: ${finalInput}`;
-      if ((featureId === 'clinical-decision-support' || featureId === 'digital-diary' || featureId === 'journal-club' || featureId === 'manuscript-generator' || featureId === 'stat-assist' || featureId === 'ai-exam-simulator' || featureId === 'question-paper') && scanImages.length > 0) {
+      if ((featureId === 'clinical-decision-support' || featureId === 'digital-diary' || featureId === 'journal-club' || featureId === 'manuscript-generator' || featureId === 'stat-assist' || featureId === 'ai-exam-simulator' || featureId === 'question-paper' || featureId === 'brainstack') && scanImages.length > 0) {
         prompt = [
           prompt,
           ...scanImages.map(img => ({
@@ -2741,6 +2747,91 @@ Required Word Count: ${refWordCount} words`;
         3. Prioritize events with real, working URLs from official sources.
         4. Include a mix of international and regional events where applicable.
         5. Do NOT fabricate URLs — only include links you found via search.`;
+      } else if (featureId === 'brainstack') {
+        prompt = `User Instruction: ${input}\n\nPasted Text or Notes:\n${brainstackDocsText}\n`;
+        systemInstruction = `You are Medimentr AI, an intelligent knowledge assistant designed to help users understand, analyze, and interact with their uploaded content (documents, notes, PDFs, transcripts, and medical learning materials).
+
+Your primary goal is to provide accurate, grounded, and structured responses based ONLY on the provided sources, while being helpful, clear, and educational.
+
+----------------------------------------
+CORE BEHAVIOR
+----------------------------------------
+
+1. SOURCE-GROUNDED ANSWERS
+- Always prioritize information from the provided documents.
+- Do NOT hallucinate or invent facts.
+- If the answer is not in the sources, clearly say:
+"I couldn't find this in your documents."
+- When possible, cite the relevant section or summarize where the answer comes from.
+
+2. CONTEXT AWARENESS
+- Use conversation history + uploaded documents.
+- Maintain continuity across follow-up questions.
+- Resolve references like "this", "that concept", "previous topic".
+
+3. STRUCTURED RESPONSES
+- Break answers into sections:
+- Summary
+- Key Points
+- Explanation
+- (Optional) Examples
+- Keep responses concise but informative.
+
+4. EDUCATIONAL MODE (IMPORTANT FOR MEDIMENTR)
+- Explain concepts step-by-step when needed.
+- Use simple language first, then deeper detail.
+- Highlight definitions, mechanisms, and clinical relevance when applicable.
+
+5. MULTI-DOCUMENT SYNTHESIS
+- Combine insights across multiple documents.
+- Highlight agreements, contradictions, or gaps.
+
+6. CITATIONS STYLE
+- Reference sources clearly:
+- (Source: FileName, Section/Paragraph)
+
+7. FOLLOW-UP FRIENDLY
+- End responses with helpful follow-ups:
+- "Would you like a summary?"
+- "Do you want this simplified?"
+- "Shall I create notes or flashcards?"
+
+----------------------------------------
+SPECIAL CAPABILITIES
+----------------------------------------
+
+A. SUMMARIZATION
+B. NOTE GENERATION
+C. QUESTION ANSWERING
+D. EXPLANATION MODES
+E. COMPARISON MODE
+F. MEDICAL SAFETY (IMPORTANT)
+- Do NOT provide unsafe medical advice.
+- If asked clinical decisions:
+- Provide educational insight only
+- Add disclaimer when necessary:
+"This is for educational purposes and not medical advice."
+
+----------------------------------------
+TONE & STYLE
+----------------------------------------
+
+- Clear, calm, and intelligent
+- Avoid overly robotic responses
+- Avoid unnecessary verbosity
+- Use bullet points and formatting for readability
+
+----------------------------------------
+FAILSAFE RULES
+----------------------------------------
+
+- If no documents are available:
+Say: "Please upload documents to begin."
+- If query is unrelated:
+Say: "This seems outside your uploaded content."
+
+- If uncertain:
+Be transparent about uncertainty`;
       } else if (featureId === 'seminar-builder') {
         responseMimeType = "application/json";
         systemInstruction += `\nYou are an expert academic lecturer and seminar designer specializing in Medical and Healthcare disciplines.
@@ -6640,6 +6731,8 @@ Return the response in JSON format with the following schema:
 
                 </div>
               </div>
+            ) : featureId === 'brainstack' ? (
+              <BrainStack fetchSaved={fetchSaved} />
             ) : (
               <>
                 {(featureId === 'protocol-generator' || featureId === 'manuscript-generator') && (
@@ -6721,7 +6814,7 @@ Return the response in JSON format with the following schema:
             <button 
               onClick={handleGenerate}
               disabled={isLoading || (featureId === 'ai-exam-prep' && !prepCourseId)}
-              className={`w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 ${(featureId === 'contacts-management' || featureId === 'search-topic' || featureId === 'knowledge-library' || featureId === 'essay-library' || featureId === 'mcq-library' || featureId === 'flash-cards' || featureId === 'thesis-notes' || featureId === 'clinical-decision-support' || (featureId === 'ai-exam-simulator' && (simExamActive || simUploadPhase || isEvaluatingSim || simEvaluationResult)) || (featureId === 'answer-analyser' && analyzerSelectedQuestion) || (featureId === 'mcqs-analyser' && mcqGeneratedList.length > 0)) ? 'hidden' : ''}`}
+              className={`w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 ${(featureId === 'contacts-management' || featureId === 'search-topic' || featureId === 'knowledge-library' || featureId === 'essay-library' || featureId === 'mcq-library' || featureId === 'flash-cards' || featureId === 'thesis-notes' || featureId === 'clinical-decision-support' || featureId === 'brainstack' || (featureId === 'ai-exam-simulator' && (simExamActive || simUploadPhase || isEvaluatingSim || simEvaluationResult)) || (featureId === 'answer-analyser' && analyzerSelectedQuestion) || (featureId === 'mcqs-analyser' && mcqGeneratedList.length > 0)) ? 'hidden' : ''}`}
             >
               {isLoading ? (
                 <>
@@ -6943,7 +7036,7 @@ Return the response in JSON format with the following schema:
                 </div>
               )}
             </motion.div>
-          ) : output && featureId !== 'stat-assist' && featureId !== 'clinical-decision-support' && (
+          ) : output && featureId !== 'stat-assist' && featureId !== 'clinical-decision-support' && featureId !== 'brainstack' && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -7408,6 +7501,13 @@ Return the response in JSON format with the following schema:
                       <span className="text-[10px] text-slate-500">{new Date(item.date).toLocaleDateString()}</span>
                       <button 
                         onClick={async () => {
+                          // For BrainStack, use direct component callback
+                          if (item.featureId === 'brainstack') {
+                            if ((window as any).__brainStackLoadContent) {
+                              (window as any).__brainStackLoadContent(item.content);
+                            }
+                            return;
+                          }
                           setOutput(item.content);
                           if (item.featureId === 'seminar-builder') {
                              try {
@@ -15394,7 +15494,12 @@ const ControlPanel = ({ onNavigate, curriculum, setCurriculum, blogPosts, setBlo
   const [cpAuthed, setCpAuthed] = useState(false);
   const [cpRole, setCpRole] = useState('');
   const [activeTab, setActiveTab] = useState('lms-notes');
-  const [activeGenTab, setActiveGenTab] = useState('lms-notes');
+  const [activeGenTab, setActiveGenTab] = useState('curriculum');
+  const [selectedStructureIds, setSelectedStructureIds] = useState<number[]>(() => DEFAULT_LMS_STRUCTURE.map(s => s.id));
+  const [newSectionTitle, setNewSectionTitle] = useState('');
+  const [newSectionDesc, setNewSectionDesc] = useState('');
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [lmsNotes, setLmsNotes] = useState(DEFAULT_LMS_STRUCTURE);
   const [essayQuestions, setEssayQuestions] = useState(DEFAULT_ESSAY_STRUCTURE);
@@ -16275,12 +16380,36 @@ Return ONLY the JSON object, no extra text.`;
                 <p className="text-[15px] md:text-[16px] text-slate-500 font-medium">Mass trigger Gemini background jobs and build your curriculum.</p>
               </div>
 
+              {/* Step Indicator */}
+              <div className="flex justify-center mb-4">
+                <div className="flex items-center gap-0 text-[11px] font-bold text-slate-400">
+                  {['curriculum', 'sections', 'lms-notes', 'generation-engine'].map((step, idx) => {
+                    const stepLabels = ['1', '2', '3', '4'];
+                    const stepNames = ['Curriculum', 'Sections', 'Structure', 'Generate'];
+                    const isActive = activeGenTab === step;
+                    const steps = ['curriculum', 'sections', 'lms-notes', 'generation-engine'];
+                    const isPast = steps.indexOf(activeGenTab) > idx;
+                    return (
+                      <div key={step} className="flex items-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300 ${
+                            isActive ? 'bg-[#4f46e5] text-white shadow-md shadow-[#4f46e5]/30' : isPast ? 'bg-[#10b981] text-white' : 'bg-slate-200 text-slate-500'
+                          }`}>{isPast ? '✓' : stepLabels[idx]}</div>
+                          <span className={`text-[10px] transition-colors ${isActive ? 'text-[#4f46e5] font-bold' : isPast ? 'text-[#10b981]' : 'text-slate-400'}`}>{stepNames[idx]}</span>
+                        </div>
+                        {idx < 3 && <div className={`w-8 md:w-12 h-0.5 mx-1 mb-4 transition-colors ${isPast ? 'bg-[#10b981]' : 'bg-slate-200'}`} />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Pill Nav */}
               <div className="flex justify-center mb-12">
                 <div className="bg-slate-100/80 p-1.5 rounded-xl flex items-center gap-1 shadow-inner ring-1 ring-slate-900/5 max-w-full overflow-x-auto whitespace-nowrap scrollbar-thin">
                   <button 
                     onClick={() => setActiveGenTab('curriculum')}
-                    className={`px-6 md:px-8 py-3 rounded-lg text-[13px] md:text-[14px] font-bold transition-all duration-200 ${
+                    className={`px-4 md:px-6 py-3 rounded-lg text-[12px] md:text-[13px] font-bold transition-all duration-200 ${
                       activeGenTab === 'curriculum' 
                         ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/5' 
                         : 'text-slate-500 hover:text-slate-700'
@@ -16289,18 +16418,28 @@ Return ONLY the JSON object, no extra text.`;
                     Curriculum Setup
                   </button>
                   <button 
+                    onClick={() => setActiveGenTab('sections')}
+                    className={`px-4 md:px-6 py-3 rounded-lg text-[12px] md:text-[13px] font-bold transition-all duration-200 ${
+                      activeGenTab === 'sections' 
+                        ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/5' 
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    {activeTab === 'essay-questions' ? 'Essay Sections' : activeTab === 'mcq-questions' ? 'MCQ Sections' : activeTab === 'flash-cards' ? 'Flash Card Sections' : 'LMS Notes Sections'}
+                  </button>
+                  <button 
                     onClick={() => setActiveGenTab('lms-notes')}
-                    className={`px-6 md:px-8 py-3 rounded-lg text-[13px] md:text-[14px] font-bold transition-all duration-200 ${
+                    className={`px-4 md:px-6 py-3 rounded-lg text-[12px] md:text-[13px] font-bold transition-all duration-200 ${
                       activeGenTab === 'lms-notes' 
                         ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/5' 
                         : 'text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    {activeTab === 'essay-questions' ? 'Essay Questions Structure' : activeTab === 'mcq-questions' ? 'MCQ Structure' : activeTab === 'flash-cards' ? 'Flash Cards Structure' : 'LMS Notes Structure'}
+                    {activeTab === 'essay-questions' ? 'Essay Structure' : activeTab === 'mcq-questions' ? 'MCQ Structure' : activeTab === 'flash-cards' ? 'Flash Cards Structure' : 'LMS Notes Structure'}
                   </button>
                   <button 
                     onClick={() => setActiveGenTab('generation-engine')}
-                    className={`px-6 md:px-8 py-3 rounded-lg text-[13px] md:text-[14px] font-bold transition-all duration-200 ${
+                    className={`px-4 md:px-6 py-3 rounded-lg text-[12px] md:text-[13px] font-bold transition-all duration-200 ${
                       activeGenTab === 'generation-engine' 
                         ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/5' 
                         : 'text-slate-500 hover:text-slate-700'
@@ -16555,6 +16694,255 @@ Return ONLY the JSON object, no extra text.`;
                   </div>
 
                 </div>
+              ) : activeGenTab === 'sections' ? (
+                /* ═══════════════════════════════════════════════════════════════
+                   NEW TAB: LMS Notes Sections — Add / Select sections
+                   ═══════════════════════════════════════════════════════════════ */
+                <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm w-full max-w-5xl mx-auto min-h-[500px] animate-in fade-in zoom-in-95 duration-500">
+                  <div className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4 mb-8">
+                    <div>
+                      <h3 className="text-[24px] font-bold text-[#0f172a] mb-1">
+                        {activeTab === 'essay-questions' ? 'Essay Sections' : activeTab === 'mcq-questions' ? 'MCQ Sections' : activeTab === 'flash-cards' ? 'Flash Card Sections' : 'LMS Notes Sections'}
+                      </h3>
+                      <p className="text-[14px] text-[#64748b] font-medium">Add as many sections as needed, then select the ones to include in the structure template.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          if (selectedStructureIds.length === activeStructure.length) setSelectedStructureIds([]);
+                          else setSelectedStructureIds(activeStructure.map((s: any) => s.id));
+                        }}
+                        className="text-[13px] font-bold text-[#4f46e5] hover:text-[#3730a3] bg-[#eef2ff] px-4 py-2 rounded-xl border border-[#c7d2fe] transition-colors"
+                      >
+                        {selectedStructureIds.length === activeStructure.length && activeStructure.length > 0 ? 'Deselect All' : 'Select All'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Add new section form */}
+                  <div className="bg-[#f8fafc] rounded-2xl p-5 border border-slate-100 mb-6">
+                    <div className="flex items-center gap-2 text-[11px] font-bold text-[#4f46e5] tracking-widest uppercase mb-3">
+                      <Plus size={14} /> Add New Section
+                    </div>
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <input
+                        type="text"
+                        value={newSectionTitle}
+                        onChange={e => setNewSectionTitle(e.target.value)}
+                        placeholder="Section title (e.g., Differential Diagnosis)"
+                        className="flex-1 border border-slate-200 rounded-xl px-4 py-3 text-[14px] focus:outline-none focus:border-[#4f46e5] placeholder:text-slate-400"
+                      />
+                      <input
+                        type="text"
+                        value={newSectionDesc}
+                        onChange={e => setNewSectionDesc(e.target.value)}
+                        placeholder="Description (optional)"
+                        className="flex-1 border border-slate-200 rounded-xl px-4 py-3 text-[14px] focus:outline-none focus:border-[#4f46e5] placeholder:text-slate-400"
+                      />
+                      <button
+                        onClick={() => {
+                          if (!newSectionTitle.trim()) return;
+                          const newId = Date.now();
+                          const newItem = {
+                            id: newId,
+                            title: newSectionTitle.trim(),
+                            desc: newSectionDesc.trim() || 'Mention how it has to be',
+                            instruction: 'Detailed content',
+                            format: 'Text Format',
+                            words: 150,
+                            questions: 5
+                          };
+                          setActiveStructure((prev: any[]) => [...prev, newItem]);
+                          setSelectedStructureIds(prev => [...prev, newId]);
+                          setNewSectionTitle('');
+                          setNewSectionDesc('');
+                        }}
+                        className="bg-[#1e293b] text-white px-6 py-3 rounded-xl font-bold text-[14px] flex items-center gap-2 hover:bg-[#334155] transition-colors shadow-sm shrink-0"
+                      >
+                        <Plus size={16} /> Add
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Section List with Drag & Drop */}
+                  <div className="space-y-2">
+                    {activeStructure.map((note: any, idx: number) => {
+                      const isSelected = selectedStructureIds.includes(note.id);
+                      const isDragging = dragIdx === idx;
+                      const isDragOver = dragOverIdx === idx;
+                      return (
+                        <div
+                          key={note.id}
+                          draggable
+                          onDragStart={(e) => {
+                            setDragIdx(idx);
+                            e.dataTransfer.effectAllowed = 'move';
+                            // Make the drag image slightly transparent
+                            const el = e.currentTarget as HTMLElement;
+                            setTimeout(() => el.style.opacity = '0.4', 0);
+                          }}
+                          onDragEnd={(e) => {
+                            (e.currentTarget as HTMLElement).style.opacity = '1';
+                            setDragIdx(null);
+                            setDragOverIdx(null);
+                          }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = 'move';
+                            if (dragIdx !== null && dragIdx !== idx) {
+                              setDragOverIdx(idx);
+                            }
+                          }}
+                          onDragLeave={() => {
+                            if (dragOverIdx === idx) setDragOverIdx(null);
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            if (dragIdx !== null && dragIdx !== idx) {
+                              setActiveStructure((prev: any[]) => {
+                                const arr = [...prev];
+                                const [moved] = arr.splice(dragIdx, 1);
+                                arr.splice(idx, 0, moved);
+                                return arr;
+                              });
+                            }
+                            setDragIdx(null);
+                            setDragOverIdx(null);
+                          }}
+                          className={`rounded-2xl p-4 flex items-center gap-4 border-2 transition-all group select-none ${
+                            isDragging
+                              ? 'opacity-40 scale-[0.98] border-dashed border-[#4f46e5]/30 bg-[#eef2ff]'
+                              : isDragOver
+                                ? 'border-[#4f46e5] bg-[#eef2ff] shadow-lg shadow-[#4f46e5]/10 scale-[1.01]'
+                                : isSelected
+                                  ? 'bg-[#f0fdf4] border-[#86efac] shadow-sm hover:shadow-md'
+                                  : 'bg-[#f8fafc] border-[#f1f5f9] hover:border-[#e2e8f0] hover:bg-white'
+                          }`}
+                        >
+                          {/* Drag Handle */}
+                          <div
+                            className="cursor-grab active:cursor-grabbing p-1.5 rounded-lg text-[#c5cdd8] hover:text-[#4f46e5] hover:bg-[#eef2ff] transition-colors shrink-0"
+                            title="Drag to reorder"
+                          >
+                            <GripVertical size={18} />
+                          </div>
+
+                          {/* Checkbox */}
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStructureIds(prev =>
+                                prev.includes(note.id) ? prev.filter(id => id !== note.id) : [...prev, note.id]
+                              );
+                            }}
+                            className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+                              isSelected ? 'bg-[#10b981] border-[#10b981]' : 'border-slate-300 group-hover:border-slate-400'
+                            }`}
+                          >
+                            {isSelected && <CheckSquare size={16} className="text-white" />}
+                          </div>
+
+                          {/* Number Badge */}
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-[14px] shrink-0 transition-all ${
+                            isSelected ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : 'bg-[#f1f5f9] text-[#94a3b8] border border-[#e2e8f0]'
+                          }`}>{idx + 1}</div>
+
+                          {/* Title & Description */}
+                          <div
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => {
+                              setSelectedStructureIds(prev =>
+                                prev.includes(note.id) ? prev.filter(id => id !== note.id) : [...prev, note.id]
+                              );
+                            }}
+                          >
+                            <div className={`font-bold text-[15px] tracking-tight mb-0.5 transition-colors ${
+                              isSelected ? 'text-[#0f172a]' : 'text-[#64748b]'
+                            }`}>{note.title}</div>
+                            <div className="text-[12px] text-[#94a3b8] font-medium truncate">{note.desc}</div>
+                          </div>
+
+                          {/* Reorder Buttons */}
+                          <div className="flex flex-col items-center justify-center -space-y-1 mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              disabled={idx === 0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveStructure((prev: any[]) => {
+                                  const arr = [...prev];
+                                  const t = arr[idx]; arr[idx] = arr[idx-1]; arr[idx-1] = t;
+                                  return arr;
+                                });
+                              }}
+                              className="p-1 text-slate-300 hover:text-[#4f46e5] disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move Up"
+                            >
+                              <ChevronUp size={16} />
+                            </button>
+                            <button
+                              disabled={idx === activeStructure.length - 1}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveStructure((prev: any[]) => {
+                                  const arr = [...prev];
+                                  const t = arr[idx]; arr[idx] = arr[idx+1]; arr[idx+1] = t;
+                                  return arr;
+                                });
+                              }}
+                              className="p-1 text-slate-300 hover:text-[#4f46e5] disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move Down"
+                            >
+                              <ChevronDown size={16} />
+                            </button>
+                          </div>
+
+                          {/* Delete Button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveStructure((prev: any[]) => prev.filter(n => n.id !== note.id));
+                              setSelectedStructureIds(prev => prev.filter(id => id !== note.id));
+                            }}
+                            className="text-[#cbd5e1] hover:text-red-500 hover:bg-red-50 p-2 rounded-xl transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                            title="Delete section"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {activeStructure.length === 0 && (
+                    <div className="text-center py-16 bg-slate-50/50 rounded-3xl border border-slate-100 border-dashed mt-4">
+                      <Layers className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+                      <h3 className="text-lg font-bold text-slate-900 mb-1">No sections yet</h3>
+                      <p className="text-slate-500 text-sm">Add sections above to build your template.</p>
+                    </div>
+                  )}
+
+                  {/* Summary + Proceed Button */}
+                  {activeStructure.length > 0 && (
+                    <div className="mt-8 bg-[#4f46e5]/5 rounded-2xl p-6 border border-[#4f46e5]/10 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center border border-[#4f46e5]/20 shadow-sm">
+                          <CheckSquare size={24} className="text-[#4f46e5]" />
+                        </div>
+                        <div>
+                          <div className="text-[14px] font-bold text-[#4f46e5] mb-0.5">{selectedStructureIds.length} of {activeStructure.length} sections selected</div>
+                          <div className="text-[12px] text-[#64748b]">Selected sections will be shown in the Structure view for configuration.</div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setActiveGenTab('lms-notes')}
+                        disabled={selectedStructureIds.length === 0}
+                        className="bg-[#4f46e5] text-white px-8 py-3 rounded-xl font-bold text-[14px] flex items-center gap-2 hover:bg-[#3730a3] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-md shadow-[#4f46e5]/20 shrink-0"
+                      >
+                        Confirm & Configure Structure →
+                      </button>
+                    </div>
+                  )}
+                </div>
               ) : activeGenTab === 'generation-engine' ? (
                 <div className="flex flex-col lg:flex-row gap-8 items-start w-full max-w-[1100px] mx-auto animate-in fade-in zoom-in-95 duration-500">
                   
@@ -16778,90 +17166,100 @@ Return ONLY the JSON object, no extra text.`;
 
                 </div>
               ) : activeGenTab === 'lms-notes' ? (
+                /* ═══════════════════════════════════════════════════════════════
+                   LMS Notes Structure — Only shows SELECTED sections from Sections tab
+                   ═══════════════════════════════════════════════════════════════ */
                 <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm w-full max-w-5xl mx-auto min-h-[500px] animate-in fade-in zoom-in-95 duration-500">
                   <div className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4 mb-10">
                     <div>
                       <h3 className="text-[24px] font-bold text-[#0f172a] mb-1">{activeTab === 'essay-questions' ? 'Essay Questions Structure' : activeTab === 'mcq-questions' ? 'MCQ Structure' : activeTab === 'flash-cards' ? 'Flash Cards Structure' : 'LMS Notes Structure'}</h3>
-                      <p className="text-[14px] text-[#64748b] font-medium">Configure the output generation template for MBBS</p>
+                      <p className="text-[14px] text-[#64748b] font-medium">Configure the output generation template — showing {activeStructure.filter((n: any) => selectedStructureIds.includes(n.id)).length} selected sections</p>
                     </div>
-                    <button className="bg-[#0f172a] text-white px-5 py-2.5 rounded-xl font-bold text-[14px] flex items-center justify-center w-full md:w-auto gap-2 hover:bg-[#1e293b] transition-colors shadow-[0_4px_14px_rgba(0,0,0,0.1)]">
-                      <Plus size={16} /> Add Section
+                    <button
+                      onClick={() => setActiveGenTab('sections')}
+                      className="text-[13px] font-bold text-[#4f46e5] hover:text-[#3730a3] bg-[#eef2ff] px-4 py-2.5 rounded-xl border border-[#c7d2fe] transition-colors flex items-center gap-2"
+                    >
+                      <Edit3 size={14} /> Edit Sections
                     </button>
                   </div>
 
                   <div className="space-y-4">
-                    {activeStructure.map((note: any, idx) => (
-                      <div key={note.id} className="bg-[#f8fafc] rounded-[24px] p-6 flex flex-col md:flex-row items-start md:items-center gap-6 border border-[#f1f5f9] transition-all hover:border-[#e2e8f0] hover:shadow-sm relative group">
-                        <div className="w-10 h-10 rounded-full bg-[#f1f5f9] flex items-center justify-center text-[#94a3b8] font-bold text-[15px] shrink-0 border border-[#e2e8f0]">{idx + 1}</div>
-                        
-                        <div className="flex-1 w-full border-b border-slate-200 border-dashed md:border-none pb-4 md:pb-0">
-                          <div className="font-bold text-[#1e293b] text-[16px] xl:text-[18px] mb-1 tracking-tight">{note.title}</div>
-                          <div className="text-[13px] text-[#64748b] font-medium">{note.desc}</div>
-                          {activeTab === 'essay-questions' && (
-                            <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-slate-100">
-                              <label className="flex items-center gap-2 text-[13px] font-bold text-slate-600 cursor-pointer hover:text-slate-900 transition-colors">
-                                <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#4f46e5] focus:ring-[#4f46e5]" />
-                                20 Marks Question
-                              </label>
-                              <label className="flex items-center gap-2 text-[13px] font-bold text-slate-600 cursor-pointer hover:text-slate-900 transition-colors">
-                                <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#4f46e5] focus:ring-[#4f46e5]" />
-                                10 Marks Question
-                              </label>
-                              <label className="flex items-center gap-2 text-[13px] font-bold text-slate-600 cursor-pointer hover:text-slate-900 transition-colors">
-                                <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#4f46e5] focus:ring-[#4f46e5]" />
-                                5 Marks Question
-                              </label>
-                              <span className="text-[11px] text-slate-400 italic">Tick one or all</span>
-                            </div>
-                          )}
+                    {(() => {
+                      const filteredStructure = activeStructure.filter((note: any) => selectedStructureIds.includes(note.id));
+                      if (filteredStructure.length === 0) return (
+                        <div className="text-center py-20 bg-slate-50/50 rounded-3xl border border-slate-100 border-dashed">
+                          <Layers className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+                          <h3 className="text-lg font-bold text-slate-900 mb-1">No sections selected</h3>
+                          <p className="text-slate-500 text-sm mb-4">Go back to the Sections tab to select sections for your template.</p>
+                          <button onClick={() => setActiveGenTab('sections')} className="bg-[#4f46e5] text-white px-6 py-2.5 rounded-xl font-bold text-[13px] hover:bg-[#3730a3] transition-colors">← Go to Sections</button>
                         </div>
-
-                        <div className="flex flex-col md:flex-row w-full lg:w-auto gap-3 items-center">
-                          {activeTab === 'lms-notes' && (
-                            <>
-                              <input type="text" defaultValue={note.instruction} className="w-full lg:w-[260px] bg-white border border-[#e2e8f0] rounded-xl px-4 py-3 text-[14px] font-medium focus:outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/10 text-[#334155] shadow-[0_2px_4px_rgba(0,0,0,0.01)] transition-all" />
-                              
-                              <div className="relative w-full lg:w-[150px]">
-                                <select defaultValue={note.format} className="w-full appearance-none bg-white border border-[#e2e8f0] rounded-xl px-4 py-3 text-[#334155] font-bold text-[13px] focus:outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/10 shadow-[0_2px_4px_rgba(0,0,0,0.01)] transition-all cursor-pointer">
-                                  <option>Text Format</option>
-                                  <option>Table Format</option>
-                                  <option>Markdown Map</option>
-                                </select>
-                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                                  <ChevronRight size={16} className="rotate-90" />
-                                </div>
+                      );
+                      return filteredStructure.map((note: any, idx: number) => (
+                        <div key={note.id} className="bg-[#f8fafc] rounded-[24px] p-6 flex flex-col md:flex-row items-start md:items-center gap-6 border border-[#f1f5f9] transition-all hover:border-[#e2e8f0] hover:shadow-sm relative group">
+                          <div className="w-10 h-10 rounded-full bg-[#ecfdf5] flex items-center justify-center text-[#10b981] font-bold text-[15px] shrink-0 border border-[#d1fae5]">{idx + 1}</div>
+                          
+                          <div className="flex-1 w-full border-b border-slate-200 border-dashed md:border-none pb-4 md:pb-0">
+                            <div className="font-bold text-[#1e293b] text-[16px] xl:text-[18px] mb-1 tracking-tight">{note.title}</div>
+                            <div className="text-[13px] text-[#64748b] font-medium">{note.desc}</div>
+                            {activeTab === 'essay-questions' && (
+                              <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-slate-100">
+                                <label className="flex items-center gap-2 text-[13px] font-bold text-slate-600 cursor-pointer hover:text-slate-900 transition-colors">
+                                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#4f46e5] focus:ring-[#4f46e5]" />
+                                  20 Marks Question
+                                </label>
+                                <label className="flex items-center gap-2 text-[13px] font-bold text-slate-600 cursor-pointer hover:text-slate-900 transition-colors">
+                                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#4f46e5] focus:ring-[#4f46e5]" />
+                                  10 Marks Question
+                                </label>
+                                <label className="flex items-center gap-2 text-[13px] font-bold text-slate-600 cursor-pointer hover:text-slate-900 transition-colors">
+                                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#4f46e5] focus:ring-[#4f46e5]" />
+                                  5 Marks Question
+                                </label>
+                                <span className="text-[11px] text-slate-400 italic">Tick one or all</span>
                               </div>
-                            </>
-                          )}
-
-                          <div className={`relative w-full ${activeTab === 'lms-notes' ? 'lg:w-[120px]' : 'lg:w-[160px]'}`}>
-                            <input 
-                              type="number" 
-                              value={activeTab === 'lms-notes' ? (note.words || 100) : (note.questions || 1)} 
-                              onChange={(e) => {
-                                const val = parseInt(e.target.value) || 0;
-                                setActiveStructure((prev: any[]) => prev.map(n => n.id === note.id ? { ...n, [activeTab === 'lms-notes' ? 'words' : 'questions']: val } : n));
-                              }}
-                              placeholder={activeTab === 'lms-notes' ? "100" : "1"} 
-                              className={`w-full bg-white border border-[#e2e8f0] rounded-xl px-4 py-3 text-[14px] font-medium focus:outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/10 text-[#334155] shadow-[0_2px_4px_rgba(0,0,0,0.01)] transition-all ${activeTab === 'lms-notes' ? 'pr-14' : 'pr-[100px]'}`} 
-                            />
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#94a3b8] text-[12px] font-medium">
-                              {activeTab === 'lms-notes' ? 'Words' : 'No of Questions'}
-                            </div>
+                            )}
                           </div>
 
-                          <button 
-                            onClick={() => setActiveStructure((prev: any[]) => prev.filter(n => n.id !== note.id))}
-                            className="bg-white md:bg-transparent border border-slate-100 md:border-transparent text-[#94a3b8] hover:text-red-500 hover:bg-red-50/50 transition-colors p-3 md:p-2.5 rounded-xl flex justify-center w-full md:w-auto"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                          <div className="flex flex-col md:flex-row w-full lg:w-auto gap-3 items-center">
+                            {activeTab === 'lms-notes' && (
+                              <>
+                                <input type="text" defaultValue={note.instruction} className="w-full lg:w-[260px] bg-white border border-[#e2e8f0] rounded-xl px-4 py-3 text-[14px] font-medium focus:outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/10 text-[#334155] shadow-[0_2px_4px_rgba(0,0,0,0.01)] transition-all" />
+                                
+                                <div className="relative w-full lg:w-[150px]">
+                                  <select defaultValue={note.format} className="w-full appearance-none bg-white border border-[#e2e8f0] rounded-xl px-4 py-3 text-[#334155] font-bold text-[13px] focus:outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/10 shadow-[0_2px_4px_rgba(0,0,0,0.01)] transition-all cursor-pointer">
+                                    <option>Text Format</option>
+                                    <option>Table Format</option>
+                                    <option>Markdown Map</option>
+                                  </select>
+                                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                                    <ChevronRight size={16} className="rotate-90" />
+                                  </div>
+                                </div>
+                              </>
+                            )}
 
-                    {activeStructure.length > 0 && (
-                      <div className="mt-8 bg-[#4f46e5]/5 rounded-2xl p-6 border border-[#4f46e5]/10 flex items-center justify-between shadow-sm">
+                            <div className={`relative w-full ${activeTab === 'lms-notes' ? 'lg:w-[120px]' : 'lg:w-[160px]'}`}>
+                              <input 
+                                type="number" 
+                                value={activeTab === 'lms-notes' ? (note.words || 100) : (note.questions || 1)} 
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value) || 0;
+                                  setActiveStructure((prev: any[]) => prev.map(n => n.id === note.id ? { ...n, [activeTab === 'lms-notes' ? 'words' : 'questions']: val } : n));
+                                }}
+                                placeholder={activeTab === 'lms-notes' ? "100" : "1"} 
+                                className={`w-full bg-white border border-[#e2e8f0] rounded-xl px-4 py-3 text-[14px] font-medium focus:outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/10 text-[#334155] shadow-[0_2px_4px_rgba(0,0,0,0.01)] transition-all ${activeTab === 'lms-notes' ? 'pr-14' : 'pr-[100px]'}`} 
+                              />
+                              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#94a3b8] text-[12px] font-medium">
+                                {activeTab === 'lms-notes' ? 'Words' : 'No of Questions'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ));
+                    })()}
+
+                    {activeStructure.filter((n: any) => selectedStructureIds.includes(n.id)).length > 0 && (
+                      <div className="mt-8 bg-[#4f46e5]/5 rounded-2xl p-6 border border-[#4f46e5]/10 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center border border-[#4f46e5]/20 shadow-sm">
                             <Target size={24} className="text-[#4f46e5]" />
@@ -16875,19 +17273,19 @@ Return ONLY the JSON object, no extra text.`;
                             </div>
                           </div>
                         </div>
-                        <div className="text-[32px] font-black text-[#4f46e5] bg-white px-6 py-2 rounded-xl border border-[#4f46e5]/20 shadow-sm">
-                          {activeTab === 'lms-notes'
-                            ? activeStructure.reduce((sum: number, item: any) => sum + (item.words || 100), 0)
-                            : activeStructure.reduce((sum: number, item: any) => sum + (item.questions || 1), 0)}
+                        <div className="flex items-center gap-4">
+                          <div className="text-[32px] font-black text-[#4f46e5] bg-white px-6 py-2 rounded-xl border border-[#4f46e5]/20 shadow-sm">
+                            {activeTab === 'lms-notes'
+                              ? activeStructure.filter((n: any) => selectedStructureIds.includes(n.id)).reduce((sum: number, item: any) => sum + (item.words || 100), 0)
+                              : activeStructure.filter((n: any) => selectedStructureIds.includes(n.id)).reduce((sum: number, item: any) => sum + (item.questions || 1), 0)}
+                          </div>
+                          <button
+                            onClick={() => setActiveGenTab('generation-engine')}
+                            className="bg-[#10b981] text-white px-6 py-3 rounded-xl font-bold text-[14px] flex items-center gap-2 hover:bg-[#059669] transition-colors shadow-md shadow-[#10b981]/20"
+                          >
+                            Confirm & Generate →
+                          </button>
                         </div>
-                      </div>
-                    )}
-                    
-                    {activeStructure.length === 0 && (
-                      <div className="text-center py-20 bg-slate-50/50 rounded-3xl border border-slate-100 border-dashed">
-                        <Layers className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-                        <h3 className="text-lg font-bold text-slate-900 mb-1">No structural sections</h3>
-                        <p className="text-slate-500 text-sm">Add a new section to configure the template.</p>
                       </div>
                     )}
                   </div>
@@ -17818,6 +18216,7 @@ function getIcon(name: string) {
     case 'Lightbulb': return <Lightbulb size={24} />;
     case 'HelpCircle': return <HelpCircle size={24} />;
     case 'Pill': return <Pill size={24} />;
+    case 'Upload': return <Upload size={24} />;
     default: return <Activity size={24} />;
   }
 }

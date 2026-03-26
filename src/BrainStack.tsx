@@ -12,20 +12,24 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import html2pdf from 'html2pdf.js';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+// Configure PDF.js worker using Vite's ?url import (works in dev + production)
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
 
 // ─── File Size Limits ───────────────────────────────────────────────────────
 const MAX_PDF_SIZE_MB = 50;
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+const MAX_PDF_OCR_FALLBACK_SIZE_MB = 15; // Max PDF size for backend OCR fallback
+const MAX_PDF_OCR_FALLBACK_BYTES = MAX_PDF_OCR_FALLBACK_SIZE_MB * 1024 * 1024;
+const MAX_OCR_FALLBACK_PAGES = 20; // Max pages to OCR via fallback
 
 // ─── Client-Side PDF Text Extraction (pdfjs-dist) ──────────────────────────
 async function extractTextFromPDF(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
   const totalPages = pdf.numPages;
   const pageTexts: string[] = [];
 
@@ -37,6 +41,43 @@ async function extractTextFromPDF(file: File): Promise<string> {
       .join(' ');
     if (pageText.trim()) {
       pageTexts.push(`[Page ${pageNum}]\n${pageText}`);
+    }
+  }
+
+  return pageTexts.join('\n\n');
+}
+
+// ─── Fallback: Render PDF pages to canvas → base64 images → backend OCR ────
+async function extractTextFromPDFViaOCR(
+  file: File,
+  extractFn: (base64: string) => Promise<string>,
+  setStatus: (s: string) => void
+): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+  const totalPages = Math.min(pdf.numPages, MAX_OCR_FALLBACK_PAGES);
+  const pageTexts: string[] = [];
+
+  for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+    setStatus(`OCR fallback: processing page ${pageNum}/${totalPages} of ${file.name}...`);
+    try {
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 2.0 }); // High res for OCR
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d')!;
+      await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+      const base64 = canvas.toDataURL('image/jpeg', 0.85);
+      const text = await extractFn(base64);
+      if (text && text.trim()) {
+        pageTexts.push(`[Page ${pageNum}]\n${text}`);
+      }
+      // Clean up
+      canvas.width = 0;
+      canvas.height = 0;
+    } catch (err) {
+      console.warn(`OCR fallback failed for page ${pageNum}:`, err);
     }
   }
 
@@ -217,16 +258,39 @@ const BrainStack: React.FC<BrainStackProps> = ({ fetchSaved }) => {
           setExtractionStatus(`Extracting text from ${file.name}...`);
           newFiles.push({ name: file.name, preview: '' }); // No preview for PDFs
 
+          let text = '';
+          let needsOCRFallback = false;
+
           try {
-            const text = await extractTextFromPDF(file);
-            if (text && text.trim().length > 50) {
-              extractedText += `--- Source: ${file.name} ---\n${text}\n\n`;
-            } else {
-              warnings.push(`⚠️ "${file.name}" appears to be a scanned/image-only PDF. Text extraction is limited for scanned books.`);
+            text = await extractTextFromPDF(file);
+            if (!text || text.trim().length < 50) {
+              needsOCRFallback = true; // Scanned/image PDF — no embedded text
             }
           } catch (err) {
-            console.error("PDF extraction failed for", file.name, err);
-            warnings.push(`❌ Failed to extract text from "${file.name}". The file may be corrupted or password-protected.`);
+            console.error("PDF text extraction failed for", file.name, err);
+            needsOCRFallback = true; // Worker or parsing error
+          }
+
+          // If text extraction worked, use it
+          if (!needsOCRFallback && text.trim().length >= 50) {
+            extractedText += `--- Source: ${file.name} ---\n${text}\n\n`;
+          }
+          // Otherwise, try OCR fallback for smaller PDFs
+          else if (file.size <= MAX_PDF_OCR_FALLBACK_BYTES) {
+            setExtractionStatus(`Scanned PDF detected. Running OCR on ${file.name}...`);
+            try {
+              const ocrText = await extractTextFromPDFViaOCR(file, extractPaperTextFromImage, setExtractionStatus);
+              if (ocrText && ocrText.trim().length > 20) {
+                extractedText += `--- Source: ${file.name} (OCR) ---\n${ocrText}\n\n`;
+              } else {
+                warnings.push(`⚠️ "${file.name}" — OCR could not extract readable text. The PDF may have very low image quality.`);
+              }
+            } catch (ocrErr) {
+              console.error("OCR fallback failed for", file.name, ocrErr);
+              warnings.push(`❌ Failed to process "${file.name}". The file may be corrupted or password-protected.`);
+            }
+          } else {
+            warnings.push(`⚠️ "${file.name}" is a scanned/image PDF larger than ${MAX_PDF_OCR_FALLBACK_SIZE_MB}MB. Please use a smaller file or a text-based PDF.`);
           }
           continue;
         }

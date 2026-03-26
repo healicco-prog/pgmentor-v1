@@ -4,13 +4,44 @@ import {
   MessageSquare, GraduationCap,
   Brain, Zap, Table2, Save, Copy, Check, RotateCcw, ChevronDown,
   Lightbulb, Download, Plus, X, ClipboardList, StickyNote,
-  HelpCircle, Shield
+  HelpCircle, Shield, AlertTriangle
 } from 'lucide-react';
 import { generateMedicalContent } from './services/ai';
 import { extractPaperTextFromImage } from './services/ai';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import html2pdf from 'html2pdf.js';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+// ─── File Size Limits ───────────────────────────────────────────────────────
+const MAX_PDF_SIZE_MB = 50;
+const MAX_IMAGE_SIZE_MB = 10;
+const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
+const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+
+// ─── Client-Side PDF Text Extraction (pdfjs-dist) ──────────────────────────
+async function extractTextFromPDF(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const totalPages = pdf.numPages;
+  const pageTexts: string[] = [];
+
+  for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items
+      .map((item: any) => item.str)
+      .join(' ');
+    if (pageText.trim()) {
+      pageTexts.push(`[Page ${pageNum}]\n${pageText}`);
+    }
+  }
+
+  return pageTexts.join('\n\n');
+}
 
 // ─── Output Mode Config ────────────────────────────────────────────────────
 const OUTPUT_MODES = [
@@ -140,6 +171,7 @@ const BrainStack: React.FC<BrainStackProps> = ({ fetchSaved }) => {
   const [docsText, setDocsText] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; preview: string }>>([]);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionStatus, setExtractionStatus] = useState('');
   const [selectedMode, setSelectedMode] = useState('summarize');
   const [selectedDepth, setSelectedDepth] = useState('detailed');
   const [isLoading, setIsLoading] = useState(false);
@@ -153,39 +185,89 @@ const BrainStack: React.FC<BrainStackProps> = ({ fetchSaved }) => {
     setOutputState(val);
   }, []);
 
-  // ─── File Upload + OCR ────────────────────────────────────────────────────
+  // ─── File Upload (PDF: client-side pdfjs-dist, Images: backend OCR) ───────
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     setIsExtracting(true);
+    setExtractionStatus('Processing files...');
 
     let extractedText = docsText ? docsText + '\n\n' : '';
     const newFiles: Array<{ name: string; preview: string }> = [];
+    const warnings: string[] = [];
 
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
+        const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        const isImage = file.type.startsWith('image/');
 
-        newFiles.push({ name: file.name, preview: base64 });
-
-        try {
-          const text = await extractPaperTextFromImage(base64);
-          if (text) {
-            extractedText += `--- Source: ${file.name} ---\n${text}\n\n`;
-          }
-        } catch (err) {
-          console.error("Failed to extract text from", file.name);
+        // ── File Size Validation ──
+        if (isPDF && file.size > MAX_PDF_SIZE_BYTES) {
+          warnings.push(`⚠️ "${file.name}" exceeds ${MAX_PDF_SIZE_MB}MB limit and was skipped.`);
+          continue;
         }
+        if (isImage && file.size > MAX_IMAGE_SIZE_BYTES) {
+          warnings.push(`⚠️ "${file.name}" exceeds ${MAX_IMAGE_SIZE_MB}MB limit and was skipped.`);
+          continue;
+        }
+
+        // ── PDF: Extract text client-side with pdfjs-dist ──
+        if (isPDF) {
+          setExtractionStatus(`Extracting text from ${file.name}...`);
+          newFiles.push({ name: file.name, preview: '' }); // No preview for PDFs
+
+          try {
+            const text = await extractTextFromPDF(file);
+            if (text && text.trim().length > 50) {
+              extractedText += `--- Source: ${file.name} ---\n${text}\n\n`;
+            } else {
+              warnings.push(`⚠️ "${file.name}" appears to be a scanned/image-only PDF. Text extraction is limited for scanned books.`);
+            }
+          } catch (err) {
+            console.error("PDF extraction failed for", file.name, err);
+            warnings.push(`❌ Failed to extract text from "${file.name}". The file may be corrupted or password-protected.`);
+          }
+          continue;
+        }
+
+        // ── Images: Base64 → send to backend OCR ──
+        if (isImage) {
+          setExtractionStatus(`OCR processing ${file.name}...`);
+          const reader = new FileReader();
+          const base64 = await new Promise<string>((resolve) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          });
+
+          newFiles.push({ name: file.name, preview: base64 });
+
+          try {
+            const text = await extractPaperTextFromImage(base64);
+            if (text) {
+              extractedText += `--- Source: ${file.name} ---\n${text}\n\n`;
+            }
+          } catch (err) {
+            console.error("Failed to extract text from", file.name);
+            warnings.push(`❌ OCR failed for "${file.name}".`);
+          }
+          continue;
+        }
+
+        // ── Unknown file type ──
+        warnings.push(`⚠️ "${file.name}" is not a supported file type (PDF or Image).`);
       }
+
       setUploadedFiles(prev => [...prev, ...newFiles]);
       setDocsText(extractedText);
+
+      // Show warnings if any
+      if (warnings.length > 0) {
+        alert(warnings.join('\n'));
+      }
     } finally {
       setIsExtracting(false);
+      setExtractionStatus('');
       e.target.value = '';
     }
   };
@@ -331,12 +413,12 @@ const BrainStack: React.FC<BrainStackProps> = ({ fetchSaved }) => {
           <label className="text-white font-semibold text-sm flex items-center gap-2">
             <Upload size={16} className="text-violet-400" /> Upload Source Material
           </label>
-          <p className="text-slate-500 text-xs">Upload PDFs, images, or text files. The AI will extract and work only with this content.</p>
+          <p className="text-slate-500 text-xs">Upload PDFs (up to {MAX_PDF_SIZE_MB}MB) or images (up to {MAX_IMAGE_SIZE_MB}MB). Text is extracted locally — no upload to server for PDFs.</p>
           <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-white/10 rounded-xl cursor-pointer hover:border-violet-500/50 transition-all bg-slate-800/50 group">
             <div className="flex flex-col items-center justify-center py-4">
               <Plus className="w-7 h-7 text-slate-500 mb-1.5 group-hover:text-violet-400 group-hover:scale-110 transition-all" />
               <p className="text-sm text-slate-400 font-semibold group-hover:text-slate-300">
-                {isExtracting ? "Extracting text..." : "Take Photo / Upload Files"}
+                {isExtracting ? (extractionStatus || 'Extracting text...') : 'Take Photo / Upload Files'}
               </p>
               <p className="text-xs text-slate-600 mt-0.5">PDFs, Images, Documents</p>
             </div>
@@ -354,7 +436,7 @@ const BrainStack: React.FC<BrainStackProps> = ({ fetchSaved }) => {
             <div className="flex flex-wrap gap-2 mt-3">
               {uploadedFiles.map((file, i) => (
                 <div key={i} className="relative w-24 h-24 rounded-lg overflow-hidden border border-white/10 group">
-                  {file.preview.startsWith('data:image') ? (
+                  {file.preview && file.preview.startsWith('data:image') ? (
                     <img src={file.preview} alt={file.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-xs text-slate-300 break-words text-center px-2">

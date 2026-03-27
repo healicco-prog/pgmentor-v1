@@ -79,7 +79,9 @@ Return strictly the JSON array with elements matching:
 
     try {
       const resp = await generateMedicalContent(prompt, systemInstruction, "application/json");
-      const data = JSON.parse(resp);
+      // Strip potential markdown code blocks
+      const cleanResp = resp.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const data = JSON.parse(cleanResp);
       setSearchResults(Array.isArray(data) ? data : data.guidelines || []);
     } catch (e) {
       console.error(e);
@@ -100,7 +102,8 @@ Return strictly the JSON array with elements matching:
 }`;
     try {
       const resp = await generateMedicalContent(prompt, systemInstruction, "application/json");
-      const details = JSON.parse(resp);
+      const cleanResp = resp.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const details = JSON.parse(cleanResp);
       // Ensure keyRecommendations is always a string
       let recs = details.keyRecommendations || '';
       if (Array.isArray(recs)) recs = recs.join('\n');

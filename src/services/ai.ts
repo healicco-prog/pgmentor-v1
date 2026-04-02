@@ -32,14 +32,15 @@ export const generateMedicalContent = async (
   systemInstruction: string,
   responseMimeType: string = "text/plain",
   useSearch: boolean = false,
-  userRole?: string
+  userRole?: string,
+  userId?: string
 ) => {
   try {
     const baseUrl = getAIBaseUrl();
     const response = await fetch(`${baseUrl}/generate`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ prompt, systemInstruction, responseMimeType, useSearch, userRole }),
+      body: JSON.stringify({ prompt, systemInstruction, responseMimeType, useSearch, userRole, userId }),
     });
     if (!response.ok) {
       const errData = await response.json().catch(() => ({ error: 'AI request failed' }));
@@ -55,11 +56,11 @@ export const generateMedicalContent = async (
 };
 
 /**
- * Medimentr Mentor Chat
+ * PGMentor Mentor Chat
  */
-export const medimentrMentorChat = async (message: string) => {
-  const systemInstruction = `You are Medimentr AI Mentor, a helpful assistant for the Medimentr platform.
-  Medimentr is an AI-powered academic assistant for postgraduate medical students.
+export const PGMentorMentorChat = async (message: string) => {
+  const systemInstruction = `You are PGMentor AI Mentor, a helpful assistant for the PGMentor platform.
+  PGMentor is an AI-powered academic assistant for postgraduate medical students.
   Features include:
   - Knowledge Library: Evidence-based PG medical notes.
   - Essay Generator: Long/Short essays and short notes.
@@ -81,13 +82,13 @@ export const medimentrMentorChat = async (message: string) => {
 /**
  * Extract contact info from a visiting card image
  */
-export const extractContactFromImage = async (base64Image: string) => {
+export const extractContactFromImage = async (base64Image: string, userId?: string) => {
   try {
     const baseUrl = getAIBaseUrl();
     const response = await fetch(`${baseUrl}/extract-contact`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ image: base64Image }),
+      body: JSON.stringify({ image: base64Image, userId }),
     });
     if (!response.ok) {
       const errData = await response.json().catch(() => ({ error: 'Contact extraction failed' }));
@@ -103,13 +104,13 @@ export const extractContactFromImage = async (base64Image: string) => {
 /**
  * Analyze a prescription image
  */
-export const analyzePrescriptionImage = async (base64Image: string) => {
+export const analyzePrescriptionImage = async (base64Image: string, userId?: string) => {
   try {
     const baseUrl = getAIBaseUrl();
     const response = await fetch(`${baseUrl}/analyze-prescription`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ image: base64Image }),
+      body: JSON.stringify({ image: base64Image, userId }),
     });
     if (!response.ok) {
       const errData = await response.json().catch(() => ({ error: 'Prescription analysis failed' }));
@@ -125,13 +126,13 @@ export const analyzePrescriptionImage = async (base64Image: string) => {
 /**
  * Extract text from a question paper image
  */
-export const extractPaperTextFromImage = async (base64Image: string) => {
+export const extractPaperTextFromImage = async (base64Image: string, userId?: string) => {
   try {
     const baseUrl = getAIBaseUrl();
     const response = await fetch(`${baseUrl}/extract-paper`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ image: base64Image }),
+      body: JSON.stringify({ image: base64Image, userId }),
     });
     if (!response.ok) {
       const errData = await response.json().catch(() => ({ error: 'Paper extraction failed' }));
@@ -144,3 +145,4 @@ export const extractPaperTextFromImage = async (base64Image: string) => {
     throw error;
   }
 };
+

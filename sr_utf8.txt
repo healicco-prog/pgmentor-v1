@@ -1,0 +1,51 @@
+﻿261:   app.post("/api/auth/send-reset-code", async (req, res) => {
+331:   app.post("/api/auth/verify-reset-code", async (req, res) => {
+357:   // 3. Reset Password (after OTP verification)
+358:   app.post("/api/auth/reset-password", async (req, res) => {
+796:   app.get("/api/auth/session-status", async (req, res) => {
+822:   app.post("/api/auth/session/register", async (req, res) => {
+849:   app.post("/api/auth/session/validate", async (req, res) => {
+884:   app.post("/api/auth/session/logout", async (req, res) => {
+1112:   // Then sends custom verification email via Resend
+1114:   app.post("/api/auth/signup", async (req, res) => {
+1265:       // 6. Send verification email via Resend (only if admin API was used OR as a supplement)
+1267:       let verificationSent = false;
+1272:           verificationTokenStore.set(verifyToken, { email, userId: userId!, expiresAt });
+1274:           const verifyUrl = `${APP_URL}/api/auth/verify-email?token=${verifyToken}`;
+1310:           verificationSent = true;
+1320:         verificationSent,
+1330:   app.post("/api/auth/register", async (req, res) => {
+1360:   app.post("/api/auth/login", async (req, res) => {
+3137:   // In-memory verification token store: Map<token, { email, userId, expiresAt }>
+3138:   const verificationTokenStore = new Map<string, { email: string; userId: string; expiresAt: number }>();
+3140:   // Cleanup expired verification tokens every 10 minutes
+3143:     for (const [token, entry] of verificationTokenStore) {
+3144:       if (now > entry.expiresAt) verificationTokenStore.delete(token);
+3148:   // Send verification email with a clickable link
+3149:   app.post("/api/auth/send-verification-email", async (req, res) => {
+3156:     // Rate limit: max 5 verification emails per IP per 15 min
+3162:     // Generate verification token (URL-safe)
+3165:     verificationTokenStore.set(token, { email, userId: userId || '', expiresAt });
+3167:     const verifyUrl = `${APP_URL}/api/auth/verify-email?token=${token}`;
+3213:       console.error("Γ¥î Failed to send verification email:", err.message || err);
+3214:       res.status(500).json({ error: "Failed to send verification email" });
+3219:   app.get("/api/auth/verify-email", async (req, res) => {
+3223:     const entry = verificationTokenStore.get(token);
+3226:       return res.redirect(`${APP_URL}?verification=expired`);
+3230:       verificationTokenStore.delete(token);
+3231:       return res.redirect(`${APP_URL}?verification=expired`);
+3242:         console.error("Γ¥î Email verification DB update error:", error.message);
+3263:       verificationTokenStore.delete(token);
+3268:       res.redirect(`${APP_URL}?verification=success`);
+3270:       console.error("Γ¥î Email verification failed:", err.message);
+3271:       res.redirect(`${APP_URL}?verification=error`);
+3275:   // Check verification status for a user
+3276:   app.get("/api/auth/verification-status/:userId", async (req, res) => {
+3291:   // Resend verification email
+3292:   app.post("/api/auth/resend-verification", async (req, res) => {
+3303:     for (const [t, entry] of verificationTokenStore) {
+3304:       if (entry.email === email) verificationTokenStore.delete(t);
+3310:     verificationTokenStore.set(token, { email, userId: userId || '', expiresAt });
+3312:     const verifyUrl = `${APP_URL}/api/auth/verify-email?token=${token}`;
+3340:       console.error("Γ¥î Resend verification email failed:", err.message);
+3341:       res.status(500).json({ error: "Failed to resend verification email" });

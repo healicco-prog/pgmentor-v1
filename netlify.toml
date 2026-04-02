@@ -1,4 +1,4 @@
-[build]
+﻿[build]
   command = "sed -i \"s/__BACKEND_API_KEY__/$BACKEND_API_KEY/g\" netlify.toml && npm run build"
   publish = "dist"
 
@@ -11,7 +11,7 @@
 # ═══════════════════════════════════════════════════════════════
 [[redirects]]
   from = "/api/*"
-  to = "https://medimentr-backend-668524975962.asia-south1.run.app/api/:splat"
+  to = "https://PGMentor-backend-668524975962.asia-south1.run.app/api/:splat"
   status = 200
   force = true
   [redirects.headers]
@@ -23,7 +23,7 @@
 # ═══════════════════════════════════════════════════════════════
 [[redirects]]
   from = "/blog/*"
-  to = "https://medimentr-backend-668524975962.asia-south1.run.app/blog/:splat"
+  to = "https://PGMentor-backend-668524975962.asia-south1.run.app/blog/:splat"
   status = 200
   force = true
 

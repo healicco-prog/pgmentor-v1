@@ -1,0 +1,62 @@
+﻿7: LayoutDashboard, Settings, LogOut, ChevronRight, Brain,
+22: import LearningManagementDashboard from './LearningManagementDashboard';
+127: <LayoutDashboard size={18} />
+540: tokens: "10,000 AI Tokens/month",
+560: tokens: "1,00,000 AI Tokens/month",
+607: tokens: "3,00,000 AI Tokens/month",
+933: {plan.tokens && (
+935: ΓÜí {plan.tokens}
+976: Need more AI power? <span className="text-[#1e3a6e] font-semibold">Additional tokens can be purchased anytime</span> fro
+1074: "Dashboard",
+1085: "Dashboard",
+1095: // Trial: ALL features for 15 days (100,000 tokens)
+1097: // Free: Basic access after trial expires (10,000 tokens/month)
+1099: "Dashboard",
+1102: // Standard: Γé╣499/month (100,000 tokens/month)
+1104: "Dashboard",
+1110: // Premium: Γé╣999/month (300,000 tokens/month)
+1300: const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
+1395: <h1 className="text-3xl font-bold text-[#1e3a6e] mb-2">Dashboard Analytics</h1>
+1553: const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPlan = 'trial', authSession, trialEndDate 
+1554: const [activeCategory, setActiveCategory] = useState("Dashboard");
+1656: {category === 'Dashboard' && <LayoutDashboard size={18} />}
+1657: {category !== 'Dashboard' && (
+1736: ) : activeCategory === "Dashboard" ? (
+1737: <DashboardContent curriculum={curriculum} />
+1739: <LearningManagementDashboard onNavigate={onNavigate} curriculum={curriculum || []} />
+1788: <h1 className="text-4xl font-bold text-white mb-4">AI Feature Dashboard</h1>
+2196: // ΓöÇΓöÇΓöÇ Course Lock: Read active course from Dashboard ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+4461: <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline
+4636: <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline
+4928: <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline
+5142: <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline
+5323: <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline
+5391: <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline
+5435: <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline
+5587: <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline
+6173: Change in Dashboard
+6477: <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline
+6643: <Target className="text-blue-500" /> Exam Preparation Dashboard
+6653: <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline
+6820: <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline
+15827: // Generate articles ONE AT A TIME to avoid timeout / token limit issues
+16334: { type: 'item', id: 'token-economy', label: 'Token Economy', icon: <Brain size={20} /> },
+16427: <h1 className="text-[20px] md:text-[22px] font-bold text-slate-900 tracking-tight cursor-pointer hover:opacity-80 transi
+17759: {activeTab === 'token-economy' && (
+17983: return () => listener.subscription.unsubscribe();
+17986: // Fetch user's subscription plan via server API (bypasses RLS)
+17989: fetch(`/api/user/subscription/${authSession.user.id}`)
+17992: if (!data || !data.plan_id) {
+17996: setUserPlan(data.plan_id);
+17997: if (data.trial_end_date) setTrialEndDate(data.trial_end_date);
+18003: console.error('Failed to fetch subscription:', err);
+18241: const isDashboardArea = currentPage === 'dashboard' || currentPage.startsWith('feature-');
+18244: <div className={`min-h-screen bg-slate-950 text-slate-200 selection:bg-blue-500/30 ${isDashboardArea ? 'flex flex-col' :
+18245: {!isDashboardArea && <Navbar onNavigate={handleNavigate} onOpenAuth={handleOpenAuth} />}
+18247: <main className={isDashboardArea ? 'flex-1 flex flex-col' : ''}>
+18250: key={isDashboardArea ? 'dashboard-area' : currentPage}
+18255: className={isDashboardArea ? 'flex-1 flex flex-col' : ''}
+18257: {isDashboardArea ? (
+18258: <DashboardLayout onNavigate={handleNavigate} currentPage={currentPage} curriculum={curriculum} userPlan={userPlan} authS
+18268: </DashboardLayout>
+18276: {!isDashboardArea && <Footer onNavigate={handleNavigate} />}

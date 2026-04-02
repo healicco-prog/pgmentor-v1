@@ -1,0 +1,13 @@
+﻿JSON_OUTPUT_START
+[
+  "bjpdoddaballapura@gmail.com",
+  "aimsrcpharmac@gmail.com",
+  "drnarayanak@gmail.com",
+  "narayanakdr@yahoo.co.in"
+]
+JSON_OUTPUT_END
+drnarayanak@gmail.com already exists.
+aimsrcpharmac@gmail.com already exists.
+narayanakdr@yahoo.co.in already exists.
+bjpdoddaballapura@gmail.com already exists.
+Done checking and adding users.

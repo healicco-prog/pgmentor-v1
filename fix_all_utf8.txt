@@ -1,0 +1,8 @@
+﻿Updated drnarayanak@gmail.com role to super_admin: OK
+Updated drnarayanak@gmail.com plan to premium: OK
+Updated aimsrcpharmac@gmail.com role to admin: OK
+Updated aimsrcpharmac@gmail.com plan to standard: OK
+Updated narayanakdr@yahoo.co.in role to user: OK
+Updated narayanakdr@yahoo.co.in plan to free: OK
+Updated bjpdoddaballapura@gmail.com role to user: OK
+Updated bjpdoddaballapura@gmail.com plan to premium: OK

@@ -1,0 +1,4 @@
+﻿15591: { email: 'drnarayanak@gmail.com', password: 'Tata@#viDhya#2026', role: 'Super Admin' },
+16501: <h2 className="text-[#DA5D4B] font-bold text-[12px] tracking-widest uppercase mt-1">Super Admin</h2>
+16571: <h1 className="text-[20px] md:text-[22px] font-bold text-slate-900 tracking-tight cursor-pointer hover:opacity-80 transition-opacity" onClick={() => o
+16577: <div className="font-bold text-slate-900 text-[14px] leading-tight">Super Admin User</div>

@@ -25,14 +25,14 @@ interface AuthModalProps {
 
 
 const COURSE_OPTIONS = [
-  'Mastering Anatomy', 'Mastering Physiology', 'Mastering Biochemistry',
-  'Mastering Pharmacology', 'Mastering Pathology', 'Mastering Microbiology',
-  'Mastering Forensic Medicine & Toxicology', 'Mastering PSM / Community Medicine',
-  'Mastering General Medicine', 'Mastering General Surgery',
-  'Mastering Obstetrics & Gynecology', 'Mastering Pediatrics',
-  'Mastering ENT', 'Mastering Ophthalmology', 'Mastering Orthopaedics',
-  'Mastering Dermatology (DVL)', 'Mastering Psychiatry', 'Mastering Anaesthesiology',
-  'Mastering Radio Diagnosis'
+  'Anatomy', 'Physiology', 'Biochemistry',
+  'Pharmacology', 'Pathology', 'Microbiology',
+  'Forensic Medicine & Toxicology', 'PSM / Community Medicine',
+  'General Medicine', 'General Surgery',
+  'Obstetrics & Gynecology', 'Pediatrics',
+  'ENT', 'Ophthalmology', 'Orthopaedics',
+  'Dermatology (DVL)', 'Psychiatry', 'Anaesthesiology',
+  'Radio Diagnosis'
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -293,7 +293,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
 
       // Step 3: Register the new session exclusively for this device
       const sessionId = crypto.randomUUID();
-      localStorage.setItem('medimentr_session_id', sessionId);
+      localStorage.setItem('PGMentor_session_id', sessionId);
       
       await fetch('/api/auth/session/register', {
         method: 'POST',
@@ -393,7 +393,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
       const userId = data.userId;
 
       if (selectedCourse) {
-        localStorage.setItem('medimentr_selected_course', selectedCourse);
+        localStorage.setItem('PGMentor_selected_course', selectedCourse);
       }
 
       setVerificationEmail(email);
@@ -418,18 +418,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ duration: 0.25 }}
-        className="w-full max-w-md bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden relative"
+        className="w-full max-w-md bg-white border border-[#dfe6f0] rounded-3xl shadow-2xl overflow-hidden relative"
         onClick={e => e.stopPropagation()}
       >
-        {/* Glow effects */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-40 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-60 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        {/* Subtle glow effects */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-40 bg-[#1e3a6e]/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-60 h-40 bg-[#c9a84c]/5 rounded-full blur-3xl pointer-events-none" />
 
         {/* Close button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors z-50"
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg bg-[#f5f7fa] hover:bg-[#eef2f8] text-[#6b7e99] hover:text-[#1e3a6e] transition-colors z-50"
         >
           <X size={16} />
         </button>
@@ -439,44 +439,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
           {verificationSent ? (
             <div className="text-center">
               <div className="relative mx-auto w-20 h-20 mb-6">
-                <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping" />
-                <div className="relative w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                  <MailCheck size={36} className="text-white" />
+                <div className="absolute inset-0 bg-[#27ae60]/20 rounded-full animate-ping" />
+                <div className="relative w-20 h-20 bg-gradient-to-br from-[#27ae60] to-[#1e9448] rounded-full flex items-center justify-center shadow-lg shadow-[#27ae60]/30">
+                  <MailCheck size={36} style={{color:'#ffffff'}} />
                 </div>
               </div>
               
-              <h2 className="text-2xl font-bold text-white mb-2">Check Your Email</h2>
-              <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+              <h2 className="text-2xl font-bold text-[#1e3a6e] mb-2">Check Your Email</h2>
+              <p className="text-[#6b7e99] text-sm mb-6 leading-relaxed">
                 We've sent a verification link to<br />
-                <span className="text-emerald-400 font-semibold">{verificationEmail}</span>
+                <span className="text-[#27ae60] font-semibold">{verificationEmail}</span>
               </p>
 
-              <div className="bg-slate-800/60 border border-white/10 rounded-2xl p-5 mb-6 text-left">
+              <div className="bg-[#f5f7fa] border border-[#dfe6f0] rounded-2xl p-5 mb-6 text-left">
                 <div className="flex items-start gap-3 mb-3">
-                  <Mail size={18} className="text-blue-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-slate-300 text-sm leading-relaxed">
-                    Click the <strong className="text-white">Verify My Email</strong> button in the email to activate your account.
+                  <Mail size={18} className="text-[#2f80ed] mt-0.5 flex-shrink-0" />
+                  <p className="text-[#4a5568] text-sm leading-relaxed">
+                    Click the <strong className="text-[#1e3a6e]">Verify My Email</strong> button in the email to activate your account.
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <ShieldCheck size={18} className="text-amber-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-slate-300 text-sm leading-relaxed">
-                    The link expires in <strong className="text-white">24 hours</strong>. Check your spam folder if you don't see it.
+                  <ShieldCheck size={18} className="text-[#c9a84c] mt-0.5 flex-shrink-0" />
+                  <p className="text-[#4a5568] text-sm leading-relaxed">
+                    The link expires in <strong className="text-[#1e3a6e]">24 hours</strong>. Check your spam folder if you don't see it.
                   </p>
                 </div>
               </div>
 
               {/* Error/Success messages */}
               {error && (
-                <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5 mb-4">
-                  <AlertCircle size={16} className="text-red-400 flex-shrink-0" />
-                  <p className="text-red-400 text-sm">{error}</p>
+                <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 mb-4">
+                  <AlertCircle size={16} className="text-red-500 flex-shrink-0" />
+                  <p className="text-red-600 text-sm">{error}</p>
                 </div>
               )}
               {success && (
-                <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2.5 mb-4">
-                  <CheckCircle size={16} className="text-emerald-400 flex-shrink-0" />
-                  <p className="text-emerald-400 text-sm">{success}</p>
+                <div className="flex items-center gap-2 bg-[#27ae60]/10 border border-[#27ae60]/20 rounded-xl px-4 py-2.5 mb-4">
+                  <CheckCircle size={16} className="text-[#27ae60] flex-shrink-0" />
+                  <p className="text-[#27ae60] text-sm">{success}</p>
                 </div>
               )}
 
@@ -485,7 +485,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                 type="button"
                 onClick={handleResendVerification}
                 disabled={resendingVerification || resendCooldown > 0}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-800 border border-white/10 text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#eef2f8] border border-[#dfe6f0] text-[#1e3a6e] hover:bg-[#dfe6f0] transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed mb-3"
               >
                 {resendingVerification ? (
                   <><Loader2 size={16} className="animate-spin" /> Sending...</>
@@ -505,7 +505,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                   setSuccess('');
                   switchMode('signin');
                 }}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-sm font-medium"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[#6b7e99] hover:text-[#1e3a6e] hover:bg-[#f5f7fa] transition-all text-sm font-medium"
               >
                 <ArrowLeft size={16} />
                 Back to Sign In
@@ -515,35 +515,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
           <>
           {/* Logo + Header */}
           <div className="text-center mb-8">
-            <img src="/logo.jpg" alt="MediMentr" className="w-14 h-14 rounded-2xl mx-auto mb-4 shadow-lg" />
-            <h2 className="text-2xl font-bold text-white">
+            <img src="/logo.svg" alt="PGMentor" className="w-14 h-14 rounded-2xl mx-auto mb-4 shadow-lg" />
+            <h2 className="text-2xl font-bold text-[#1e3a6e]">
               {mode === 'forgotPassword'
                 ? resetStep === 'done' ? 'All Done!' : 'Reset Password'
                 : mode === 'signin' ? 'Welcome Back' : 'Create Account'}
             </h2>
-            <p className="text-slate-400 text-sm mt-1">
+            <p className="text-[#6b7e99] text-sm mt-1">
               {mode === 'forgotPassword'
                 ? resetStep === 'email' ? 'Enter your email to receive a reset code'
                   : resetStep === 'code' ? 'Enter the 6-digit code sent to your email'
                   : resetStep === 'newPassword' ? 'Choose a strong new password'
                   : 'Your password has been updated'
                 : mode === 'signin'
-                  ? 'Sign in to your Medimentr account'
+                  ? 'Sign in to your PGMentor account'
                   : 'Join thousands of medical professionals'}
             </p>
           </div>
 
           {/* Mode Tabs */}
           {mode !== 'forgotPassword' && (
-          <div className="flex bg-slate-800/60 rounded-xl p-1 mb-6">
+          <div className="flex bg-[#f0f4f9] rounded-xl p-1 mb-6">
             {(['signin', 'signup'] as AuthMode[]).map(m => (
               <button
                 key={m}
                 onClick={() => switchMode(m)}
                 className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
                   mode === m
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[#1e3a6e] text-white shadow-sm'
+                    : 'text-[#6b7e99] hover:text-[#1e3a6e]'
                 }`}
               >
                 {m === 'signin' ? 'Sign In' : 'Sign Up'}
@@ -561,7 +561,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                 else if (resetStep === 'code') { setResetStep('email'); setError(''); setSuccess(''); }
                 else if (resetStep === 'newPassword') { setResetStep('code'); setError(''); setSuccess(''); }
               }}
-              className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm font-medium mb-4 transition-colors"
+              className="flex items-center gap-1.5 text-[#6b7e99] hover:text-[#1e3a6e] text-sm font-medium mb-4 transition-colors"
             >
               <ArrowLeft size={14} /> Back
             </button>
@@ -571,14 +571,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
           <AnimatePresence>
             {error && (
               <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                className="flex items-start gap-2 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-4">
+                className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3 mb-4">
                 <AlertCircle size={16} className="shrink-0 mt-0.5" />
                 {error}
               </motion.div>
             )}
             {success && (
               <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm rounded-xl px-4 py-3 mb-4">
+                className="flex items-center gap-2 bg-[#27ae60]/10 border border-[#27ae60]/30 text-[#27ae60] text-sm rounded-xl px-4 py-3 mb-4">
                 <CheckCircle size={16} className="shrink-0" />
                 {success}
               </motion.div>
@@ -589,21 +589,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
           {mode === 'signin' && (
             showOverrideConfirm ? (
               <div className="space-y-4 text-center">
-                <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-amber-500/20">
-                  <AlertCircle size={28} className="text-amber-400" />
+                <div className="w-16 h-16 bg-[#c9a84c]/10 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-[#c9a84c]/20">
+                  <AlertCircle size={28} className="text-[#c9a84c]" />
                 </div>
-                <h3 className="text-lg font-bold text-white">Active Session Detected</h3>
-                <p className="text-slate-300 text-sm leading-relaxed px-4">
+                <h3 className="text-lg font-bold text-[#1e3a6e]">Active Session Detected</h3>
+                <p className="text-[#4a5568] text-sm leading-relaxed px-4">
                   You are already logged in on another device. Logging in here will log you out from the previous session.
                 </p>
-                <p className="text-slate-400 text-xs leading-relaxed px-4">
-                  If it is OK, click <strong className="text-white">"OK"</strong> to continue.
+                <p className="text-[#6b7e99] text-xs leading-relaxed px-4">
+                  If it is OK, click <strong className="text-[#1e3a6e]">&quot;OK&quot;</strong> to continue.
                 </p>
                 <div className="flex gap-3 pt-4">
                   <button
                     type="button"
                     onClick={() => { setShowOverrideConfirm(false); setLoading(false); setError(''); }}
-                    className="flex-1 py-3 rounded-xl border border-white/10 text-slate-400 hover:bg-white/5 font-semibold text-sm transition-colors"
+                    className="flex-1 py-3 rounded-xl border border-[#dfe6f0] text-[#6b7e99] hover:bg-[#f5f7fa] font-semibold text-sm transition-colors"
                   >
                     Cancel
                   </button>
@@ -611,7 +611,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                     type="button"
                     disabled={loading || !!success}
                     onClick={() => handleSignIn(undefined, true)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 text-sm"
+                    className="flex-1 bg-[#1e3a6e] hover:bg-[#2347a0] disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 text-sm"
                   >
                     {loading ? <><Loader2 size={16} className="animate-spin" /> Logging in...</> : 'OK'}
                   </button>
@@ -633,20 +633,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                 <button
                   type="button"
                   onClick={() => { switchMode('forgotPassword'); setResetEmail(email); }}
-                  className="text-xs text-blue-400 hover:text-blue-300 font-semibold transition-colors"
+                  className="text-xs text-[#2f80ed] hover:text-[#1e3a6e] font-semibold transition-colors"
                 >
                   Forgot Password?
                 </button>
               </div>
               <button
                 type="submit" disabled={loading || !!success}
-                className="w-full mt-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
+                className="w-full mt-2 bg-[#1e3a6e] hover:bg-[#2347a0] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-[#1e3a6e]/20 flex items-center justify-center gap-2"
               >
                 {loading ? <><Loader2 size={18} className="animate-spin" /> Signing In...</> : <>Sign In <ChevronRight size={18} /></>}
               </button>
-              <p className="text-center text-xs text-slate-500 pt-2">
+
+
+
+
+              <p className="text-center text-xs text-[#8a9ab4] pt-2">
                 Don't have an account?{' '}
-                <button type="button" onClick={() => switchMode('signup')} className="text-blue-400 hover:text-blue-300 font-semibold">
+                <button type="button" onClick={() => switchMode('signup')} className="text-[#2f80ed] hover:text-[#1e3a6e] font-semibold">
                   Create one free
                 </button>
               </p>
@@ -657,8 +661,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
           {/* ── FORGOT PASSWORD FLOW ──────────────────────────── */}
           {mode === 'forgotPassword' && resetStep === 'email' && (
             <form onSubmit={handleSendResetCode} className="space-y-4">
-              <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-blue-500/20">
-                <KeyRound size={28} className="text-blue-400" />
+              <div className="w-16 h-16 bg-[#1e3a6e]/10 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-[#1e3a6e]/20">
+                <KeyRound size={28} className="text-[#1e3a6e]" />
               </div>
               <InputField
                 label="Email Address" type="email" value={resetEmail}
@@ -667,13 +671,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
               />
               <button
                 type="submit" disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
+                className="w-full bg-[#1e3a6e] hover:bg-[#2347a0] disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-[#1e3a6e]/20 flex items-center justify-center gap-2"
               >
                 {loading ? <><Loader2 size={18} className="animate-spin" /> Sending Code...</> : <>Send Reset Code <ChevronRight size={18} /></>}
               </button>
-              <p className="text-center text-xs text-slate-500 pt-1">
+              <p className="text-center text-xs text-[#8a9ab4] pt-1">
                 Remember your password?{' '}
-                <button type="button" onClick={() => switchMode('signin')} className="text-blue-400 hover:text-blue-300 font-semibold">Sign In</button>
+                <button type="button" onClick={() => switchMode('signin')} className="text-[#2f80ed] hover:text-[#1e3a6e] font-semibold">Sign In</button>
               </p>
             </form>
           )}

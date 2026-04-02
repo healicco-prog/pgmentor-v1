@@ -1,0 +1,3 @@
+﻿Working on user: ff367245-0b50-4b8c-8269-750f440e0eb8
+users table updated: role='user'
+subscriptions table updated: plan_id='free'

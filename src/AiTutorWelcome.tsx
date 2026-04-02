@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+﻿import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Brain, Send, Sparkles, GraduationCap, BookOpen,
@@ -57,7 +57,7 @@ const buildTutorSystemInstruction = (level: string, course: string, studiedTopic
 
   const courseContext = course ? `\nSELECTED COURSE / DISCIPLINE: ${course}\nFocus ALL teaching, examples, and topic suggestions specifically on this course unless the student asks otherwise.` : '';
 
-  return `You are MediMentr Guide, a warm, knowledgeable AI tutor for postgraduate medical students. You are an expert medical educator.${courseContext}
+  return `You are PGMentor Guide, a warm, knowledgeable AI tutor for postgraduate medical students. You are an expert medical educator.${courseContext}
 
 YOUR PERSONALITY:
 - Warm, encouraging, and supportive
@@ -179,13 +179,13 @@ Keep it concise (under 200 words), warm, and motivating.`;
       const result = await generateMedicalContent(welcomePrompt, systemInstruction);
       setChatMessages([{
         role: 'assistant',
-        content: result || "Welcome! I'm your MediMentr Guide. What would you like to learn today?",
+        content: result || "Welcome! I'm your PGMentor Guide. What would you like to learn today?",
         timestamp: new Date(),
       }]);
     } catch (error) {
       setChatMessages([{
         role: 'assistant',
-        content: "Welcome, Doctor! 👋 I'm your MediMentr Guide. I'm here to help you learn and grow. What medical topic would you like to explore today?",
+        content: "Welcome, Doctor! 👋 I'm your PGMentor Guide. I'm here to help you learn and grow. What medical topic would you like to explore today?",
         timestamp: new Date(),
       }]);
     } finally {
@@ -211,10 +211,10 @@ Keep it concise (under 200 words), warm, and motivating.`;
     try {
       // Build conversation context
       const conversationHistory = chatMessages.map(m =>
-        `${m.role === 'user' ? 'Student' : 'MediMentr Guide'}: ${m.content}`
+        `${m.role === 'user' ? 'Student' : 'PGMentor Guide'}: ${m.content}`
       ).join('\n\n');
 
-      const prompt = `${conversationHistory}\n\nStudent: ${userMessage}\n\nMediMentr Guide:`;
+      const prompt = `${conversationHistory}\n\nStudent: ${userMessage}\n\nPGMentor Guide:`;
       const systemInstruction = buildTutorSystemInstruction(selectedLevel, selectedCourse, studiedTopics, unstudiedTopics);
       const result = await generateMedicalContent(prompt, systemInstruction);
 
@@ -259,7 +259,7 @@ Keep it concise (under 200 words), warm, and motivating.`;
           </div>
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-white">AI Tutor</h1>
-            <p className="text-slate-400 text-xs">Your personal MediMentr learning guide</p>
+            <p className="text-slate-400 text-xs">Your personal PGMentor learning guide</p>
           </div>
         </div>
       </div>
@@ -285,7 +285,7 @@ Keep it concise (under 200 words), warm, and motivating.`;
                     Welcome, Doctor! 👋
                   </h2>
                   <p className="text-slate-300 text-sm leading-relaxed">
-                    I'm your <span className="text-blue-400 font-semibold">MediMentr Guide</span> — a personalized AI tutor 
+                    I'm your <span className="text-blue-400 font-semibold">PGMentor Guide</span> — a personalized AI tutor 
                     designed to help you master medical concepts at your own pace.
                   </p>
 
@@ -414,7 +414,7 @@ Keep it concise (under 200 words), warm, and motivating.`;
                   <Brain size={16} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-white text-sm font-semibold">MediMentr Guide</p>
+                  <p className="text-white text-sm font-semibold">PGMentor Guide</p>
                   <p className="text-slate-400 text-xs">
                     {LEARNING_LEVELS.find(l => l.id === selectedLevel)?.emoji}{' '}
                     {LEARNING_LEVELS.find(l => l.id === selectedLevel)?.label} Level

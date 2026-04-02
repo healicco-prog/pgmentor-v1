@@ -1,0 +1,10 @@
+﻿free: UPDATED ΓåÆ 10,000 tokens/month
+trial: UPDATED ΓåÆ 1,00,000 tokens/month
+standard: UPDATED ΓåÆ 1,00,000 tokens/month
+premium: UPDATED ΓåÆ 3,00,000 tokens/month
+
+Current token policies:
+  free: 10,000 monthly / 0 trial
+  trial: 1,00,000 monthly / 1,00,000 trial
+  standard: 1,00,000 monthly / 0 trial
+  premium: 3,00,000 monthly / 0 trial

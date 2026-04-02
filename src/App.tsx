@@ -9,18 +9,16 @@ import {
   Plus, Trash2, Edit3, Monitor, Search, Globe, Users, User as UserIcon,
   Upload, Layers, Sparkles, CheckCircle, Eye, Play, RotateCcw,
   Cpu, LineChart, Target, FileSymlink, GraduationCap, Lightbulb, HelpCircle, Pill, Lock,
-  Gift, Award, Trophy, Shield, Mail, EyeOff, ChevronUp, ChevronDown, GripVertical
+  Gift, Award, Trophy, Shield, Mail, EyeOff, ChevronUp, ChevronDown, GripVertical,
+  Zap, Calendar, Crown, TrendingUp
 } from 'lucide-react';
 import { FEATURES } from './constants';
-import { medimentrMentorChat, generateMedicalContent, extractContactFromImage, extractPaperTextFromImage } from './services/ai';
-import ThesisNotesManager from './ThesisNotesManager';
+import { PGMentorMentorChat, generateMedicalContent, extractContactFromImage, extractPaperTextFromImage } from './services/ai';
 import GuidelinesGenerator from './GuidelinesGenerator';
-import ClinicalExaminationSystem from './ClinicalExaminationSystem';
 import PrescriptionAnalyser from './PrescriptionAnalyser';
 import ClinicalDecisionSupport from './ClinicalDecisionSupport';
 import ProfessionalResumeBuilder from './ProfessionalResumeBuilder';
 import DoubtSolver from './DoubtSolver';
-import BrainStack from './BrainStack';
 import DrugTreatmentAssistant from './DrugTreatmentAssistant';
 import LearningManagementDashboard from './LearningManagementDashboard';
 import AiTutorWelcome from './AiTutorWelcome';
@@ -109,23 +107,23 @@ import { Contact } from './types';
 
 // Components
 const Navbar = ({ onNavigate, onOpenAuth }: { onNavigate: (page: string) => void; onOpenAuth: () => void }) => (
-  <nav className="fixed top-0 w-full z-50 bg-slate-950/80 backdrop-blur-md border-b border-white/10 px-6 py-4 flex justify-between items-center">
+  <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-[#dfe6f0] px-6 py-4 flex justify-between items-center shadow-sm">
     <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('home')}>
-      <img src="/logo.jpg" alt="MediMentr Logo" className="w-10 h-10 object-contain rounded-xl shadow-sm" />
-      <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">MediMentr</span>
+      <img src="/logo.svg" alt="PGMentor Logo" className="w-10 h-10 object-contain rounded-xl shadow-sm" />
+      <span className="text-2xl font-bold text-[#1e3a6e]">PGMentor</span>
     </div>
     
-    <div className="hidden md:flex items-center gap-8 text-slate-300 font-medium">
-      <button onClick={() => onNavigate('home')} className="hover:text-blue-400 transition-colors">Home</button>
-      <button onClick={() => onNavigate('features')} className="hover:text-blue-400 transition-colors">Features</button>
-      <button onClick={() => onNavigate('blog')} className="hover:text-blue-400 transition-colors">Blog</button>
-      <button onClick={() => onNavigate('contact')} className="hover:text-blue-400 transition-colors">Contact</button>
+    <div className="hidden md:flex items-center gap-8 text-[#6b7e99] font-medium">
+      <button onClick={() => onNavigate('home')} className="hover:text-[#1e3a6e] transition-colors">Home</button>
+      <button onClick={() => onNavigate('features')} className="hover:text-[#1e3a6e] transition-colors">Features</button>
+      <button onClick={() => onNavigate('blog')} className="hover:text-[#1e3a6e] transition-colors">Blog</button>
+      <button onClick={() => onNavigate('contact')} className="hover:text-[#1e3a6e] transition-colors">Contact</button>
     </div>
 
     <div className="flex items-center gap-4">
       <button 
         onClick={onOpenAuth}
-        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-full transition-all shadow-lg shadow-blue-600/20"
+        className="flex items-center gap-2 bg-[#1e3a6e] hover:bg-[#2347a0] text-white px-6 py-2 rounded-full transition-all shadow-lg shadow-[#1e3a6e]/20"
       >
         <LayoutDashboard size={18} />
         <span>Explore App</span>
@@ -135,46 +133,46 @@ const Navbar = ({ onNavigate, onOpenAuth }: { onNavigate: (page: string) => void
 );
 
 const Footer = ({ onNavigate }: { onNavigate: (page: string) => void }) => (
-  <footer className="bg-slate-950 border-t border-white/10 pt-20 pb-10 px-6">
+  <footer className="bg-[#1e3a6e] border-t border-[#2f4e8f] pt-20 pb-10 px-6">
     <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <img src="/logo.jpg" alt="MediMentr Logo" className="w-8 h-8 object-contain rounded-xl" />
-          <span className="text-xl font-bold text-white">Medimentr</span>
+          <img src="/logo.svg" alt="PGMentor Logo" className="w-8 h-8 object-contain rounded-xl" />
+          <span className="text-xl font-bold" style={{color:'#ffffff'}}>PGMentor</span>
         </div>
-        <p className="text-slate-400 text-sm leading-relaxed">
+        <p className="text-[#93c4f9] text-sm leading-relaxed">
           AI-powered academic companion for Medical Professionals. Prepare smarter for exams, research, and clinical practice.
         </p>
       </div>
       <div>
-        <h4 className="text-white font-semibold mb-6">Platform</h4>
-        <ul className="space-y-3 text-slate-400 text-sm">
-          <li><button onClick={() => onNavigate('features')} className="hover:text-blue-400 transition-colors">Features</button></li>
-          <li><button onClick={() => { onNavigate('home'); setTimeout(() => document.getElementById('knowledge-library')?.scrollIntoView({ behavior: 'smooth' }), 50); }} className="hover:text-blue-400 transition-colors">Knowledge Library</button></li>
-          <li><button onClick={() => { onNavigate('home'); setTimeout(() => document.getElementById('statassist')?.scrollIntoView({ behavior: 'smooth' }), 50); }} className="hover:text-blue-400 transition-colors">StatAssist</button></li>
-          <li><button onClick={() => { onNavigate('home'); setTimeout(() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }), 50); }} className="hover:text-blue-400 transition-colors">Pricing</button></li>
+        <h4 className="font-semibold mb-6" style={{color:'#c9a84c'}}>Platform</h4>
+        <ul className="space-y-3 text-[#93c4f9] text-sm">
+          <li><button onClick={() => onNavigate('features')} className="hover:text-white transition-colors">Features</button></li>
+          <li><button onClick={() => { onNavigate('home'); setTimeout(() => document.getElementById('knowledge-library')?.scrollIntoView({ behavior: 'smooth' }), 50); }} className="hover:text-white transition-colors">Knowledge Library</button></li>
+          <li><button onClick={() => { onNavigate('home'); setTimeout(() => document.getElementById('statassist')?.scrollIntoView({ behavior: 'smooth' }), 50); }} className="hover:text-white transition-colors">StatAssist</button></li>
+          <li><button onClick={() => { onNavigate('home'); setTimeout(() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }), 50); }} className="hover:text-white transition-colors">Pricing</button></li>
         </ul>
       </div>
       <div>
-        <h4 className="text-white font-semibold mb-6">Company</h4>
-        <ul className="space-y-3 text-slate-400 text-sm">
-          <li><button className="hover:text-blue-400 transition-colors">About Us</button></li>
-          <li><button onClick={() => onNavigate('blog')} className="hover:text-blue-400 transition-colors">Blog</button></li>
-          <li><button onClick={() => onNavigate('contact')} className="hover:text-blue-400 transition-colors">Contact</button></li>
-          <li><button className="hover:text-blue-400 transition-colors">Careers</button></li>
+        <h4 className="font-semibold mb-6" style={{color:'#c9a84c'}}>Company</h4>
+        <ul className="space-y-3 text-[#93c4f9] text-sm">
+          <li><button className="hover:text-white transition-colors">About Us</button></li>
+          <li><button onClick={() => onNavigate('blog')} className="hover:text-white transition-colors">Blog</button></li>
+          <li><button onClick={() => onNavigate('contact')} className="hover:text-white transition-colors">Contact</button></li>
+          <li><button className="hover:text-white transition-colors">Careers</button></li>
         </ul>
       </div>
       <div>
-        <h4 className="text-white font-semibold mb-6">Legal</h4>
-        <ul className="space-y-3 text-slate-400 text-sm">
-          <li><a href="#" className="hover:text-blue-400 transition-colors">Privacy Policy</a></li>
-          <li><a href="#" className="hover:text-blue-400 transition-colors">Terms of Service</a></li>
-          <li><a href="#" className="hover:text-blue-400 transition-colors">Cookie Policy</a></li>
+        <h4 className="font-semibold mb-6" style={{color:'#c9a84c'}}>Legal</h4>
+        <ul className="space-y-3 text-[#93c4f9] text-sm">
+          <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
+          <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+          <li><a href="#" className="hover:text-white transition-colors">Cookie Policy</a></li>
         </ul>
       </div>
     </div>
-    <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 text-xs">
-      <p>© 2026 MediMentr. All rights reserved.</p>
+    <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-[#2f4e8f] flex flex-col md:flex-row justify-between items-center gap-4 text-[#93c4f9] text-xs">
+      <p>© 2026 PGMentor. All rights reserved.</p>
       <div className="flex gap-6">
         <a href="#" className="hover:text-white transition-colors">Twitter</a>
         <a href="#" className="hover:text-white transition-colors">LinkedIn</a>
@@ -187,7 +185,7 @@ const Footer = ({ onNavigate }: { onNavigate: (page: string) => void }) => (
 const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([
-    { role: 'ai', text: "Hello! I'm your MediMentr AI Mentor. How can I help you with your medical studies today?" }
+    { role: 'ai', text: "Hello! I'm your PGMentor AI Mentor. How can I help you with your medical studies today?" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -201,7 +199,7 @@ const ChatBot = () => {
     setIsLoading(true);
 
     try {
-      const response = await medimentrMentorChat(userMsg);
+      const response = await PGMentorMentorChat(userMsg);
       setMessages(prev => [...prev, { role: 'ai', text: response || "I'm sorry, I couldn't process that." }]);
     } catch (error) {
       setMessages(prev => [...prev, { role: 'ai', text: "Error connecting to AI service." }]);
@@ -248,7 +246,7 @@ const ChatBot = () => {
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {msg.role === 'ai' && (
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0 mr-3 mt-1 shadow-md border border-white/20">
-                      <img src="/logo.jpg" alt="MediMentr Logo" className="w-5 h-5 object-contain rounded-full" />
+                      <img src="/logo.svg" alt="PGMentor Logo" className="w-5 h-5 object-contain rounded-full" />
                     </div>
                   )}
                   <div className={`max-w-[82%] p-4 rounded-2xl text-[15px] shadow-sm ${
@@ -285,7 +283,7 @@ const ChatBot = () => {
               {isLoading && (
                 <div className="flex justify-start">
                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0 mr-3 mt-1 shadow-md border border-white/20">
-                      <img src="/logo.jpg" alt="MediMentr Logo" className="w-5 h-5 object-contain rounded-full" />
+                      <img src="/logo.svg" alt="PGMentor Logo" className="w-5 h-5 object-contain rounded-full" />
                     </div>
                   <div className="bg-slate-800/80 backdrop-blur-md p-4 rounded-2xl rounded-tl-sm border border-slate-700/60 shadow-sm flex items-center gap-2 h-[46px]">
                     <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce shadow-[0_0_8px_rgba(96,165,250,0.6)]" />
@@ -326,7 +324,7 @@ const ChatBot = () => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative w-16 h-16 bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center shadow-[0_10px_25px_-5px_rgba(79,70,229,0.5)] text-white border border-white/20 overflow-hidden group z-50 rounded-xl"
+        className="relative w-16 h-16 bg-gradient-to-br from-[#d4b85c] via-[#c9a84c] to-[#b8942e] rounded-2xl flex items-center justify-center shadow-[0_10px_25px_-5px_rgba(201,168,76,0.5)] text-[#1e3a6e] border border-[#e8d48b]/30 overflow-hidden group z-50"
         style={{ borderRadius: '20px' }}
       >
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
@@ -341,7 +339,7 @@ const BlogPage = ({ onNavigate, blogPosts }: { onNavigate: (page: string) => voi
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [copied, setCopied] = useState(false);
 
-  const siteUrl = 'https://www.medimentr.com';
+  const siteUrl = 'https://www.PGMentor.com';
   
   const getShareUrl = (post: any) => `${siteUrl}/blog/${post.id}`;
   
@@ -349,7 +347,7 @@ const BlogPage = ({ onNavigate, blogPosts }: { onNavigate: (page: string) => voi
     const blogShareUrl = getShareUrl(post);
     const titleText = post.title;
     const excerptText = (post.excerpt || post.title).substring(0, 140);
-    const ctaText = '🔬 Explore MediMentr — AI-Powered Medical Education';
+    const ctaText = '🔬 Explore PGMentor — AI-Powered Medical Education';
     const hashtags = (post.hashtags || '').replace(/#/g, '').split(/\s+/).filter(Boolean).join(',');
     
     const title = encodeURIComponent(titleText);
@@ -357,7 +355,7 @@ const BlogPage = ({ onNavigate, blogPosts }: { onNavigate: (page: string) => voi
     const url = encodeURIComponent(blogShareUrl);
     
     const urls: Record<string, string> = {
-      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${titleText}\n\n${ctaText}`)}&url=${url}&hashtags=${hashtags},MediMentr,MedEd`,
+      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${titleText}\n\n${ctaText}`)}&url=${url}&hashtags=${hashtags},PGMentor,MedEd`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${encodeURIComponent(`${titleText} — ${ctaText}`)}`,
       whatsapp: `https://wa.me/?text=${encodeURIComponent(`📚 *${titleText}*\n\n${excerptText}\n\n${ctaText}\n🔗 ${blogShareUrl}`)}`,
@@ -467,7 +465,7 @@ const BlogPage = ({ onNavigate, blogPosts }: { onNavigate: (page: string) => voi
             </div>
             <div className="flex items-center justify-center gap-2 text-slate-500 text-xs">
               <span>🔬</span>
-              <span>Powered by <strong className="text-blue-400">MediMentr</strong> — AI-Powered Medical Education Platform</span>
+              <span>Powered by <strong className="text-blue-400">PGMentor</strong> — AI-Powered Medical Education Platform</span>
             </div>
           </div>
         </div>
@@ -539,7 +537,9 @@ const LANDING_PRICING_PLANS = [
   {
     name: "Free",
     price: "₹0",
-    description: "Access to essential productivity tools after trial.",
+    description: "Access essential productivity tools after your 15-day trial.",
+    tokens: "10,000 AI Tokens/month",
+    trialNote: "15-day free trial with full access to all features",
     features: [
       {
         title: "Productivity & Professional Management",
@@ -553,16 +553,27 @@ const LANDING_PRICING_PLANS = [
     ]
   },
   {
-    name: "Starter",
+    name: "Standard",
     price: "₹499",
     period: "/mo",
-    description: "Free User Plus",
+    popular: true,
+    description: "Everything in Free, plus Knowledge, Academic & LMS.",
+    tokens: "1,00,000 AI Tokens/month",
     features: [
+      {
+        title: "Productivity & Professional Management",
+        items: [
+          "Digital Diary",
+          "Contacts Management System",
+          "Scientific Session Search",
+          "Professional Resume"
+        ]
+      },
       {
         title: "Knowledge & Learning Resources",
         items: [
           "Search Topic",
-          "Knowledge Library- LMS Notes",
+          "Knowledge Library – LMS Notes",
           "Essay Library",
           "MCQ Library",
           "Flash Cards"
@@ -578,68 +589,48 @@ const LANDING_PRICING_PLANS = [
           "StatAssist",
           "Manuscript Generator"
         ]
-      }
-    ]
-  },
-  {
-    name: "Standard",
-    price: "₹1,199",
-    period: "/mo",
-    popular: true,
-    description: "Starter Plus",
-    features: [
-      {
-        title: "Clinical Decision & Practice Support",
-        items: [
-          "Prescription Analyser",
-          "Guidelines Generator",
-          "Clinical Decision Support System (CDS)",
-          "Doubt Solving & Concept Simplification",
-          "Drug & Treatment Assistant"
-        ]
       },
       {
-        title: "Thesis Manager",
+        title: "Learning Management System",
         items: [
-          "Core System Features",
-          "Research Hub Dashboard",
-          "Project Management",
-          "Participant Management",
-          "Data Collection",
-          "Research Notes",
-          "Field Log",
-          "Reports",
-          "Tracking & Analytics (Dashboard Stats)"
+          "Track your learning progress",
+          "AI integrated Analytics",
+          "Assess Weak Areas"
         ]
       }
     ]
   },
   {
     name: "Premium",
-    price: "₹1,999",
+    price: "₹999",
     period: "/mo",
-    description: "Standard Plus",
+    description: "Full access to every feature including clinical & assessment.",
+    tokens: "3,00,000 AI Tokens/month",
     features: [
       {
-        title: "Learning Management System",
+        title: "Everything in Standard, plus:",
         items: [
-          "Track your learning progress",
-          "Identify areas that need more focus",
-          "AI integrated Analytics",
-          "Assess Weak Areas",
-          "Suggest what to focus"
+          "Clinical Decision Support System (CDS)",
+          "Prescription Analyser",
+          "Guidelines Generator",
+          "Drug & Treatment Assistant",
+          "Doubt Solving & Concept Simplification"
         ]
       },
       {
         title: "Assessment & Examination System",
         items: [
-          "AI Exam Preparation System",
-          "Question Paper Generator",
-          "Reflection Generator",
           "Knowledge Analyser (Essay)",
           "Knowledge Analyser (MCQs)",
-          "AI Exam Simulator",
           "Clinical Examination System"
+        ]
+      },
+      {
+        title: "Full Learning Management System",
+        items: [
+          "All Standard LMS features",
+          "Complete clinical progress tracking",
+          "Assessment & exam analytics"
         ]
       }
     ]
@@ -648,29 +639,38 @@ const LANDING_PRICING_PLANS = [
 const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => (
   <div className="pt-24">
     {/* Hero Section */}
-    <section className="relative px-6 py-20 lg:py-32 overflow-hidden">
+    <section className="relative px-6 py-32 lg:py-48 overflow-hidden min-h-[90vh] flex items-center">
+      {/* Background Image */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] animate-pulse [animation-delay:2s]" />
+        <img 
+          src="/hero-bg.jpg" 
+          alt="" 
+          className="w-full h-full object-cover"
+        />
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a1628]/80 via-[#0f2240]/75 to-[#1e3a6e]/85" />
+        {/* Subtle animated glow accents */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#2f80ed]/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/3 w-72 h-72 bg-[#c9a84c]/10 rounded-full blur-[100px] animate-pulse [animation-delay:2s]" />
       </div>
       
-      <div className="max-w-7xl mx-auto relative z-10 text-center space-y-8">
+      <div className="max-w-7xl mx-auto relative z-10 text-center space-y-8 w-full">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <span className="px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-semibold mb-6 inline-block">
-            Next-Gen Medical Education
+          <span className="px-4 py-2 rounded-full bg-white/10 border border-white/20 text-[#c9a84c] text-sm font-semibold mb-6 inline-block backdrop-blur-sm">
+            Next-Gen Education for Post Graduates of India
           </span>
-          <h1 className="text-5xl lg:text-7xl font-bold text-white tracking-tight leading-tight">
+          <h1 className="text-5xl lg:text-7xl font-bold text-[#ffffff] tracking-tight leading-tight drop-shadow-lg">
             AI Powered Academic Companion <br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-              for gaining Expertise in Medical Education
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#c9a84c] to-[#e8d48b]">
+              for Post Graduates of India
             </span>
           </h1>
-          <p className="text-xl text-slate-400 max-w-3xl mx-auto mt-6">
-            Prepare smarter for exams, clinical work, research, seminars, and publications with our specialized AI modules designed for medical professionals.
+          <p className="text-xl text-white/75 max-w-3xl mx-auto mt-6 leading-relaxed">
+            Prepare smarter for MD, MS, and DNB exams, clinical work, research, seminars, and publications with our specialized AI modules designed for Indian medical professionals.
           </p>
         </motion.div>
 
@@ -682,37 +682,46 @@ const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
         >
           <button 
             onClick={() => (onNavigate as any)('__openAuth')}
-            className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-bold text-lg transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2"
+            className="px-8 py-4 bg-[#c9a84c] hover:bg-[#d4b85c] text-[#0a1628] rounded-full font-bold text-lg transition-all shadow-lg shadow-[#c9a84c]/30 flex items-center gap-2"
           >
             Explore App <ChevronRight size={20} />
           </button>
+          <button 
+            onClick={() => onNavigate('features')}
+            className="px-8 py-4 bg-white/10 hover:bg-white/20 text-[#ffffff] border border-white/20 rounded-full font-bold text-lg transition-all backdrop-blur-sm flex items-center gap-2"
+          >
+            View Features
+          </button>
         </motion.div>
 
+        {/* Stats bar */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1, delay: 0.4 }}
-          className="pt-20 relative"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="pt-16 flex flex-wrap justify-center gap-8 lg:gap-16"
         >
-          <div className="relative rounded-2xl border border-white/10 overflow-hidden shadow-2xl shadow-blue-500/10 bg-slate-900/50 backdrop-blur-sm">
-            <img 
-              src="/hero-robotics.jpg" 
-              alt="Medimentr Dashboard Preview" 
-              className="w-full opacity-80"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
-          </div>
+          {[
+            { value: "20+", label: "AI Modules" },
+            { value: "MD/MS/DNB", label: "All PG Branches" },
+            { value: "24/7", label: "AI Mentor Access" },
+            { value: "India", label: "Built for Indian PGs" }
+          ].map((stat, i) => (
+            <div key={i} className="text-center">
+              <p className="text-2xl lg:text-3xl font-bold text-[#c9a84c]">{stat.value}</p>
+              <p className="text-white/60 text-sm mt-1">{stat.label}</p>
+            </div>
+          ))}
         </motion.div>
       </div>
     </section>
 
     {/* Features Grid */}
-    <section className="py-24 px-6 bg-slate-950/50">
+    <section className="py-24 px-6 bg-[#f5f7fa]">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-20">
-          <h2 className="text-4xl font-bold text-white mb-4">Comprehensive AI Toolkit</h2>
-          <p className="text-slate-400 max-w-2xl mx-auto">
+          <h2 className="text-4xl font-bold text-[#1e3a6e] mb-4">Comprehensive AI Toolkit</h2>
+          <p className="text-[#6b7e99] max-w-2xl mx-auto">
             Everything an Expert needs excel in medical field
           </p>
         </div>
@@ -725,18 +734,18 @@ const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="p-8 rounded-2xl bg-slate-900 border border-white/5 hover:border-blue-500/30 transition-all group"
+              className="p-8 rounded-2xl bg-white border border-[#dfe6f0] hover:border-[#1e3a6e]/30 hover:shadow-lg transition-all group"
             >
-              <div className="w-12 h-12 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 mb-6 group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 bg-[#1e3a6e]/10 rounded-xl flex items-center justify-center text-[#1e3a6e] mb-6 group-hover:bg-[#1e3a6e] group-hover:text-white group-hover:scale-110 transition-all">
                 {getIcon(feature.icon)}
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
-              <p className="text-slate-400 text-sm leading-relaxed mb-6">
+              <h3 className="text-xl font-bold text-[#1e3a6e] mb-3">{feature.title}</h3>
+              <p className="text-[#6b7e99] text-sm leading-relaxed mb-6">
                 {feature.description}
               </p>
               <button 
                 onClick={() => onNavigate('signup')}
-                className="text-blue-400 text-sm font-semibold flex items-center gap-1 hover:gap-2 transition-all"
+                className="text-[#2f80ed] text-sm font-semibold flex items-center gap-1 hover:gap-2 transition-all"
               >
                 Learn More <ChevronRight size={16} />
               </button>
@@ -747,65 +756,65 @@ const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
         <div className="mt-16 text-center">
           <button 
             onClick={() => onNavigate('features')}
-            className="px-8 py-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-full font-semibold transition-all"
+            className="px-8 py-3 bg-white hover:bg-[#eef2f8] text-[#1e3a6e] border border-[#dfe6f0] rounded-full font-semibold transition-all shadow-sm"
           >
-            View All 11+ Modules
+            View All 20+ Modules
           </button>
         </div>
       </div>
     </section>
 
     {/* Workflow Section */}
-    <section className="py-24 px-6">
+    <section className="py-24 px-6 bg-white">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
         <div className="space-y-8">
-          <h2 className="text-4xl font-bold text-white leading-tight">
+          <h2 className="text-4xl font-bold text-[#1e3a6e] leading-tight">
             Streamline Your <br />
-            <span className="text-blue-500">Academic Workflow</span>
+            <span className="text-[#c9a84c]">Academic Workflow</span>
           </h2>
           <div className="space-y-6">
             {[
               { title: "Study & Analyze", desc: "Access evidence-based notes and analyze clinical papers instantly.", icon: <Microscope size={24} /> },
-              { title: "Write & Document", desc: "Generate essays, thesis protocols, and manuscripts with AI assistance.", icon: <PenTool size={24} /> },
+              { title: "Write & Document", desc: "Generate essays, research protocols, and manuscripts with AI assistance.", icon: <PenTool size={24} /> },
               { title: "Prepare & Excel", desc: "Build seminars and practice with pattern-based question papers.", icon: <Presentation size={24} /> }
             ].map((item, i) => (
               <div key={i} className="flex gap-6">
-                <div className="w-12 h-12 shrink-0 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-blue-500">
+                <div className="w-12 h-12 shrink-0 rounded-full bg-[#eef2f8] border border-[#dfe6f0] flex items-center justify-center text-[#1e3a6e]">
                   {item.icon}
                 </div>
                 <div>
-                  <h4 className="text-white font-semibold mb-1">{item.title}</h4>
-                  <p className="text-slate-400 text-sm">{item.desc}</p>
+                  <h4 className="text-[#1e3a6e] font-semibold mb-1">{item.title}</h4>
+                  <p className="text-[#6b7e99] text-sm">{item.desc}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
         <div className="relative">
-          <div className="absolute inset-0 bg-blue-600/20 blur-[100px] rounded-full" />
+          <div className="absolute inset-0 bg-[#1e3a6e]/10 blur-[100px] rounded-full" />
           <div className="relative grid grid-cols-2 gap-4">
             <div className="space-y-4 pt-12">
-              <div className="p-6 rounded-2xl bg-slate-900 border border-white/10 shadow-xl">
-                <Activity className="text-emerald-500 mb-4" />
-                <div className="h-2 w-20 bg-emerald-500/20 rounded-full mb-2" />
-                <div className="h-2 w-12 bg-emerald-500/20 rounded-full" />
+              <div className="p-6 rounded-2xl bg-white border border-[#dfe6f0] shadow-xl">
+                <Activity className="text-[#27ae60] mb-4" />
+                <div className="h-2 w-20 bg-[#27ae60]/20 rounded-full mb-2" />
+                <div className="h-2 w-12 bg-[#27ae60]/20 rounded-full" />
               </div>
-              <div className="p-6 rounded-2xl bg-slate-900 border border-white/10 shadow-xl">
-                <HeartPulse className="text-blue-500 mb-4" />
-                <div className="h-2 w-24 bg-blue-500/20 rounded-full mb-2" />
-                <div className="h-2 w-16 bg-blue-500/20 rounded-full" />
+              <div className="p-6 rounded-2xl bg-white border border-[#dfe6f0] shadow-xl">
+                <HeartPulse className="text-[#1e3a6e] mb-4" />
+                <div className="h-2 w-24 bg-[#1e3a6e]/20 rounded-full mb-2" />
+                <div className="h-2 w-16 bg-[#1e3a6e]/20 rounded-full" />
               </div>
             </div>
             <div className="space-y-4">
-              <div className="p-6 rounded-2xl bg-slate-900 border border-white/10 shadow-xl">
-                <Brain className="text-purple-500 mb-4" />
-                <div className="h-2 w-28 bg-purple-500/20 rounded-full mb-2" />
-                <div className="h-2 w-20 bg-purple-500/20 rounded-full" />
+              <div className="p-6 rounded-2xl bg-white border border-[#dfe6f0] shadow-xl">
+                <Brain className="text-[#2347a0] mb-4" />
+                <div className="h-2 w-28 bg-[#2347a0]/20 rounded-full mb-2" />
+                <div className="h-2 w-20 bg-[#2347a0]/20 rounded-full" />
               </div>
-              <div className="p-6 rounded-2xl bg-slate-900 border border-white/10 shadow-xl">
-                <Microscope className="text-orange-500 mb-4" />
-                <div className="h-2 w-20 bg-orange-500/20 rounded-full mb-2" />
-                <div className="h-2 w-14 bg-orange-500/20 rounded-full" />
+              <div className="p-6 rounded-2xl bg-white border border-[#dfe6f0] shadow-xl">
+                <Microscope className="text-[#c9a84c] mb-4" />
+                <div className="h-2 w-20 bg-[#c9a84c]/20 rounded-full mb-2" />
+                <div className="h-2 w-14 bg-[#c9a84c]/20 rounded-full" />
               </div>
             </div>
           </div>
@@ -814,20 +823,66 @@ const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
     </section>
 
     {/* Testimonials */}
-    <section className="py-24 px-6 bg-slate-950/50">
+    <section className="py-24 px-6 bg-[#f5f7fa]">
       <div className="max-w-7xl mx-auto">
-        <h2 className="text-3xl font-bold text-white text-center mb-16">Trusted by Medical Scholars</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-bold text-[#1e3a6e] mb-4">Trusted by Postgraduate Residents</h2>
+          <p className="text-[#6b7e99] max-w-xl mx-auto">Real voices from MD, MS &amp; DNB scholars across India</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[
-            { name: "Dr. Priya Sharma", role: "Postgraduate Student", text: "Medimentr helped me structure my thesis and improve my exam answers significantly. The essay generator is a lifesaver." },
-            { name: "Dr. Rajesh Kumar", role: "PhD Scholar", text: "StatAssist simplified statistical analysis for my research. I could finally understand which tests to apply and why." },
-            { name: "Dr. Anita Rao", role: "Medical Academician", text: "The seminar builder saves hours of work. The slide structures are logical and the notes are comprehensive." }
+            {
+              name: "Dr. Arjun Mehta",
+              role: "MD General Medicine, 2nd Year",
+              text: "PGMentor's case-based notes helped me prepare for my theory exams systematically. The AI essay generator saved me hours when writing long answers for Medicine cases.",
+              stars: 5
+            },
+            {
+              name: "Dr. Sneha Pillai",
+              role: "MS Obstetrics & Gynaecology, 3rd Year",
+              text: "The seminar builder is a game-changer. I can create complete OBG lecture presentations with structured content in minutes. My unit head was impressed with the depth.",
+              stars: 5
+            },
+            {
+              name: "Dr. Karthik Nair",
+              role: "DNB Radiodiagnosis, 1st Year",
+              text: "StatAssist made my dissertation so much easier. I could finally understand which statistical test to apply for my imaging study data without panicking every time.",
+              stars: 5
+            },
+            {
+              name: "Dr. Riya Desai",
+              role: "MD Psychiatry, 2nd Year",
+              text: "The AI tutor explains complex psychopathology in a way no textbook does. I use it daily before my case presentations. My confidence in clinicals has improved drastically.",
+              stars: 5
+            },
+            {
+              name: "Dr. Vikram Reddy",
+              role: "MS Orthopaedics, 3rd Year",
+              text: "PGMentor helped me write my MS thesis on fracture fixation outcomes. The research assistant suggested the right references and structured my methodology chapter perfectly.",
+              stars: 5
+            },
+            {
+              name: "Dr. Meera Iyer",
+              role: "MD Dermatology, 1st Year",
+              text: "I was struggling with clinical case write-ups for my log book. PGMentor's case documentation tool made it structured and professional. My guide appreciated the improvement.",
+              stars: 5
+            }
           ].map((t, i) => (
-            <div key={i} className="p-8 rounded-2xl bg-slate-900 border border-white/5 italic text-slate-300">
-              <p className="mb-6">"{t.text}"</p>
-              <div className="not-italic">
-                <p className="text-white font-bold">{t.name}</p>
-                <p className="text-blue-500 text-sm">{t.role}</p>
+            <div key={i} className="p-8 rounded-2xl bg-white border border-[#dfe6f0] shadow-sm hover:shadow-lg hover:border-[#1e3a6e]/20 transition-all flex flex-col gap-4">
+              {/* Stars */}
+              <div className="flex gap-1">
+                {Array.from({ length: t.stars }).map((_, s) => (
+                  <svg key={s} className="w-4 h-4 text-[#c9a84c]" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118L10 14.347l-3.95 2.679c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.064 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.285-3.958z"/>
+                  </svg>
+                ))}
+              </div>
+              {/* Quote */}
+              <p className="italic text-[#4a5568] leading-relaxed flex-1">"{t.text}"</p>
+              {/* Author */}
+              <div className="border-t border-[#f0f4f9] pt-4">
+                <p className="text-[#1e3a6e] font-bold text-sm">{t.name}</p>
+                <p className="text-[#c9a84c] text-sm font-medium">{t.role}</p>
               </div>
             </div>
           ))}
@@ -836,41 +891,64 @@ const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
     </section>
 
     {/* Pricing Section */}
-    <section id="pricing" className="py-24 px-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-blue-600/5 blur-[150px] rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+    <section id="pricing" className="py-24 px-6 relative overflow-hidden bg-white">
+      <div className="absolute inset-0 bg-[#1e3a6e]/3 blur-[150px] rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-white mb-4">Simple, Transparent Pricing</h2>
-          <p className="text-slate-400 max-w-2xl mx-auto">
+          <h2 className="text-4xl font-bold text-[#1e3a6e] mb-4">Simple, Transparent Pricing</h2>
+          <p className="text-[#6b7e99] max-w-2xl mx-auto mb-3">
             Choose the perfect plan for your academic and clinical needs. All plans include continuous AI updates.
+          </p>
+          <p className="text-[#1e3a6e] font-semibold text-sm bg-[#eef2f8] inline-block px-5 py-2 rounded-full border border-[#dfe6f0]">
+            🌟 All new users get a <span className="text-[#c9a84c] font-bold">15-day free trial</span> with full access to every feature!
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {LANDING_PRICING_PLANS.map((plan, i) => (
             <div 
               key={i} 
-              className={`relative flex flex-col p-8 rounded-3xl ${plan.popular ? 'bg-slate-800 border-blue-500 shadow-2xl shadow-blue-500/20' : 'bg-slate-900 border-white/10'} border`}
+              className={`relative flex flex-col p-8 rounded-3xl ${
+                plan.popular 
+                  ? 'bg-[#1e3a6e] border-[#1e3a6e] shadow-2xl shadow-[#1e3a6e]/20' 
+                  : 'bg-white border-[#dfe6f0] hover:border-[#1e3a6e]/30 hover:shadow-lg'
+              } border transition-all`}
             >
               {plan.popular && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-1 bg-blue-500 text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-lg">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-1 bg-[#c9a84c] text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-lg">
                   Most Popular
                 </div>
               )}
               
               <div className="mb-6">
-                <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
-                <p className="text-sm text-slate-400 min-h-[40px]">{plan.description}</p>
+                <h3 className={`text-xl font-bold mb-2 ${plan.popular ? '' : 'text-[#1e3a6e]'}`} style={plan.popular ? {color:'#ffffff'} : {}}>{plan.name}</h3>
+                <p className={`text-sm min-h-[40px] ${plan.popular ? 'text-[#93c4f9]' : 'text-[#6b7e99]'}`}>{plan.description}</p>
               </div>
               
-              <div className="mb-8 flex items-baseline gap-1">
-                <span className="text-4xl font-black text-white">{plan.price}</span>
-                {plan.period && <span className="text-slate-500">{plan.period}</span>}
+              <div className="mb-4 flex items-baseline gap-1">
+                <span className={`text-4xl font-black ${plan.popular ? '' : 'text-[#1e3a6e]'}`} style={plan.popular ? {color:'#ffffff'} : {}}>{plan.price}</span>
+                {plan.period && <span className={plan.popular ? 'text-[#93c4f9]' : 'text-[#8a9ab4]'}>{plan.period}</span>}
               </div>
+
+              {/* Token count */}
+              {plan.tokens && (
+                <div className={`text-xs font-bold mb-2 px-3 py-1.5 rounded-lg inline-block ${plan.popular ? 'bg-white/10 text-[#c9a84c]' : 'bg-[#f5f7fa] text-[#6b7e99] border border-[#dfe6f0]'}`}>
+                  ⚡ {plan.tokens}
+                </div>
+              )}
+
+              {/* Trial badge for Free */}
+              {plan.trialNote && (
+                <p className="text-xs text-[#27ae60] font-semibold mb-4">✓ {plan.trialNote}</p>
+              )}
               
               <button 
                 onClick={() => (onNavigate as any)('__openAuth')}
-                className={`w-full py-3 px-4 rounded-xl font-bold text-sm transition-all mb-8 ${plan.popular ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 hover:bg-slate-700 text-white border border-white/10'}`}
+                className={`w-full py-3 px-4 rounded-xl font-bold text-sm transition-all mb-8 mt-4 ${
+                  plan.popular 
+                    ? 'bg-[#c9a84c] hover:bg-[#d4b86a] text-white shadow-lg shadow-[#c9a84c]/20' 
+                    : 'bg-[#eef2f8] hover:bg-[#dfe6f0] text-[#1e3a6e] border border-[#dfe6f0]'
+                }`}
               >
                 {plan.name === 'Free' ? 'Start Free Trial' : 'Get Started'}
               </button>
@@ -878,11 +956,11 @@ const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
               <div className="flex-1 space-y-6">
                 {plan.features.map((featureGroup, j) => (
                   <div key={j} className="space-y-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-blue-400">{featureGroup.title}</h4>
+                    <h4 className={`text-xs font-bold uppercase tracking-wider ${plan.popular ? 'text-[#c9a84c]' : 'text-[#1e3a6e]'}`}>{featureGroup.title}</h4>
                     <ul className="space-y-2">
                       {featureGroup.items.map((item, k) => (
-                        <li key={k} className="flex gap-3 text-sm text-slate-300">
-                          <CheckCircle size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                        <li key={k} className={`flex gap-3 text-sm ${plan.popular ? 'text-[#93c4f9]' : 'text-[#4a5568]'}`}>
+                          <CheckCircle size={16} className={`shrink-0 mt-0.5 ${plan.popular ? 'text-[#c9a84c]' : 'text-[#27ae60]'}`} />
                           <span className="leading-snug">{item}</span>
                         </li>
                       ))}
@@ -893,20 +971,26 @@ const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
             </div>
           ))}
         </div>
+
+        <div className="text-center mt-10">
+          <p className="text-[#6b7e99] text-sm">
+            Need more AI power? <span className="text-[#1e3a6e] font-semibold">Additional tokens can be purchased anytime</span> from your dashboard.
+          </p>
+        </div>
       </div>
     </section>
 
     {/* Blog Section */}
-    <section id="blog" className="py-24 px-6">
+    <section id="blog" className="py-24 px-6 bg-[#f5f7fa]">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-end mb-12">
           <div className="cursor-pointer group" onClick={() => onNavigate('blog')}>
-            <h2 className="text-3xl font-bold text-white mb-4 group-hover:text-blue-400 transition-colors">Academic Insights</h2>
-            <p className="text-slate-400">Latest articles on medical education and research methodology.</p>
+            <h2 className="text-3xl font-bold text-[#1e3a6e] mb-4 group-hover:text-[#2347a0] transition-colors">Academic Insights</h2>
+            <p className="text-[#6b7e99]">Latest articles on medical education and research methodology.</p>
           </div>
           <button 
             onClick={() => onNavigate('blog')}
-            className="text-blue-400 font-semibold hover:text-blue-300 transition-colors"
+            className="text-[#2f80ed] font-semibold hover:text-[#1e3a6e] transition-colors"
           >
             View All Posts
           </button>
@@ -914,19 +998,19 @@ const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {ACADEMIC_INSIGHTS_POSTS.map((post, i) => (
-            <div key={i} className={`group cursor-pointer bg-slate-900 border border-white/5 rounded-3xl p-6 hover:bg-slate-800 transition-colors animate-in fade-in slide-in-from-bottom-${4 + i*2} duration-700`}>
-                <div className="aspect-video rounded-2xl overflow-hidden mt-6 mb-6 bg-slate-800 border border-white/10">
+            <div key={i} className={`group cursor-pointer bg-white border border-[#dfe6f0] rounded-3xl p-6 hover:border-[#1e3a6e]/30 hover:shadow-lg transition-all animate-in fade-in slide-in-from-bottom-${4 + i*2} duration-700`}>
+                <div className="aspect-video rounded-2xl overflow-hidden mt-6 mb-6 bg-[#eef2f8] border border-[#dfe6f0]">
                   <img 
                     src={post.imageSrc} 
                     alt={post.title} 
-                    className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500"
                     referrerPolicy="no-referrer"
                   />
               </div>
               <div className="space-y-3">
-                <span className="text-blue-500 text-xs font-bold uppercase tracking-wider">{post.category}</span>
-                <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">{post.title}</h3>
-                <p className="text-slate-500 text-sm">{post.date} • 5 min read</p>
+                <span className="text-[#1e3a6e] text-xs font-bold uppercase tracking-wider">{post.category}</span>
+                <h3 className="text-xl font-bold text-[#1e3a6e] group-hover:text-[#c9a84c] transition-colors">{post.title}</h3>
+                <p className="text-[#8a9ab4] text-sm">{post.date} • 5 min read</p>
               </div>
             </div>
           ))}
@@ -935,48 +1019,48 @@ const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
     </section>
 
     {/* Contact Section */}
-    <section id="contact" className="py-24 px-6 bg-slate-950/50">
+    <section id="contact" className="py-24 px-6 bg-white">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20">
         <div className="space-y-8">
-          <h2 className="text-4xl font-bold text-white">Get in Touch</h2>
-          <p className="text-slate-400 text-lg">
-            Have questions about Medimentr? Our support team is here to help you excel in your academic journey.
+          <h2 className="text-4xl font-bold text-[#1e3a6e]">Get in Touch</h2>
+          <p className="text-[#6b7e99] text-lg">
+            Have questions about PGMentor? Our support team is here to help you excel in your academic journey.
           </p>
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-blue-600/10 flex items-center justify-center text-blue-500">
+              <div className="w-12 h-12 rounded-full bg-[#1e3a6e]/10 flex items-center justify-center text-[#1e3a6e]">
                 <Send size={20} />
               </div>
               <div>
-                <p className="text-white font-semibold">Email Us</p>
-                <p className="text-slate-400">support@healic.co</p>
+                <p className="text-[#1e3a6e] font-semibold">Email Us</p>
+                <p className="text-[#6b7e99]">support@healic.co</p>
               </div>
             </div>
           </div>
         </div>
         
-        <form action="https://formsubmit.co/support@healic.co" method="POST" className="bg-slate-900 border border-white/10 p-8 rounded-3xl space-y-6 shadow-2xl">
+        <form action="https://formsubmit.co/support@healic.co" method="POST" className="bg-[#f5f7fa] border border-[#dfe6f0] p-8 rounded-3xl space-y-6 shadow-sm">
           <input type="hidden" name="_captcha" value="false" />
-          <input type="hidden" name="_subject" value="New contact form submission - Medimentr" />
+          <input type="hidden" name="_subject" value="New contact form submission - PGMentor" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-slate-300 text-sm font-medium">Name</label>
-              <input type="text" name="name" required className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors" placeholder="Dr. John Doe" />
+              <label className="text-[#1e3a6e] text-sm font-medium">Name</label>
+              <input type="text" name="name" required className="w-full bg-white border border-[#dfe6f0] rounded-xl px-4 py-3 text-[#1e3a6e] focus:outline-none focus:border-[#1e3a6e] transition-colors shadow-sm" placeholder="Dr. John Doe" />
             </div>
             <div className="space-y-2">
-              <label className="text-slate-300 text-sm font-medium">Email</label>
-              <input type="email" name="email" required className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors" placeholder="john@hospital.com" />
+              <label className="text-[#1e3a6e] text-sm font-medium">Email</label>
+              <input type="email" name="email" required className="w-full bg-white border border-[#dfe6f0] rounded-xl px-4 py-3 text-[#1e3a6e] focus:outline-none focus:border-[#1e3a6e] transition-colors shadow-sm" placeholder="john@hospital.com" />
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-slate-300 text-sm font-medium">Subject</label>
-            <input type="text" name="subject" required className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors" placeholder="How can we help?" />
+            <label className="text-[#1e3a6e] text-sm font-medium">Subject</label>
+            <input type="text" name="subject" required className="w-full bg-white border border-[#dfe6f0] rounded-xl px-4 py-3 text-[#1e3a6e] focus:outline-none focus:border-[#1e3a6e] transition-colors shadow-sm" placeholder="How can we help?" />
           </div>
           <div className="space-y-2">
-            <label className="text-slate-300 text-sm font-medium">Message</label>
-            <textarea name="message" required className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white h-32 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Your message here..." />
+            <label className="text-[#1e3a6e] text-sm font-medium">Message</label>
+            <textarea name="message" required className="w-full bg-white border border-[#dfe6f0] rounded-xl px-4 py-3 text-[#1e3a6e] h-32 focus:outline-none focus:border-[#1e3a6e] transition-colors shadow-sm" placeholder="Your message here..." />
           </div>
-          <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-blue-600/20">
+          <button type="submit" className="w-full bg-[#1e3a6e] hover:bg-[#2347a0] text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-[#1e3a6e]/20">
             Send Message
           </button>
         </form>
@@ -993,9 +1077,8 @@ const CATEGORIES = [
   "Learning Management System",
   "Knowledge & Learning Resources",
   "Academic & Research Writing",
-  "Clinical Decision & Practice Support",
   "Assessment & Examination System",
-  "Thesis Manager"
+  "Clinical Decision & Practice Support"
 ];
 
 // Plan-based category access control
@@ -1004,51 +1087,40 @@ const ALL_CATEGORIES = [
   "Productivity & Professional Management",
   "Knowledge & Learning Resources",
   "Academic & Research Writing",
-  "Clinical Decision & Practice Support",
-  "Thesis Manager",
   "Assessment & Examination System",
+  "Clinical Decision & Practice Support",
   "Learning Management System"
 ];
 
 const PLAN_CATEGORY_ACCESS: Record<string, string[]> = {
-  // Trial: ALL features for 15 days (100,000 tokens)
+  // Trial: ALL features for 15 days (100,000 tokens/month)
   trial: [...ALL_CATEGORIES],
   // Free: Basic access after trial expires (10,000 tokens/month)
   free: [
     "Dashboard",
     "Productivity & Professional Management"
   ],
-  // Starter: ₹100/month (100,000 tokens/month)
-  starter: [
-    "Dashboard",
-    "Productivity & Professional Management",
-    "Knowledge & Learning Resources",
-    "Academic & Research Writing"
-  ],
-  // Standard: ₹300/month (300,000 tokens/month)
+  // Standard: ₹499/month (100,000 tokens/month)
   standard: [
     "Dashboard",
     "Productivity & Professional Management",
     "Knowledge & Learning Resources",
     "Academic & Research Writing",
-    "Clinical Decision & Practice Support",
-    "Thesis Manager"
+    "Learning Management System"
   ],
-  // Premium: ₹500/month (500,000 tokens/month)
+  // Premium: ₹999/month (300,000 tokens/month)
   premium: [...ALL_CATEGORIES]
 };
 
 const PLAN_LABELS: Record<string, string> = {
   trial: 'Trial',
   free: 'Free',
-  starter: 'Starter',
   standard: 'Standard',
   premium: 'Premium'
 };
 
 const getRequiredPlan = (category: string): string | null => {
   if (PLAN_CATEGORY_ACCESS.free.includes(category)) return null; // free-level (always accessible)
-  if (PLAN_CATEGORY_ACCESS.starter.includes(category)) return 'Starter';
   if (PLAN_CATEGORY_ACCESS.standard.includes(category)) return 'Standard';
   return 'Premium';
 };
@@ -1080,10 +1152,24 @@ const ReferralCard = () => {
   }, []);
 
   const referralLink = referralCode ? `${window.location.origin}/?ref=${referralCode}` : '';
-  const shareText = `🩺 Check out MediMentr — an AI-powered academic companion for medical professionals! Get a FREE 15-day trial with ALL features. Sign up here: ${referralLink}`;
+  const shareText = `🩺 Check out PGMentor — an AI-powered academic companion for medical professionals! Get a FREE 15-day trial with ALL features. Sign up here: ${referralLink}`;
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(referralLink);
+  const handleCopy = async () => {
+    if (!referralLink) return;
+    try {
+      // Try modern clipboard API first
+      await navigator.clipboard.writeText(referralLink);
+    } catch {
+      // Fallback: use textarea trick for older browsers / non-HTTPS
+      const ta = document.createElement('textarea');
+      ta.value = referralLink;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -1095,7 +1181,7 @@ const ReferralCard = () => {
       whatsapp: `https://wa.me/?text=${encodedText}`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedLink}`,
       twitter: `https://twitter.com/intent/tweet?text=${encodedText}`,
-      telegram: `https://t.me/share/url?url=${encodedLink}&text=${encodeURIComponent('🩺 AI-powered medical education platform — MediMentr')}`
+      telegram: `https://t.me/share/url?url=${encodedLink}&text=${encodeURIComponent('🩺 AI-powered medical education platform — PGMentor')}`
     };
     window.open(urls[platform], '_blank', 'noopener,noreferrer');
   };
@@ -1106,7 +1192,7 @@ const ReferralCard = () => {
   if (loading) return null;
 
   return (
-    <div className="mt-10 rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-emerald-600/10 backdrop-blur-sm">
+    <div className="mt-10 rounded-3xl overflow-hidden border border-[#dfe6f0] bg-gradient-to-br from-[#eef2f8] via-white to-[#f5f0e6] shadow-sm">
       <div className="p-8">
         {/* Header */}
         <div className="flex items-start gap-4 mb-6">
@@ -1114,27 +1200,27 @@ const ReferralCard = () => {
             <Gift size={28} className="text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">Want to Support MediMentr?</h2>
-            <p className="text-slate-400 text-sm mt-1">Share on social media & earn <span className="text-amber-400 font-bold">FREE Premium Access!</span></p>
+            <h2 className="text-2xl font-bold text-[#1e3a6e]">Want to Support PGMentor?</h2>
+            <p className="text-[#6b7e99] text-sm mt-1">Share on social media & earn <span className="text-[#c9a84c] font-bold">FREE Premium Access!</span></p>
           </div>
         </div>
 
         {/* Referral Link */}
-        <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-4 mb-6">
-          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Your Referral Link</label>
+        <div className="bg-white border border-[#dfe6f0] rounded-2xl p-4 mb-6 shadow-sm">
+          <label className="text-xs font-bold text-[#6b7e99] uppercase tracking-wider mb-2 block">Your Referral Link</label>
           <div className="flex gap-2">
             <input
               type="text"
               readOnly
               value={referralLink}
-              className="flex-1 bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-mono focus:outline-none"
+              className="flex-1 bg-[#f5f7fa] border border-[#dfe6f0] rounded-xl px-4 py-3 text-[#1e3a6e] text-sm font-mono focus:outline-none"
             />
             <button
               onClick={handleCopy}
               className={`px-5 py-3 rounded-xl font-bold text-sm transition-all ${
                 copied 
                   ? 'bg-emerald-500 text-white' 
-                  : 'bg-blue-600 hover:bg-blue-500 text-white'
+                  : 'bg-[#1e3a6e] hover:bg-[#2a4d8a] text-white'
               }`}
             >
               {copied ? '✓ Copied!' : 'Copy'}
@@ -1144,19 +1230,19 @@ const ReferralCard = () => {
 
         {/* Share Buttons */}
         <div className="flex flex-wrap gap-3 mb-8">
-          <button onClick={() => handleShare('whatsapp')} className="flex items-center gap-2 px-5 py-2.5 bg-[#25D366]/10 border border-[#25D366]/20 text-[#25D366] rounded-xl hover:bg-[#25D366]/20 transition-colors text-sm font-bold">
+          <button onClick={() => handleShare('whatsapp')} className="flex items-center gap-2 px-5 py-2.5 bg-[#25D366]/10 border border-[#25D366]/30 text-[#25D366] rounded-xl hover:bg-[#25D366]/20 transition-colors text-sm font-bold">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             WhatsApp
           </button>
-          <button onClick={() => handleShare('linkedin')} className="flex items-center gap-2 px-5 py-2.5 bg-[#0A66C2]/10 border border-[#0A66C2]/20 text-[#0A66C2] rounded-xl hover:bg-[#0A66C2]/20 transition-colors text-sm font-bold">
+          <button onClick={() => handleShare('linkedin')} className="flex items-center gap-2 px-5 py-2.5 bg-[#0A66C2]/10 border border-[#0A66C2]/30 text-[#0A66C2] rounded-xl hover:bg-[#0A66C2]/20 transition-colors text-sm font-bold">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
             LinkedIn
           </button>
-          <button onClick={() => handleShare('twitter')} className="flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 text-slate-300 rounded-xl hover:bg-white/10 transition-colors text-sm font-bold">
+          <button onClick={() => handleShare('twitter')} className="flex items-center gap-2 px-5 py-2.5 bg-[#1e3a6e]/5 border border-[#1e3a6e]/15 text-[#1e3a6e] rounded-xl hover:bg-[#1e3a6e]/10 transition-colors text-sm font-bold">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             X / Twitter
           </button>
-          <button onClick={() => handleShare('telegram')} className="flex items-center gap-2 px-5 py-2.5 bg-[#0088CC]/10 border border-[#0088CC]/20 text-[#0088CC] rounded-xl hover:bg-[#0088CC]/20 transition-colors text-sm font-bold">
+          <button onClick={() => handleShare('telegram')} className="flex items-center gap-2 px-5 py-2.5 bg-[#0088CC]/10 border border-[#0088CC]/30 text-[#0088CC] rounded-xl hover:bg-[#0088CC]/20 transition-colors text-sm font-bold">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0a12 12 0 00-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
             Telegram
           </button>
@@ -1164,25 +1250,25 @@ const ReferralCard = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-5 text-center">
-            <div className="text-3xl font-black text-emerald-400">{totalReferred}</div>
-            <div className="text-sm text-slate-400 font-medium mt-1">Users Joined</div>
+          <div className="bg-white border border-[#dfe6f0] rounded-2xl p-5 text-center shadow-sm">
+            <div className="text-3xl font-black text-emerald-500">{totalReferred}</div>
+            <div className="text-sm text-[#6b7e99] font-medium mt-1">Users Joined</div>
           </div>
-          <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-5 text-center">
-            <div className="text-3xl font-black text-purple-400">{totalSubscribed}</div>
-            <div className="text-sm text-slate-400 font-medium mt-1">Subscribed</div>
+          <div className="bg-white border border-[#dfe6f0] rounded-2xl p-5 text-center shadow-sm">
+            <div className="text-3xl font-black text-[#1e3a6e]">{totalSubscribed}</div>
+            <div className="text-sm text-[#6b7e99] font-medium mt-1">Subscribed</div>
           </div>
         </div>
 
         {/* Progress */}
-        <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-5 mb-6">
+        <div className="bg-white border border-[#dfe6f0] rounded-2xl p-5 mb-6 shadow-sm">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-bold text-white">Progress to Next Reward</span>
-            <span className="text-xs font-bold text-amber-400">{totalSubscribed} / {nextMilestone} subscribers</span>
+            <span className="text-sm font-bold text-[#1e3a6e]">Progress to Next Reward</span>
+            <span className="text-xs font-bold text-[#c9a84c]">{totalSubscribed} / {nextMilestone} subscribers</span>
           </div>
-          <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
+          <div className="w-full h-3 bg-[#f5f7fa] rounded-full overflow-hidden border border-[#dfe6f0]">
             <div 
-              className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-1000"
+              className="h-full rounded-full bg-gradient-to-r from-[#c9a84c] to-[#e8b84c] transition-all duration-1000"
               style={{ width: `${Math.min((totalSubscribed / nextMilestone) * 100, 100)}%` }}
             />
           </div>
@@ -1190,21 +1276,21 @@ const ReferralCard = () => {
 
         {/* Reward Tiers */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className={`rounded-2xl border p-5 ${totalSubscribed >= 100 ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/10 bg-slate-900/40'}`}>
+          <div className={`rounded-2xl border p-5 ${totalSubscribed >= 100 ? 'border-emerald-400/40 bg-emerald-50' : 'border-[#dfe6f0] bg-white'} shadow-sm`}>
             <div className="flex items-center gap-2 mb-2">
-              <Award size={18} className={totalSubscribed >= 100 ? 'text-emerald-400' : 'text-amber-400'} />
-              <span className="font-bold text-white text-sm">100 Paid Subscribers</span>
-              {totalSubscribed >= 100 && <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-md font-bold">UNLOCKED</span>}
+              <Award size={18} className={totalSubscribed >= 100 ? 'text-emerald-500' : 'text-[#c9a84c]'} />
+              <span className="font-bold text-[#1e3a6e] text-sm">100 Paid Subscribers</span>
+              {totalSubscribed >= 100 && <span className="text-xs bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-md font-bold">UNLOCKED</span>}
             </div>
-            <p className="text-slate-400 text-xs">Get <strong className="text-amber-400">FREE Premium for 1 Month</strong></p>
+            <p className="text-[#6b7e99] text-xs">Get <strong className="text-[#c9a84c]">FREE Premium for 1 Month</strong></p>
           </div>
-          <div className={`rounded-2xl border p-5 ${totalSubscribed >= 1000 ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/10 bg-slate-900/40'}`}>
+          <div className={`rounded-2xl border p-5 ${totalSubscribed >= 1000 ? 'border-emerald-400/40 bg-emerald-50' : 'border-[#dfe6f0] bg-white'} shadow-sm`}>
             <div className="flex items-center gap-2 mb-2">
-              <Trophy size={18} className={totalSubscribed >= 1000 ? 'text-emerald-400' : 'text-amber-400'} />
-              <span className="font-bold text-white text-sm">1,000 Paid Subscribers</span>
-              {totalSubscribed >= 1000 && <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-md font-bold">UNLOCKED</span>}
+              <Trophy size={18} className={totalSubscribed >= 1000 ? 'text-emerald-500' : 'text-[#c9a84c]'} />
+              <span className="font-bold text-[#1e3a6e] text-sm">1,000 Paid Subscribers</span>
+              {totalSubscribed >= 1000 && <span className="text-xs bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-md font-bold">UNLOCKED</span>}
             </div>
-            <p className="text-slate-400 text-xs">Get <strong className="text-amber-400">FREE Premium for 1 Year</strong></p>
+            <p className="text-[#6b7e99] text-xs">Get <strong className="text-[#c9a84c]">FREE Premium for 1 Year</strong></p>
           </div>
         </div>
       </div>
@@ -1212,15 +1298,18 @@ const ReferralCard = () => {
   );
 };
 
+// Helper to strip legacy "Mastering " prefix from course names stored in localStorage/DB
+const sanitizeCourseName = (name: string): string => name.replace(/^Mastering\s+/i, '');
+
 const COURSE_OPTIONS_LIST = [
-  'Mastering Anatomy', 'Mastering Physiology', 'Mastering Biochemistry',
-  'Mastering Pharmacology', 'Mastering Pathology', 'Mastering Microbiology',
-  'Mastering Forensic Medicine & Toxicology', 'Mastering PSM / Community Medicine',
-  'Mastering General Medicine', 'Mastering General Surgery',
-  'Mastering Obstetrics & Gynecology', 'Mastering Pediatrics',
-  'Mastering ENT', 'Mastering Ophthalmology', 'Mastering Orthopaedics',
-  'Mastering Dermatology (DVL)', 'Mastering Psychiatry', 'Mastering Anaesthesiology',
-  'Mastering Radio Diagnosis'
+  'Anatomy', 'Physiology', 'Biochemistry',
+  'Pharmacology', 'Pathology', 'Microbiology',
+  'Forensic Medicine & Toxicology', 'PSM / Community Medicine',
+  'General Medicine', 'General Surgery',
+  'Obstetrics & Gynecology', 'Pediatrics',
+  'ENT', 'Ophthalmology', 'Orthopaedics',
+  'Dermatology (DVL)', 'Psychiatry', 'Anaesthesiology',
+  'Radio Diagnosis'
 ];
 
 const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
@@ -1230,6 +1319,16 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
   const [changingCourse, setChangingCourse] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isRealUser, setIsRealUser] = useState(false);
+
+  // Token balance state
+  const [tokenData, setTokenData] = useState<{
+    plan_id: string; is_trial: boolean;
+    monthly_allocation: number; tokens_used: number; tokens_remaining: number;
+    usage_percentage: number; subscription_start: string | null;
+    subscription_expiry: string | null; subscription_status: string;
+    has_override: boolean;
+  } | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(true);
 
   // Get user email from localStorage
   const getUserEmail = (): string | null => {
@@ -1254,10 +1353,11 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
           const res = await fetch(`/api/user/profile-by-email?email=${encodeURIComponent(email)}`);
           if (res.ok) {
             const profile = await res.json();
-            setActiveCourse(profile.selected_course || null);
+            const cleanCourse = profile.selected_course ? sanitizeCourseName(profile.selected_course) : null;
+            setActiveCourse(cleanCourse);
             // Sync to localStorage so FeatureModule picks it up
-            if (profile.selected_course) {
-              localStorage.setItem('medimentr_selected_course', profile.selected_course);
+            if (cleanCourse) {
+              localStorage.setItem('PGMentor_selected_course', cleanCourse);
             }
             setIsRealUser(true);
             return;
@@ -1266,10 +1366,34 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
       }
 
       // Fallback: load from localStorage for demo users
-      const saved = localStorage.getItem('medimentr_selected_course');
-      if (saved) setActiveCourse(saved);
+      const saved = localStorage.getItem('PGMentor_selected_course');
+      if (saved) {
+        const cleanSaved = sanitizeCourseName(saved);
+        setActiveCourse(cleanSaved);
+        if (cleanSaved !== saved) localStorage.setItem('PGMentor_selected_course', cleanSaved);
+      }
     };
     loadProfile();
+  }, []);
+
+  // Fetch token balance from server
+  useEffect(() => {
+    const fetchTokenBalance = async () => {
+      try {
+        const { data: { session } } = await _supabase.auth.getSession();
+        if (!session?.user?.id) { setTokenLoading(false); return; }
+        const res = await fetch(`/api/user/token-balance/${session.user.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setTokenData(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch token balance:', err);
+      } finally {
+        setTokenLoading(false);
+      }
+    };
+    fetchTokenBalance();
   }, []);
 
   const handleChangeCourse = async () => {
@@ -1295,14 +1419,14 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
       }
 
       // Fallback: save to localStorage for demo/dev users
-      localStorage.setItem('medimentr_selected_course', newCourseSelection);
+      localStorage.setItem('PGMentor_selected_course', newCourseSelection);
       setActiveCourse(newCourseSelection);
       setShowChangeCourseModal(false);
       setNewCourseSelection('');
     } catch (err: any) {
       console.error('Course update error:', err);
       // Even on error, save locally so the UI works
-      localStorage.setItem('medimentr_selected_course', newCourseSelection);
+      localStorage.setItem('PGMentor_selected_course', newCourseSelection);
       setActiveCourse(newCourseSelection);
       setShowChangeCourseModal(false);
       setNewCourseSelection('');
@@ -1313,24 +1437,24 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h1 className="text-3xl font-bold text-white mb-2">Dashboard Analytics</h1>
-      <p className="text-slate-400 mb-8">Overview of your learning progress and system usage across all features.</p>
+      <h1 className="text-3xl font-bold text-[#1e3a6e] mb-2">Dashboard Analytics</h1>
+      <p className="text-[#6b7e99] mb-8">Overview of your learning progress and system usage across all features.</p>
 
       {/* ─── Active Course Card ─── */}
-      <div className="relative overflow-hidden rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-950/60 via-slate-900/80 to-indigo-950/60 p-6">
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl" />
+      <div className="relative overflow-hidden rounded-2xl border border-[#dfe6f0] bg-gradient-to-br from-[#eef2f8] via-white to-[#f0f4ff] p-6 shadow-sm">
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#1e3a6e]/3 rounded-full blur-3xl" />
+        <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-[#c9a84c]/5 rounded-full blur-3xl" />
         <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#1e3a6e] to-[#2a4d8a] flex items-center justify-center shadow-lg shadow-[#1e3a6e]/20 shrink-0">
               <BookOpen size={26} className="text-white" />
             </div>
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-blue-400/70 mb-1">Active Course</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-[#6b7e99] mb-1">Active Course</div>
               {activeCourse ? (
-                <div className="text-xl font-extrabold text-white">{activeCourse}</div>
+                <div className="text-xl font-extrabold text-[#1e3a6e]">{activeCourse}</div>
               ) : (
-                <div className="text-lg font-semibold text-slate-500 italic">No course selected yet</div>
+                <div className="text-lg font-semibold text-[#8a9ab4] italic">No course selected yet</div>
               )}
             </div>
           </div>
@@ -1339,7 +1463,7 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
               setNewCourseSelection(activeCourse || '');
               setShowChangeCourseModal(true);
             }}
-            className="self-start md:self-center px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold text-white transition-all flex items-center gap-2"
+            className="self-start md:self-center px-5 py-2.5 bg-[#1e3a6e]/5 hover:bg-[#1e3a6e]/10 border border-[#1e3a6e]/15 rounded-xl text-sm font-bold text-[#1e3a6e] transition-all flex items-center gap-2"
           >
             <Edit3 size={14} />
             {activeCourse ? 'Change Course' : 'Select Course'}
@@ -1362,33 +1486,33 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={e => e.stopPropagation()}
-              className="bg-slate-900 border border-white/10 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl shadow-black/50"
+              className="bg-white border border-[#dfe6f0] rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl shadow-black/20"
             >
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1e3a6e] to-[#2a4d8a] flex items-center justify-center">
                   <BookOpen size={22} className="text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">{activeCourse ? 'Change Course' : 'Select Course'}</h3>
-                  <p className="text-sm text-slate-400">Choose your learning path</p>
+                  <h3 className="text-xl font-bold text-[#1e3a6e]">{activeCourse ? 'Change Course' : 'Select Course'}</h3>
+                  <p className="text-sm text-[#6b7e99]">Choose your learning path</p>
                 </div>
               </div>
 
               {activeCourse && (
-                <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm rounded-xl px-4 py-3 mb-5">
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-300/50 text-amber-700 text-sm rounded-xl px-4 py-3 mb-5">
                   <ShieldAlert size={16} className="shrink-0 mt-0.5" />
                   <span><strong>Warning:</strong> Switching courses will reset all learning data for your current course (<strong>{activeCourse}</strong>). This cannot be undone.</span>
                 </div>
               )}
 
               <div className="space-y-1.5 mb-6">
-                <label className="block text-slate-300 text-sm font-medium">Select New Course</label>
+                <label className="block text-[#1e3a6e] text-sm font-medium">Select New Course</label>
                 <div className="relative">
-                  <BookOpen size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <BookOpen size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6b7e99]" />
                   <select
                     value={newCourseSelection}
                     onChange={e => setNewCourseSelection(e.target.value)}
-                    className="w-full appearance-none bg-slate-800 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full appearance-none bg-[#f5f7fa] border border-[#dfe6f0] rounded-xl pl-10 pr-4 py-3 text-[#1e3a6e] text-sm focus:outline-none focus:border-[#1e3a6e] transition-colors"
                   >
                     <option value="">-- Select Course --</option>
                     {COURSE_OPTIONS_LIST.map(c => (
@@ -1401,14 +1525,14 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowChangeCourseModal(false)}
-                  className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-colors"
+                  className="flex-1 py-3 bg-[#f5f7fa] hover:bg-[#eef2f8] text-[#6b7e99] font-bold rounded-xl transition-colors border border-[#dfe6f0]"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleChangeCourse}
                   disabled={changingCourse || !newCourseSelection || newCourseSelection === activeCourse}
-                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-3 bg-[#1e3a6e] hover:bg-[#2a4d8a] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
                 >
                   {changingCourse ? (
                     <><RotateCcw size={16} className="animate-spin" /> Saving...</>
@@ -1422,46 +1546,159 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
         )}
       </AnimatePresence>
 
+      {/* ─── Subscription & Token Usage Panel ─── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* Subscription Plan Card */}
+        <div className="relative overflow-hidden rounded-2xl border border-[#dfe6f0] bg-gradient-to-br from-white via-[#f8f9fc] to-[#eef2f8] p-6 shadow-sm">
+          <div className="absolute -top-8 -right-8 w-28 h-28 bg-[#1e3a6e]/3 rounded-full blur-2xl" />
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#c9a84c] to-[#e8b84c] flex items-center justify-center shadow-lg shadow-[#c9a84c]/20">
+                <Crown size={22} className="text-white" />
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-[#6b7e99]">Current Plan</div>
+                <div className="text-lg font-extrabold text-[#1e3a6e] capitalize">
+                  {tokenLoading ? '...' : (PLAN_LABELS[tokenData?.plan_id || 'free'] || tokenData?.plan_id || 'Free')}
+                  {tokenData?.is_trial && <span className="ml-2 text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md uppercase">Trial</span>}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Calendar size={14} className="text-[#6b7e99]" />
+              {tokenData?.subscription_expiry ? (
+                <span className="text-[#4a5568] font-medium">
+                  Expires: <span className="font-bold text-[#1e3a6e]">{new Date(tokenData.subscription_expiry).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                </span>
+              ) : (
+                <span className="text-[#6b7e99] font-medium">{tokenLoading ? 'Loading...' : 'No expiry set'}</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Tokens Used Card */}
+        <div className="relative overflow-hidden rounded-2xl border border-[#dfe6f0] bg-gradient-to-br from-white via-[#f8f9fc] to-[#eef5ff] p-6 shadow-sm">
+          <div className="absolute -top-8 -right-8 w-28 h-28 bg-blue-500/5 rounded-full blur-2xl" />
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Zap size={22} className="text-white" />
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-[#6b7e99]">Tokens Used</div>
+                <div className="text-lg font-extrabold text-[#1e3a6e]">
+                  {tokenLoading ? '...' : (tokenData?.tokens_used?.toLocaleString('en-IN') || '0')}
+                </div>
+              </div>
+            </div>
+            {/* Progress bar */}
+            <div className="mb-2">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-[10px] font-bold text-[#6b7e99] uppercase tracking-wider">Monthly Usage</span>
+                <span className="text-[11px] font-bold text-[#1e3a6e]">{tokenLoading ? '...' : `${tokenData?.usage_percentage || 0}%`}</span>
+              </div>
+              <div className="w-full h-2.5 bg-[#eef2f8] rounded-full overflow-hidden border border-[#dfe6f0]">
+                <div
+                  className={`h-full rounded-full transition-all duration-1000 ${
+                    (tokenData?.usage_percentage || 0) >= 90 ? 'bg-gradient-to-r from-red-400 to-red-500' :
+                    (tokenData?.usage_percentage || 0) >= 70 ? 'bg-gradient-to-r from-amber-400 to-amber-500' :
+                    'bg-gradient-to-r from-blue-400 to-blue-500'
+                  }`}
+                  style={{ width: `${Math.min(tokenData?.usage_percentage || 0, 100)}%` }}
+                />
+              </div>
+            </div>
+            <div className="text-[11px] text-[#6b7e99]">
+              of <span className="font-bold text-[#1e3a6e]">{tokenLoading ? '...' : (tokenData?.monthly_allocation?.toLocaleString('en-IN') || '0')}</span> monthly tokens
+            </div>
+          </div>
+        </div>
+
+        {/* Tokens Remaining Card */}
+        <div className="relative overflow-hidden rounded-2xl border border-[#dfe6f0] bg-gradient-to-br from-white via-[#f8fdf8] to-[#eefaee] p-6 shadow-sm">
+          <div className="absolute -top-8 -right-8 w-28 h-28 bg-emerald-500/5 rounded-full blur-2xl" />
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shadow-lg ${
+                (tokenData?.usage_percentage || 0) >= 90
+                  ? 'bg-gradient-to-br from-red-500 to-red-600 shadow-red-500/20'
+                  : (tokenData?.usage_percentage || 0) >= 70
+                    ? 'bg-gradient-to-br from-amber-500 to-amber-600 shadow-amber-500/20'
+                    : 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/20'
+              }`}>
+                <TrendingUp size={22} className="text-white" />
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-[#6b7e99]">Tokens Available</div>
+                <div className={`text-lg font-extrabold ${
+                  (tokenData?.usage_percentage || 0) >= 90 ? 'text-red-600' :
+                  (tokenData?.usage_percentage || 0) >= 70 ? 'text-amber-600' :
+                  'text-emerald-600'
+                }`}>
+                  {tokenLoading ? '...' : (tokenData?.tokens_remaining?.toLocaleString('en-IN') || '0')}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {(tokenData?.usage_percentage || 0) >= 90 ? (
+                <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-600 text-[11px] font-bold px-3 py-1.5 rounded-lg">
+                  <ShieldAlert size={12} /> Tokens almost exhausted
+                </div>
+              ) : (tokenData?.usage_percentage || 0) >= 70 ? (
+                <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold px-3 py-1.5 rounded-lg">
+                  <Zap size={12} /> Usage above 70%
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold px-3 py-1.5 rounded-lg">
+                  <CheckCircle size={12} /> Sufficient tokens available
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-slate-900 border border-white/5 rounded-2xl p-6 hover:bg-slate-800 transition-colors">
+        <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
           <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 mb-4"><Library size={20} /></div>
-          <div className="text-3xl font-bold text-white">1,248</div>
-          <div className="text-sm text-slate-400 font-medium mt-1">Topics Researched</div>
+          <div className="text-3xl font-bold text-[#1e3a6e]">1,248</div>
+          <div className="text-sm text-[#6b7e99] font-medium mt-1">Topics Researched</div>
         </div>
-        <div className="bg-slate-900 border border-white/5 rounded-2xl p-6 hover:bg-slate-800 transition-colors">
+        <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
           <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400 mb-4"><PenTool size={20} /></div>
-          <div className="text-3xl font-bold text-white">42</div>
-          <div className="text-sm text-slate-400 font-medium mt-1">Documents Drafted</div>
+          <div className="text-3xl font-bold text-[#1e3a6e]">42</div>
+          <div className="text-sm text-[#6b7e99] font-medium mt-1">Documents Drafted</div>
         </div>
-        <div className="bg-slate-900 border border-white/5 rounded-2xl p-6 hover:bg-slate-800 transition-colors">
+        <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
           <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400 mb-4"><GraduationCap size={20} /></div>
-          <div className="text-3xl font-bold text-white">85%</div>
-          <div className="text-sm text-slate-400 font-medium mt-1">Avg. Exam Score</div>
+          <div className="text-3xl font-bold text-[#1e3a6e]">85%</div>
+          <div className="text-sm text-[#6b7e99] font-medium mt-1">Avg. Exam Score</div>
         </div>
-        <div className="bg-slate-900 border border-white/5 rounded-2xl p-6 hover:bg-slate-800 transition-colors">
+        <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
           <div className="w-10 h-10 bg-rose-500/10 rounded-xl flex items-center justify-center text-rose-400 mb-4"><Activity size={20} /></div>
-          <div className="text-3xl font-bold text-white">12</div>
-          <div className="text-sm text-slate-400 font-medium mt-1">Cases Simulated</div>
+          <div className="text-3xl font-bold text-[#1e3a6e]">12</div>
+          <div className="text-sm text-[#6b7e99] font-medium mt-1">Cases Simulated</div>
         </div>
-        <div className="bg-slate-900 border border-white/5 rounded-2xl p-6 hover:bg-slate-800 transition-colors">
+        <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
           <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-400 mb-4"><Stethoscope size={20} /></div>
-          <div className="text-3xl font-bold text-white">156</div>
-          <div className="text-sm text-slate-400 font-medium mt-1">Decisions Supported</div>
+          <div className="text-3xl font-bold text-[#1e3a6e]">156</div>
+          <div className="text-sm text-[#6b7e99] font-medium mt-1">Decisions Supported</div>
         </div>
-        <div className="bg-slate-900 border border-white/5 rounded-2xl p-6 hover:bg-slate-800 transition-colors">
+        <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
           <div className="w-10 h-10 bg-pink-500/10 rounded-xl flex items-center justify-center text-pink-400 mb-4"><Brain size={20} /></div>
-          <div className="text-3xl font-bold text-white">412</div>
-          <div className="text-sm text-slate-400 font-medium mt-1">Mentor Queries</div>
+          <div className="text-3xl font-bold text-[#1e3a6e]">412</div>
+          <div className="text-sm text-[#6b7e99] font-medium mt-1">Mentor Queries</div>
         </div>
-        <div className="bg-slate-900 border border-white/5 rounded-2xl p-6 hover:bg-slate-800 transition-colors">
+        <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
           <div className="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400 mb-4"><Users size={20} /></div>
-          <div className="text-3xl font-bold text-white">89</div>
-          <div className="text-sm text-slate-400 font-medium mt-1">Contacts Managed</div>
+          <div className="text-3xl font-bold text-[#1e3a6e]">89</div>
+          <div className="text-sm text-[#6b7e99] font-medium mt-1">Contacts Managed</div>
         </div>
-        <div className="bg-slate-900 border border-white/5 rounded-2xl p-6 hover:bg-slate-800 transition-colors">
+        <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
           <div className="w-10 h-10 bg-yellow-500/10 rounded-xl flex items-center justify-center text-yellow-400 mb-4"><FileText size={20} /></div>
-          <div className="text-3xl font-bold text-white">5</div>
-          <div className="text-sm text-slate-400 font-medium mt-1">Thesis Chapters</div>
+          <div className="text-3xl font-bold text-[#1e3a6e]">5</div>
+          <div className="text-sm text-[#6b7e99] font-medium mt-1">Thesis Chapters</div>
         </div>
       </div>
 
@@ -1479,11 +1716,16 @@ const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPl
   const allowedCategories = PLAN_CATEGORY_ACCESS[userPlan] || PLAN_CATEGORY_ACCESS.free;
   const isCategoryAllowed = (cat: string) => allowedCategories.includes(cat);
 
-  const userName = authSession?.user?.user_metadata?.full_name || authSession?.user?.user_metadata?.name || '';
+  // Filter out role/subscription names mistakenly stored as display names
+  const ROLE_NAMES = ['super admin', 'admin', 'user', 'free subscription', 'premium user', 'standard user', 'free', 'premium', 'standard', 'trial'];
+  const rawName = authSession?.user?.user_metadata?.full_name || authSession?.user?.user_metadata?.name || '';
+  const userName = ROLE_NAMES.includes(rawName.toLowerCase().trim()) ? '' : rawName;
   const userEmail = authSession?.user?.email || '';
+  // Derive a display name: prefer real name, else extract from email
+  const displayName = userName || (userEmail ? userEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : '');
 
   return (
-    <div className="min-h-screen flex bg-slate-950 relative">
+    <div className="min-h-screen flex bg-[#f5f7fa] relative">
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -1492,35 +1734,37 @@ const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPl
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-40 bg-[#1e3a6e]/60 backdrop-blur-sm md:hidden"
           />
         )}
       </AnimatePresence>
 
       {/* Sidebar Navigation Panel */}
       <aside 
-        className={`fixed md:sticky top-0 left-0 z-50 h-screen w-[280px] md:w-80 border-r border-white/10 bg-slate-900 md:bg-slate-900/50 flex flex-col gap-2 shrink-0 overflow-y-auto transition-transform duration-300 md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed md:sticky top-0 left-0 z-50 h-screen w-[280px] md:w-80 border-r border-[#2f4e8f] bg-[#1e3a6e] flex flex-col gap-2 shrink-0 overflow-y-auto transition-transform duration-300 md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="p-6 flex flex-col gap-2">
           <div className="flex justify-between items-center mb-2 px-4">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('home')}>
-              <img src="/logo.jpg" alt="MediMentr Logo" className="w-8 h-8 object-contain rounded-xl" />
-              <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">MediMentr</span>
+              <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-md shadow-black/10 shrink-0">
+                <img src="/logo.svg" alt="PGMentor Logo" className="w-7 h-7 object-contain" />
+              </div>
+              <span className="text-lg font-bold" style={{color:'#ffffff'}}>PGMentor</span>
             </div>
-            <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-slate-400 hover:text-white transition-colors">
+            <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-[#93c4f9] hover:text-white transition-colors">
               <X size={20} />
             </button>
           </div>
-          {/* User Info */}
+           {/* User Info */}
           {userEmail && (
-            <div className="mx-2 mb-3 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+            <div className="mx-2 mb-3 px-3 py-2.5 rounded-xl bg-white/[0.08] border border-white/[0.12]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-lg shadow-blue-500/20">
-                  {(userName || userEmail).charAt(0).toUpperCase()}
+                <div className="w-8 h-8 rounded-full bg-[#c9a84c] flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-lg">
+                  {displayName.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  {userName && <p className="text-[13px] font-semibold text-white truncate leading-tight">{userName}</p>}
-                  <p className="text-[11px] text-slate-400 truncate leading-tight mt-0.5">{userEmail}</p>
+                  <p className="text-[13px] font-semibold truncate leading-tight" style={{color:'#ffffff'}}>{displayName}</p>
+                  <p className="text-[11px] text-[#93c4f9] truncate leading-tight mt-0.5">{userEmail}</p>
                 </div>
               </div>
             </div>
@@ -1533,12 +1777,12 @@ const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPl
               daysLeft = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
             }
             return (
-              <div className="mx-2 mb-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20">
+              <div className="mx-2 mb-3 px-3 py-2.5 rounded-xl bg-[#c9a84c]/20 border border-[#c9a84c]/40">
                 <div className="flex items-center gap-2">
-                  <span className="text-emerald-400 text-xs">{daysLeft <= 3 ? '⚠️' : '🎉'}</span>
-                  <span className={`text-[11px] font-bold uppercase tracking-wider ${daysLeft <= 3 ? 'text-amber-400' : 'text-emerald-400'}`}>Trial Active</span>
+                  <span className="text-[#c9a84c] text-xs">{daysLeft <= 3 ? '⚠️' : '🎉'}</span>
+                  <span className={`text-[11px] font-bold uppercase tracking-wider ${daysLeft <= 3 ? 'text-amber-300' : 'text-[#c9a84c]'}`}>Trial Active</span>
                 </div>
-                <p className={`text-[10px] mt-1 ${daysLeft <= 3 ? 'text-amber-400/80' : 'text-slate-400'}`}>
+                <p className={`text-[10px] mt-1 ${daysLeft <= 3 ? 'text-amber-300/80' : 'text-[#93c4f9]'}`}>
                   {daysLeft === 0 ? 'Trial expires today' : daysLeft === 1 ? '1 day left of trial' : `${daysLeft} days left of trial`}
                 </p>
               </div>
@@ -1566,43 +1810,42 @@ const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPl
                 }}
                 className={`text-left px-4 py-3 rounded-xl transition-all font-medium flex items-center gap-3 relative ${
                   !allowed
-                    ? 'text-slate-600 cursor-not-allowed border border-transparent opacity-60'
+                    ? 'text-[#93c4f9]/40 cursor-not-allowed border border-transparent opacity-60'
                     : activeCategory === category 
-                      ? 'bg-blue-600/10 text-blue-400 border border-blue-500/20' 
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-white border border-transparent'
+                      ? 'bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/40' 
+                      : 'text-[#93c4f9] hover:bg-white/10 hover:text-white border border-transparent'
                 }`}
               >
                 {category === 'Dashboard' && <LayoutDashboard size={18} />}
-                {category === 'Thesis Manager' && (allowed ? <ClipboardList size={18} /> : <Lock size={14} className="text-slate-600" />)}
-                {category !== 'Dashboard' && category !== 'Thesis Manager' && (
+                {category !== 'Dashboard' && (
                   allowed 
-                    ? <ChevronRight size={16} className={activeCategory === category ? 'text-blue-400/50' : 'text-slate-600'} />
-                    : <Lock size={14} className="text-slate-600" />
+                    ? <ChevronRight size={16} className={activeCategory === category ? 'text-[#c9a84c]/70' : 'text-[#93c4f9]/50'} />
+                    : <Lock size={14} className="text-[#93c4f9]/40" />
                 )}
                 <span className="text-sm leading-snug flex-1">{category}</span>
                 {!allowed && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#c9a84c]/20 text-[#c9a84c] shrink-0">
                     {requiredPlan}
                   </span>
                 )}
                 {/* Locked tooltip */}
                 {lockedTooltip === category && (
-                  <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 shadow-xl whitespace-nowrap">
-                    <p className="text-xs text-white font-semibold">Upgrade to {requiredPlan} Plan</p>
-                    <p className="text-[11px] text-slate-400">to access {category}</p>
+                  <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 bg-[#152b52] border border-[#2f4e8f] rounded-xl px-4 py-2.5 shadow-xl whitespace-nowrap">
+                    <p className="text-xs font-semibold" style={{color:'#ffffff'}}>Upgrade to {requiredPlan} Plan</p>
+                    <p className="text-[11px] text-[#93c4f9]">to access {category}</p>
                   </div>
                 )}
               </button>
             );
           })}
           
-          <div className="mt-auto pt-4 border-t border-white/10 shrink-0 space-y-1">
+          <div className="mt-auto pt-4 border-t border-[#2f4e8f] shrink-0 space-y-1">
             <button
               onClick={() => {
                 setIsSidebarOpen(false);
                 onNavigate('home');
               }}
-              className="w-full text-left px-4 py-3 rounded-xl transition-all font-medium flex items-center gap-3 text-slate-400 hover:bg-slate-800 hover:text-white border border-transparent"
+              className="w-full text-left px-4 py-3 rounded-xl transition-all font-medium flex items-center gap-3 text-[#93c4f9] hover:bg-white/10 hover:text-white border border-transparent"
             >
               <Globe size={18} />
               <span className="text-sm leading-snug">Home Page</span>
@@ -1620,14 +1863,16 @@ const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPl
                       body: JSON.stringify({ email })
                     });
                   }
-                  localStorage.removeItem('medimentr_session_id');
+                  localStorage.removeItem('PGMentor_session_id');
+                  localStorage.removeItem('PGMentor_demo_mode');
+                  localStorage.removeItem('PGMentor_demo_user');
                 } catch (err) {
                   // Proceed to checkout even if backend call fails
                 }
                 await _supabase.auth.signOut();
                 onNavigate('__logout');
               }}
-              className="w-full text-left px-4 py-3 rounded-xl transition-all font-medium flex items-center gap-3 text-red-400 hover:bg-red-500/10 hover:text-red-300 border border-transparent"
+              className="w-full text-left px-4 py-3 rounded-xl transition-all font-medium flex items-center gap-3 text-red-300 hover:bg-red-500/10 hover:text-red-200 border border-transparent"
             >
               <LogOut size={18} />
               <span className="text-sm leading-snug">Logout</span>
@@ -1637,12 +1882,12 @@ const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPl
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-6 md:p-10 min-w-0 w-full">
+      <main className="flex-1 p-6 md:p-10 min-w-0 w-full bg-[#f5f7fa]">
         {/* Mobile Header for Menu Toggle */}
         <div className="md:hidden flex items-center mb-6">
           <button 
             onClick={() => setIsSidebarOpen(true)}
-            className="flex items-center gap-2 text-slate-300 hover:text-white border border-white/10 bg-slate-800 px-4 py-2 rounded-xl transition-colors"
+            className="flex items-center gap-2 text-[#1e3a6e] hover:text-[#2347a0] border border-[#dfe6f0] bg-white px-4 py-2 rounded-xl transition-colors shadow-sm"
           >
             <Menu size={20} />
             <span className="font-semibold text-sm">Categories</span>
@@ -2202,8 +2447,6 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
   const [modelPaperText, setModelPaperText] = useState('');
   const [isExtractingPaper, setIsExtractingPaper] = useState(false);
 
-  // Specialized states for BrainStack
-  const [brainstackDocsText, setBrainstackDocsText] = useState('');
   const [isExtractingBrainstackDocs, setIsExtractingBrainstackDocs] = useState(false);
 
 
@@ -2277,9 +2520,11 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
 
   useEffect(() => {
     // First try localStorage
-    const savedCourse = localStorage.getItem('medimentr_selected_course');
+    const savedCourse = localStorage.getItem('PGMentor_selected_course');
     if (savedCourse) {
-      applyCourselock(savedCourse);
+      const cleanCourse = sanitizeCourseName(savedCourse);
+      if (cleanCourse !== savedCourse) localStorage.setItem('PGMentor_selected_course', cleanCourse);
+      applyCourselock(cleanCourse);
       return;
     }
 
@@ -2292,8 +2537,9 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
         .then(res => res.ok ? res.json() : null)
         .then(profile => {
           if (profile?.selected_course) {
-            localStorage.setItem('medimentr_selected_course', profile.selected_course);
-            applyCourselock(profile.selected_course);
+            const cleanCourse = sanitizeCourseName(profile.selected_course);
+            localStorage.setItem('PGMentor_selected_course', cleanCourse);
+            applyCourselock(cleanCourse);
           }
         })
         .catch((error) => { console.error('Error fetching user profile:', error); });
@@ -2308,7 +2554,7 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
     organization: 'Hospital/Clinic Name',
     email: 'email@example.com',
     phone: '+1 234 567 890',
-    website: 'www.medimentr.com',
+    website: 'www.PGMentor.com',
     address: 'City, Country'
   });
   const [isEditingPersonalCard, setIsEditingPersonalCard] = useState(false);
@@ -2335,7 +2581,7 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
 
   // Specialized states for Clinical Examination
   const [examType, setExamType] = useState('Cardiovascular Examination');
-  const [examCourse, setExamCourse] = useState('Mastering General Medicine');
+  const [examCourse, setExamCourse] = useState('General Medicine');
 
   useEffect(() => {
     if (featureId === 'contacts-management') {
@@ -2465,7 +2711,7 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
         await navigator.share({
           files: [file],
           title: 'My Digital Visiting Card',
-          text: 'Check out my digital visiting card from Medimentr!'
+          text: 'Check out my digital visiting card from PGMentor!'
         });
       } else {
         const link = document.createElement('a');
@@ -2581,14 +2827,14 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
                   : matchedItem.content;
              setOutput(content);
           } else {
-             setOutput("📝 **No Data Found**\n\nNo saved data for this course/ section/ topic.\n\nContact Medimentr for more information.");
+             setOutput("📝 **No Data Found**\n\nNo saved data for this course/ section/ topic.\n\nContact PGMentor for more information.");
           }
         } else {
-          setOutput("📝 **No Data Found**\n\nFailed to fetch from the database.\n\nContact Medimentr for more information.");
+          setOutput("📝 **No Data Found**\n\nFailed to fetch from the database.\n\nContact PGMentor for more information.");
         }
       } catch (err) {
         console.error("Error fetching library data:", err);
-        setOutput("📝 **Error**\n\nError fetching data from the server.\n\nContact Medimentr for more information.");
+        setOutput("📝 **Error**\n\nError fetching data from the server.\n\nContact PGMentor for more information.");
       }
       setIsLoading(false);
       return;
@@ -2703,7 +2949,7 @@ Required Word Count: ${refWordCount} words`;
       });
 
       let prompt: any = `Generate content for ${feature?.title}. Input: ${finalInput}`;
-      if ((featureId === 'clinical-decision-support' || featureId === 'digital-diary' || featureId === 'journal-club' || featureId === 'manuscript-generator' || featureId === 'stat-assist' || featureId === 'ai-exam-simulator' || featureId === 'question-paper' || featureId === 'brainstack') && scanImages.length > 0) {
+      if ((featureId === 'clinical-decision-support' || featureId === 'digital-diary' || featureId === 'journal-club' || featureId === 'manuscript-generator' || featureId === 'stat-assist' || featureId === 'ai-exam-simulator' || featureId === 'question-paper') && scanImages.length > 0) {
         prompt = [
           prompt,
           ...scanImages.map(img => ({
@@ -2716,7 +2962,7 @@ Required Word Count: ${refWordCount} words`;
       }
       
       let systemInstruction = `You are a medical AI specialist for the ${feature?.title} module. 
-      Follow the required structure for this module as defined in Medimentr guidelines.
+      Follow the required structure for this module as defined in PGMentor guidelines.
       Ensure high academic quality, evidence-based content, and clinical relevance.`;
 
       let responseMimeType = "text/plain";
@@ -2747,9 +2993,7 @@ Required Word Count: ${refWordCount} words`;
         3. Prioritize events with real, working URLs from official sources.
         4. Include a mix of international and regional events where applicable.
         5. Do NOT fabricate URLs — only include links you found via search.`;
-      } else if (featureId === 'brainstack') {
-        prompt = `User Instruction: ${input}\n\nPasted Text or Notes:\n${brainstackDocsText}\n`;
-        systemInstruction = `You are Medimentr AI, an intelligent knowledge assistant designed to help users understand, analyze, and interact with their uploaded content (documents, notes, PDFs, transcripts, and medical learning materials).
+        systemInstruction = `You are PGMentor AI, an intelligent knowledge assistant designed to help users understand, analyze, and interact with their uploaded content (documents, notes, PDFs, transcripts, and medical learning materials).
 
 Your primary goal is to provide accurate, grounded, and structured responses based ONLY on the provided sources, while being helpful, clear, and educational.
 
@@ -2777,7 +3021,7 @@ CORE BEHAVIOR
 - (Optional) Examples
 - Keep responses concise but informative.
 
-4. EDUCATIONAL MODE (IMPORTANT FOR MEDIMENTR)
+4. EDUCATIONAL MODE (IMPORTANT FOR PGMentor)
 - Explain concepts step-by-step when needed.
 - Use simple language first, then deeper detail.
 - Highlight definitions, mechanisms, and clinical relevance when applicable.
@@ -4001,14 +4245,14 @@ Return the response in JSON format with the following schema:
       const a = document.createElement("a");
       const file = new Blob([output], { type: 'text/plain' });
       a.href = URL.createObjectURL(file);
-      a.download = `${feature?.title || 'medimentr'}-result.txt`;
+      a.download = `${feature?.title || 'PGMentor'}-result.txt`;
       document.body.appendChild(a);
       a.click();
       return;
     }
     const opt: any = {
       margin:       0.5,
-      filename:     `${feature?.title || 'medimentr'}-result.pdf`,
+      filename:     `${feature?.title || 'PGMentor'}-result.pdf`,
       image:        { type: 'jpeg' as const, quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#0f172a' },
       jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' as const }
@@ -5689,7 +5933,7 @@ Return the response in JSON format with the following schema:
                         <div className="flex justify-end">
                           <div className="flex items-center gap-1">
                             <Brain className="text-blue-500 w-4 h-4" />
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Medimentr</span>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">PGMentor</span>
                           </div>
                         </div>
                       </div>
@@ -6383,13 +6627,7 @@ Return the response in JSON format with the following schema:
                 });
                 if (!response.ok) throw new Error('Failed to save');
               }} />
-            ) : featureId === 'clinical-examination' ? (
-              <ClinicalExaminationSystem curriculum={curriculum} lockedCourseName={lockedCourseName} />
-            ) : featureId === 'essay-library' ? null : featureId === 'mcq-library' ? null : featureId === 'flash-cards' ? null : featureId === 'thesis-notes' ? (
-              <div className="w-full bg-[#0f172a] border border-white/10 rounded-3xl shadow-2xl overflow-hidden mt-6 mb-8">
-                 <ThesisNotesManager />
-              </div>
-            ) : featureId === 'stat-assist' ? (
+            ) : featureId === 'essay-library' ? null : featureId === 'mcq-library' ? null : featureId === 'flash-cards' ? null : featureId === 'stat-assist' ? (
               <div className="space-y-6 animate-in fade-in">
                 <div className="space-y-2">
                   {lockedCourseName && (
@@ -6731,8 +6969,6 @@ Return the response in JSON format with the following schema:
 
                 </div>
               </div>
-            ) : featureId === 'brainstack' ? (
-              <BrainStack fetchSaved={fetchSaved} />
             ) : (
               <>
                 {(featureId === 'protocol-generator' || featureId === 'manuscript-generator') && (
@@ -6814,7 +7050,7 @@ Return the response in JSON format with the following schema:
             <button 
               onClick={handleGenerate}
               disabled={isLoading || (featureId === 'ai-exam-prep' && !prepCourseId)}
-              className={`w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 ${(featureId === 'contacts-management' || featureId === 'search-topic' || featureId === 'knowledge-library' || featureId === 'essay-library' || featureId === 'mcq-library' || featureId === 'flash-cards' || featureId === 'thesis-notes' || featureId === 'clinical-decision-support' || featureId === 'brainstack' || (featureId === 'ai-exam-simulator' && (simExamActive || simUploadPhase || isEvaluatingSim || simEvaluationResult)) || (featureId === 'answer-analyser' && analyzerSelectedQuestion) || (featureId === 'mcqs-analyser' && mcqGeneratedList.length > 0)) ? 'hidden' : ''}`}
+              className={`w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 ${(featureId === 'contacts-management' || featureId === 'search-topic' || featureId === 'knowledge-library' || featureId === 'essay-library' || featureId === 'mcq-library' || featureId === 'flash-cards' || featureId === 'thesis-notes' || featureId === 'clinical-decision-support' || (featureId === 'ai-exam-simulator' && (simExamActive || simUploadPhase || isEvaluatingSim || simEvaluationResult)) || (featureId === 'answer-analyser' && analyzerSelectedQuestion) || (featureId === 'mcqs-analyser' && mcqGeneratedList.length > 0)) ? 'hidden' : ''}`}
             >
               {isLoading ? (
                 <>
@@ -7036,7 +7272,7 @@ Return the response in JSON format with the following schema:
                 </div>
               )}
             </motion.div>
-          ) : output && featureId !== 'stat-assist' && featureId !== 'clinical-decision-support' && featureId !== 'brainstack' && (
+          ) : output && featureId !== 'stat-assist' && featureId !== 'clinical-decision-support' && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -7288,7 +7524,7 @@ Return the response in JSON format with the following schema:
                         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', position: 'relative', zIndex: 50 }} className="rounded-2xl p-5 flex flex-wrap items-center justify-center gap-3 relative z-50">
                           <div className="flex items-center gap-2 text-sm" style={{ color: '#64748b' }}>
                             <Sparkles size={14} style={{ color: '#10b981' }} />
-                            <span>MediMentr Generated Notes • Review for accuracy</span>
+                            <span>PGMentor Generated Notes • Review for accuracy</span>
                           </div>
                         </div>
                       </>
@@ -7425,7 +7661,7 @@ Return the response in JSON format with the following schema:
                         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', position: 'relative', zIndex: 50 }} className="rounded-2xl p-5 flex flex-wrap items-center justify-center gap-3">
                           <div className="flex items-center gap-2 text-sm" style={{ color: '#64748b' }}>
                             <Sparkles size={14} style={{ color: '#6366f1' }} />
-                            <span>MediMentr Generated Notes • Review for accuracy</span>
+                            <span>PGMentor Generated Notes • Review for accuracy</span>
                           </div>
                         </div>
                       </>
@@ -7447,10 +7683,11 @@ Return the response in JSON format with the following schema:
         {/* Saved Library Section */}
         {![
           'essay-library', 'knowledge-library', 'mcq-library', 'flash-cards',
-          'thesis-notes', 'prescription-analyser', 'contacts-management',
+          'prescription-analyser', 'contacts-management',
           'digital-diary', 'session-search', 'resume-builder', 'doubt-solver',
-          'drug-treatment-assistant', 'guidelines-generator', 'clinical-examination',
-          'clinical-decision-support', 'ai-tutor', 'ai-med-ed-platform'
+          'drug-treatment-assistant', 'guidelines-generator',
+          'clinical-decision-support', 'ai-tutor', 'ai-med-ed-platform',
+          'ai-exam-prep', 'ai-exam-simulator'
         ].includes(featureId) && (
           <div id="saved-library-section" className="mt-20 border-t border-white/10 pt-16">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
@@ -7501,13 +7738,7 @@ Return the response in JSON format with the following schema:
                       <span className="text-[10px] text-slate-500">{new Date(item.date).toLocaleDateString()}</span>
                       <button 
                         onClick={async () => {
-                          // For BrainStack, use direct component callback
-                          if (item.featureId === 'brainstack') {
-                            if ((window as any).__brainStackLoadContent) {
-                              (window as any).__brainStackLoadContent(item.content);
-                            }
-                            return;
-                          }
+
                           setOutput(item.content);
                           if (item.featureId === 'seminar-builder') {
                              try {
@@ -7686,7 +7917,7 @@ const BLOG_CATEGORIES = [
 export const DEFAULT_CURRICULUM = [
   {
     "id": "c10",
-    "name": "Mastering Anatomy",
+    "name": "Anatomy",
     "papers": [
       {
         "id": "ana_p1",
@@ -8116,7 +8347,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c3",
-    "name": "Mastering Physiology",
+    "name": "Physiology",
     "papers": [
       {
         "id": "physio_p1",
@@ -8536,7 +8767,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c4",
-    "name": "Mastering Biochemistry",
+    "name": "Biochemistry",
     "papers": [
       {
         "id": "biochem_p1",
@@ -8924,7 +9155,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c5",
-    "name": "Mastering Pharmacology",
+    "name": "Pharmacology",
     "papers": [
       {
         "id": "pharm_p1",
@@ -9372,7 +9603,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c6",
-    "name": "Mastering Pathology",
+    "name": "Pathology",
     "papers": [
       {
         "id": "path_p1",
@@ -9870,7 +10101,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c7",
-    "name": "Mastering Microbiology",
+    "name": "Microbiology",
     "papers": [
       {
         "id": "micro_p1",
@@ -10326,7 +10557,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c8",
-    "name": "Mastering PSM / Community Medicine",
+    "name": "PSM / Community Medicine",
     "papers": [
       {
         "id": "psm_p1",
@@ -10718,7 +10949,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c9",
-    "name": "Mastering Forensic Medicine & Toxicology",
+    "name": "Forensic Medicine & Toxicology",
     "papers": [
       {
         "id": "fmt_p1",
@@ -11108,7 +11339,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c12",
-    "name": "Mastering Ophthalmology",
+    "name": "Ophthalmology",
     "papers": [
       {
         "id": "oph_p1",
@@ -11516,7 +11747,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c13",
-    "name": "Mastering ENT",
+    "name": "ENT",
     "papers": [
       {
         "id": "ent_p1",
@@ -11926,7 +12157,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c20",
-    "name": "Mastering General Medicine",
+    "name": "General Medicine",
     "papers": [
       {
         "id": "med_p1",
@@ -12328,7 +12559,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c21",
-    "name": "Mastering Pediatrics",
+    "name": "Pediatrics",
     "papers": [
       {
         "id": "ped_p1",
@@ -12760,7 +12991,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c14",
-    "name": "Mastering Psychiatry",
+    "name": "Psychiatry",
     "papers": [
       {
         "id": "psy_p1",
@@ -13120,7 +13351,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c17",
-    "name": "Mastering Dermatology (DVL)",
+    "name": "Dermatology (DVL)",
     "papers": [
       {
         "id": "dvl_p1",
@@ -13468,7 +13699,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c19",
-    "name": "Mastering General Surgery",
+    "name": "General Surgery",
     "papers": [
       {
         "id": "surg_p1",
@@ -13818,7 +14049,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c16",
-    "name": "Mastering Orthopaedics",
+    "name": "Orthopaedics",
     "papers": [
       {
         "id": "ortho_p1",
@@ -14292,7 +14523,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c11",
-    "name": "Mastering Obstetrics & Gynecology",
+    "name": "Obstetrics & Gynecology",
     "papers": [
       {
         "id": "obg_p1",
@@ -14652,7 +14883,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c15",
-    "name": "Mastering Anaesthesiology",
+    "name": "Anaesthesiology",
     "papers": [
       {
         "id": "ana_p1",
@@ -15038,7 +15269,7 @@ export const DEFAULT_CURRICULUM = [
   },
   {
     "id": "c18",
-    "name": "Mastering Radio Diagnosis",
+    "name": "Radio Diagnosis",
     "papers": [
       {
         "id": "rad_p1",
@@ -15413,7 +15644,7 @@ const ControlPanelLogin = ({ onSuccess }: { onSuccess: (role: string) => void })
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Shield size={22} className="text-white" />
             </div>
-            <span className="text-xl font-extrabold text-white tracking-tight">MediMentr</span>
+            <span className="text-xl font-extrabold text-white tracking-tight">PGMentor</span>
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">Control Panel Access</h1>
           <p className="text-slate-400 text-sm">Authorized personnel only. Enter your credentials.</p>
@@ -15574,7 +15805,7 @@ const ControlPanel = ({ onNavigate, curriculum, setCurriculum, blogPosts, setBlo
     if (!blogForm.title.trim()) { alert('Please enter an article title first'); return; }
     setIsGeneratingContent(true);
     try {
-      const prompt = `Write a comprehensive, SEO-optimized blog article for a medical education platform called MediMentr.
+      const prompt = `Write a comprehensive, SEO-optimized blog article for a medical education platform called PGMentor.
 
 Title: "${blogForm.title}"
 Category: ${blogForm.category || 'Medical Education'}
@@ -15763,7 +15994,7 @@ Write the article now:`;
         setBulkProgress(`Generating article ${i + 1} of ${totalCount}...`);
         
         try {
-          const prompt = `Generate ONE unique, complete SEO-optimized blog article for a medical education platform called MediMentr.
+          const prompt = `Generate ONE unique, complete SEO-optimized blog article for a medical education platform called PGMentor.
 
 Category: ${category}
 
@@ -16285,7 +16516,7 @@ Return ONLY the JSON object, no extra text.`;
       <div className={`fixed md:static inset-y-0 left-0 z-50 w-72 bg-slate-900 flex flex-col transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} shrink-0 shadow-[2px_0_10px_rgba(0,0,0,0.02)] md:shadow-none border-r border-slate-800`}>
         <div className="flex items-center justify-between px-8 py-8 shrink-0">
           <div className="flex items-center gap-3">
-            <img src="/logo.jpg" alt="MediMentr Logo" className="w-8 h-8 object-contain rounded-xl" />
+            <img src="/logo.svg" alt="PGMentor Logo" className="w-8 h-8 object-contain rounded-xl" />
             <h2 className="text-[#DA5D4B] font-bold text-[12px] tracking-widest uppercase mt-1">Super Admin</h2>
           </div>
           <button className="md:hidden text-slate-400 p-1" onClick={() => setIsSidebarOpen(false)}>
@@ -16374,15 +16605,15 @@ Return ONLY the JSON object, no extra text.`;
         {/* Scrollable Main Area */}
         <div className="flex-1 overflow-auto p-6 md:p-12">
           {['lms-notes', 'essay-questions', 'mcq-questions', 'flash-cards'].includes(activeTab) && (
-            <div className="w-full max-w-4xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="text-center mb-10">
-                <h2 className="text-[28px] md:text-[34px] font-bold text-slate-900 mb-3 tracking-tight">Content Creator Intelligence</h2>
-                <p className="text-[15px] md:text-[16px] text-slate-500 font-medium">Mass trigger Gemini background jobs and build your curriculum.</p>
+            <div className="w-full max-w-5xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="text-center mb-12">
+                <h2 className="text-[30px] md:text-[38px] font-extrabold text-slate-900 mb-3 tracking-tight leading-tight">Content Creator Intelligence</h2>
+                <p className="text-[15px] md:text-[17px] text-slate-500 font-medium max-w-xl mx-auto leading-relaxed">Mass trigger Gemini background jobs and build your curriculum.</p>
               </div>
 
               {/* Step Indicator */}
-              <div className="flex justify-center mb-4">
-                <div className="flex items-center gap-0 text-[11px] font-bold text-slate-400">
+              <div className="flex justify-center mb-6">
+                <div className="flex items-center gap-0 text-[12px] font-bold text-slate-400">
                   {['curriculum', 'sections', 'lms-notes', 'generation-engine'].map((step, idx) => {
                     const stepLabels = ['1', '2', '3', '4'];
                     const stepNames = ['Curriculum', 'Sections', 'Structure', 'Generate'];
@@ -16391,13 +16622,13 @@ Return ONLY the JSON object, no extra text.`;
                     const isPast = steps.indexOf(activeGenTab) > idx;
                     return (
                       <div key={step} className="flex items-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300 ${
-                            isActive ? 'bg-[#4f46e5] text-white shadow-md shadow-[#4f46e5]/30' : isPast ? 'bg-[#10b981] text-white' : 'bg-slate-200 text-slate-500'
+                        <div className="flex flex-col items-center gap-1.5 cursor-pointer" onClick={() => setActiveGenTab(step)}>
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold transition-all duration-300 ${
+                            isActive ? 'bg-[#4f46e5] text-white shadow-lg shadow-[#4f46e5]/30 ring-4 ring-[#4f46e5]/10' : isPast ? 'bg-[#10b981] text-white shadow-sm' : 'bg-slate-200 text-slate-500'
                           }`}>{isPast ? '✓' : stepLabels[idx]}</div>
-                          <span className={`text-[10px] transition-colors ${isActive ? 'text-[#4f46e5] font-bold' : isPast ? 'text-[#10b981]' : 'text-slate-400'}`}>{stepNames[idx]}</span>
+                          <span className={`text-[12px] font-semibold transition-colors ${isActive ? 'text-[#4f46e5] font-bold' : isPast ? 'text-[#10b981]' : 'text-slate-400'}`}>{stepNames[idx]}</span>
                         </div>
-                        {idx < 3 && <div className={`w-8 md:w-12 h-0.5 mx-1 mb-4 transition-colors ${isPast ? 'bg-[#10b981]' : 'bg-slate-200'}`} />}
+                        {idx < 3 && <div className={`w-10 md:w-16 h-[3px] mx-2 mb-5 rounded-full transition-colors ${isPast ? 'bg-[#10b981]' : 'bg-slate-200'}`} />}
                       </div>
                     );
                   })}
@@ -16406,43 +16637,43 @@ Return ONLY the JSON object, no extra text.`;
 
               {/* Pill Nav */}
               <div className="flex justify-center mb-12">
-                <div className="bg-slate-100/80 p-1.5 rounded-xl flex items-center gap-1 shadow-inner ring-1 ring-slate-900/5 max-w-full overflow-x-auto whitespace-nowrap scrollbar-thin">
+                <div className="bg-slate-100/80 p-2 rounded-2xl flex items-center gap-1.5 shadow-inner ring-1 ring-slate-900/5 max-w-full overflow-x-auto whitespace-nowrap scrollbar-thin">
                   <button 
                     onClick={() => setActiveGenTab('curriculum')}
-                    className={`px-4 md:px-6 py-3 rounded-lg text-[12px] md:text-[13px] font-bold transition-all duration-200 ${
+                    className={`px-5 md:px-7 py-3.5 rounded-xl text-[13px] md:text-[14px] font-bold transition-all duration-200 ${
                       activeGenTab === 'curriculum' 
-                        ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/5' 
-                        : 'text-slate-500 hover:text-slate-700'
+                        ? 'bg-white text-[#4f46e5] shadow-md ring-1 ring-slate-900/5' 
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
                     }`}
                   >
                     Curriculum Setup
                   </button>
                   <button 
                     onClick={() => setActiveGenTab('sections')}
-                    className={`px-4 md:px-6 py-3 rounded-lg text-[12px] md:text-[13px] font-bold transition-all duration-200 ${
+                    className={`px-5 md:px-7 py-3.5 rounded-xl text-[13px] md:text-[14px] font-bold transition-all duration-200 ${
                       activeGenTab === 'sections' 
-                        ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/5' 
-                        : 'text-slate-500 hover:text-slate-700'
+                        ? 'bg-white text-[#4f46e5] shadow-md ring-1 ring-slate-900/5' 
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
                     }`}
                   >
                     {activeTab === 'essay-questions' ? 'Essay Sections' : activeTab === 'mcq-questions' ? 'MCQ Sections' : activeTab === 'flash-cards' ? 'Flash Card Sections' : 'LMS Notes Sections'}
                   </button>
                   <button 
                     onClick={() => setActiveGenTab('lms-notes')}
-                    className={`px-4 md:px-6 py-3 rounded-lg text-[12px] md:text-[13px] font-bold transition-all duration-200 ${
+                    className={`px-5 md:px-7 py-3.5 rounded-xl text-[13px] md:text-[14px] font-bold transition-all duration-200 ${
                       activeGenTab === 'lms-notes' 
-                        ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/5' 
-                        : 'text-slate-500 hover:text-slate-700'
+                        ? 'bg-white text-[#4f46e5] shadow-md ring-1 ring-slate-900/5' 
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
                     }`}
                   >
                     {activeTab === 'essay-questions' ? 'Essay Structure' : activeTab === 'mcq-questions' ? 'MCQ Structure' : activeTab === 'flash-cards' ? 'Flash Cards Structure' : 'LMS Notes Structure'}
                   </button>
                   <button 
                     onClick={() => setActiveGenTab('generation-engine')}
-                    className={`px-4 md:px-6 py-3 rounded-lg text-[12px] md:text-[13px] font-bold transition-all duration-200 ${
+                    className={`px-5 md:px-7 py-3.5 rounded-xl text-[13px] md:text-[14px] font-bold transition-all duration-200 ${
                       activeGenTab === 'generation-engine' 
-                        ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/5' 
-                        : 'text-slate-500 hover:text-slate-700'
+                        ? 'bg-white text-[#4f46e5] shadow-md ring-1 ring-slate-900/5' 
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
                     }`}
                   >
                     Generation Engine
@@ -16451,31 +16682,31 @@ Return ONLY the JSON object, no extra text.`;
               </div>
 
               {activeGenTab === 'curriculum' ? (
-                <div className="flex flex-col lg:flex-row gap-6 items-start w-full max-w-5xl mx-auto">
+                <div className="flex flex-col lg:flex-row gap-8 items-start w-full max-w-5xl mx-auto">
                   
                   {/* Left Column: Context Forms */}
-                  <div className="w-full lg:w-[320px] shrink-0 space-y-4">
+                  <div className="w-full lg:w-[360px] shrink-0 space-y-5">
                     
                     <div className="flex justify-end">
-                        <button onClick={() => { if(window.confirm('This will replace your current curriculum with the default RGUHS Anatomy curriculum. Continue?')) { setCurriculum(DEFAULT_CURRICULUM); setSelectedCourseId(DEFAULT_CURRICULUM[0].id); setSelectedPaperId(''); setSelectedSectionId(''); } }} className="text-[12px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold transition-colors shadow-sm border border-slate-200 w-full justify-center">
-                           <RotateCcw size={14} /> Reset to Default Curriculum
+                        <button onClick={() => { if(window.confirm('This will replace your current curriculum with the default RGUHS Anatomy curriculum. Continue?')) { setCurriculum(DEFAULT_CURRICULUM); setSelectedCourseId(DEFAULT_CURRICULUM[0].id); setSelectedPaperId(''); setSelectedSectionId(''); } }} className="text-[13px] bg-white hover:bg-slate-50 text-slate-600 px-4 py-2.5 rounded-xl flex items-center gap-2 font-bold transition-all shadow-sm border border-slate-200 w-full justify-center hover:border-slate-300 hover:shadow">
+                           <RotateCcw size={15} /> Reset to Default Curriculum
                         </button>
                     </div>
 
                     {/* Course Card */}
-                    <div className="bg-white rounded-[24px] border border-slate-100 p-5 shadow-sm">
-                      <div className="flex items-center gap-2 mb-4 text-[#4f46e5] font-bold text-[11px] tracking-widest uppercase">
-                        <BookOpen size={16} />
-                        <span>Context: Course</span>
+                    <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm border-l-4 border-l-[#4f46e5]">
+                      <div className="flex items-center gap-2.5 mb-5 text-[#4f46e5] font-bold text-[13px] tracking-wide uppercase">
+                        <BookOpen size={18} />
+                        <span>Course</span>
                       </div>
                       
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <div className="flex gap-2">
                           <div className="relative flex-1">
                             <select 
                               value={selectedCourseId}
                               onChange={(e) => setSelectedCourseId(e.target.value)}
-                              className="w-full appearance-none bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3 text-[#334155] font-medium text-[15px] focus:outline-none focus:border-[#4f46e5]"
+                              className="w-full appearance-none bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3.5 text-[#1e293b] font-semibold text-[15px] focus:outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/10 transition-all"
                             >
                               {curriculum.map(course => (
                                   <option key={course.id} value={course.id}>{course.name}</option>
@@ -16485,10 +16716,10 @@ Return ONLY the JSON object, no extra text.`;
                               <ChevronRight size={16} className="rotate-90" />
                             </div>
                           </div>
-                          <button className="bg-[#f1f5f9] text-slate-500 w-12 rounded-xl flex items-center justify-center hover:bg-slate-200 transition-colors">
+                          <button className="bg-slate-50 text-slate-400 w-12 rounded-xl flex items-center justify-center hover:bg-slate-100 hover:text-slate-600 transition-all border border-slate-200">
                             <Edit3 size={16} />
                           </button>
-                          <button onClick={() => handleDeleteCourse(selectedCourseId)} className="bg-[#f1f5f9] text-slate-500 w-12 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors">
+                          <button onClick={() => handleDeleteCourse(selectedCourseId)} className="bg-slate-50 text-slate-400 w-12 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all border border-slate-200">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -16503,13 +16734,13 @@ Return ONLY the JSON object, no extra text.`;
                                 handleAddCourse();
                               }
                             }}
-                            placeholder="Add new course... (bulk upload supported: add one per line)" 
-                            className="flex-1 min-w-0 border border-slate-200 rounded-xl px-4 py-3 text-[14px] focus:outline-none focus:border-[#4f46e5] placeholder:text-slate-400 resize-y min-h-[48px]" 
+                            placeholder="Add new course... (one per line for bulk)" 
+                            className="flex-1 min-w-0 border border-slate-200 rounded-xl px-4 py-3.5 text-[14px] focus:outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/10 placeholder:text-slate-400 resize-y min-h-[52px] transition-all" 
                             rows={2}
                           />
                           <button 
                             onClick={handleAddCourse}
-                            className="bg-[#1e293b] text-white w-12 h-12 rounded-[14px] flex items-center justify-center shrink-0 hover:bg-[#334155] transition-colors shadow-sm"
+                            className="bg-[#4f46e5] text-white w-12 h-12 rounded-xl flex items-center justify-center shrink-0 hover:bg-[#3730a3] transition-colors shadow-md shadow-[#4f46e5]/20"
                           >
                             <Plus size={20} />
                           </button>
@@ -16518,24 +16749,24 @@ Return ONLY the JSON object, no extra text.`;
                     </div>
 
                     {/* Paper Card */}
-                    <div className="bg-white rounded-[24px] border border-slate-100 p-5 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2 text-[#4f46e5] font-bold text-[11px] tracking-widest uppercase">
-                          <Layers size={16} />
-                          <span>Context: Paper</span>
+                    <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm border-l-4 border-l-[#8b5cf6]">
+                      <div className="flex items-center justify-between mb-5">
+                        <div className="flex items-center gap-2.5 text-[#8b5cf6] font-bold text-[13px] tracking-wide uppercase">
+                          <Layers size={18} />
+                          <span>Paper</span>
                         </div>
-                        <button className="text-[#4f46e5] flex items-center gap-1 text-[11px] font-bold">
+                        <button className="text-[#8b5cf6] flex items-center gap-1.5 text-[12px] font-bold bg-[#f5f3ff] px-3 py-1.5 rounded-lg hover:bg-[#ede9fe] transition-colors">
                           <Upload size={14} /> Bulk Upload
                         </button>
                       </div>
                       
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <div className="flex gap-2">
                           <div className="relative flex-1">
                             <select 
                               value={selectedPaperId}
                               onChange={(e) => setSelectedPaperId(e.target.value)}
-                              className="w-full appearance-none bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3 text-[#334155] font-medium text-[15px] focus:outline-none focus:border-[#4f46e5]"
+                              className="w-full appearance-none bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3.5 text-[#1e293b] font-semibold text-[15px] focus:outline-none focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/10 transition-all"
                             >
                               {activePapers.length === 0 && <option value="" disabled>No papers available</option>}
                               {activePapers.map(paper => (
@@ -16546,10 +16777,10 @@ Return ONLY the JSON object, no extra text.`;
                               <ChevronRight size={16} className="rotate-90" />
                             </div>
                           </div>
-                          <button className="bg-[#f1f5f9] text-slate-500 w-12 rounded-xl flex items-center justify-center hover:bg-slate-200 transition-colors">
+                          <button className="bg-slate-50 text-slate-400 w-12 rounded-xl flex items-center justify-center hover:bg-slate-100 hover:text-slate-600 transition-all border border-slate-200">
                             <Edit3 size={16} />
                           </button>
-                          <button onClick={() => handleDeletePaper(selectedPaperId)} className="bg-[#f1f5f9] text-slate-500 w-12 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors">
+                          <button onClick={() => handleDeletePaper(selectedPaperId)} className="bg-slate-50 text-slate-400 w-12 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all border border-slate-200">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -16564,13 +16795,13 @@ Return ONLY the JSON object, no extra text.`;
                                 handleAddPaper();
                               }
                             }}
-                            placeholder="Add new paper... (bulk upload supported)" 
-                            className="flex-1 min-w-0 border border-slate-200 rounded-xl px-4 py-3 text-[14px] focus:outline-none focus:border-[#4f46e5] placeholder:text-slate-400 resize-y min-h-[48px]" 
+                            placeholder="Add new paper... (one per line for bulk)" 
+                            className="flex-1 min-w-0 border border-slate-200 rounded-xl px-4 py-3.5 text-[14px] focus:outline-none focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/10 placeholder:text-slate-400 resize-y min-h-[52px] transition-all" 
                             rows={2}
                           />
                           <button 
                             onClick={handleAddPaper}
-                            className="bg-[#1e293b] text-white w-12 h-12 rounded-[14px] flex items-center justify-center shrink-0 hover:bg-[#334155] transition-colors shadow-sm"
+                            className="bg-[#8b5cf6] text-white w-12 h-12 rounded-xl flex items-center justify-center shrink-0 hover:bg-[#7c3aed] transition-colors shadow-md shadow-[#8b5cf6]/20"
                           >
                             <Plus size={20} />
                           </button>
@@ -16579,24 +16810,24 @@ Return ONLY the JSON object, no extra text.`;
                     </div>
 
                     {/* Section Card */}
-                    <div className="bg-white rounded-[24px] border border-slate-100 p-5 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2 text-[#4f46e5] font-bold text-[11px] tracking-widest uppercase">
-                          <Layers size={16} />
-                          <span>Context: Section</span>
+                    <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm border-l-4 border-l-[#10b981]">
+                      <div className="flex items-center justify-between mb-5">
+                        <div className="flex items-center gap-2.5 text-[#10b981] font-bold text-[13px] tracking-wide uppercase">
+                          <Layers size={18} />
+                          <span>Section</span>
                         </div>
-                        <button className="text-[#4f46e5] flex items-center gap-1 text-[11px] font-bold">
+                        <button className="text-[#10b981] flex items-center gap-1.5 text-[12px] font-bold bg-[#ecfdf5] px-3 py-1.5 rounded-lg hover:bg-[#d1fae5] transition-colors">
                           <Upload size={14} /> Bulk Upload
                         </button>
                       </div>
                       
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <div className="flex gap-2">
                           <div className="relative flex-1">
                             <select 
                               value={selectedSectionId}
                               onChange={(e) => setSelectedSectionId(e.target.value)}
-                              className="w-full appearance-none bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3 text-[#334155] font-medium text-[15px] focus:outline-none focus:border-[#4f46e5]"
+                              className="w-full appearance-none bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3.5 text-[#1e293b] font-semibold text-[15px] focus:outline-none focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/10 transition-all"
                             >
                               {activeSections.length === 0 && <option value="" disabled>No sections available</option>}
                               {activeSections.map(section => (
@@ -16607,10 +16838,10 @@ Return ONLY the JSON object, no extra text.`;
                               <ChevronRight size={16} className="rotate-90" />
                             </div>
                           </div>
-                          <button className="bg-[#f1f5f9] text-slate-500 w-12 rounded-xl flex items-center justify-center hover:bg-slate-200 transition-colors">
+                          <button className="bg-slate-50 text-slate-400 w-12 rounded-xl flex items-center justify-center hover:bg-slate-100 hover:text-slate-600 transition-all border border-slate-200">
                             <Edit3 size={16} />
                           </button>
-                          <button onClick={() => handleDeleteSection(selectedSectionId)} className="bg-[#f1f5f9] text-slate-500 w-12 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors">
+                          <button onClick={() => handleDeleteSection(selectedSectionId)} className="bg-slate-50 text-slate-400 w-12 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all border border-slate-200">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -16625,13 +16856,13 @@ Return ONLY the JSON object, no extra text.`;
                                 handleAddSection();
                               }
                             }}
-                            placeholder="Add new section... (bulk upload supported)" 
-                            className="flex-1 min-w-0 border border-slate-200 rounded-xl px-4 py-3 text-[14px] focus:outline-none focus:border-[#4f46e5] placeholder:text-slate-400 resize-y min-h-[48px]" 
+                            placeholder="Add new section... (one per line for bulk)" 
+                            className="flex-1 min-w-0 border border-slate-200 rounded-xl px-4 py-3.5 text-[14px] focus:outline-none focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/10 placeholder:text-slate-400 resize-y min-h-[52px] transition-all" 
                             rows={2}
                           />
                           <button 
                             onClick={handleAddSection}
-                            className="bg-[#1e293b] text-white w-12 h-12 rounded-[14px] flex items-center justify-center shrink-0 hover:bg-[#334155] transition-colors shadow-sm"
+                            className="bg-[#10b981] text-white w-12 h-12 rounded-xl flex items-center justify-center shrink-0 hover:bg-[#059669] transition-colors shadow-md shadow-[#10b981]/20"
                           >
                             <Plus size={20} />
                           </button>
@@ -16642,15 +16873,21 @@ Return ONLY the JSON object, no extra text.`;
                   </div>
 
                   {/* Right Column: Main Area */}
-                  <div className="flex-1 bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm min-h-[500px] w-full">
+                  <div className="flex-1 bg-white rounded-[28px] border border-slate-100 p-8 lg:p-10 shadow-sm min-h-[500px] w-full">
                     
                     {/* Header Row */}
-                    <div className="flex justify-between items-start mb-10">
+                    <div className="flex justify-between items-start mb-8 pb-6 border-b border-slate-100">
                       <div>
-                        <h3 className="text-[24px] font-bold text-[#0f172a] mb-1">{activeSection ? activeSection.name : 'No section selected'}</h3>
-                        <p className="text-[14px] text-[#64748b] font-medium">{activeCourse ? activeCourse.name : ''} {activePaper ? `• ${activePaper.name}` : ''}</p>
+                        <h3 className="text-[26px] font-extrabold text-[#0f172a] mb-2 tracking-tight leading-tight">{activeSection ? activeSection.name : 'No section selected'}</h3>
+                        <p className="text-[15px] text-[#64748b] font-medium leading-relaxed">
+                          {activeCourse ? activeCourse.name : ''}
+                          {activePaper ? <span className="text-slate-300 mx-2">›</span> : ''}
+                          {activePaper ? activePaper.name : ''}
+                          {activeSection ? <span className="text-slate-300 mx-2">›</span> : ''}
+                          {activeSection ? <span className="text-[#10b981] font-semibold">{activeSection.name}</span> : ''}
+                        </p>
                       </div>
-                      <button className="text-[#10b981] flex items-center gap-2 text-[14px] font-bold bg-[#ecfdf5] px-4 py-2 rounded-xl hover:bg-[#d1fae5] transition-colors">
+                      <button className="text-[#10b981] flex items-center gap-2 text-[13px] font-bold bg-[#ecfdf5] px-5 py-2.5 rounded-xl hover:bg-[#d1fae5] transition-all border border-[#d1fae5] hover:shadow-sm">
                         <Upload size={16} /> Bulk Upload Topic
                       </button>
                     </div>
@@ -16667,24 +16904,55 @@ Return ONLY the JSON object, no extra text.`;
                               handleAddTopic();
                             }
                           }}
-                          placeholder="Manually add a specific topic or paste list (bulk upload supported)..." 
-                          className="flex-1 border border-slate-200 rounded-2xl px-5 py-4 text-[15px] focus:outline-none focus:border-[#10b981] placeholder:text-slate-400 shadow-sm resize-y min-h-[58px]" 
+                          placeholder="Add a topic or paste a list (one per line)..." 
+                          className="flex-1 border border-slate-200 rounded-2xl px-6 py-4 text-[15px] focus:outline-none focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/10 placeholder:text-slate-400 shadow-sm resize-y min-h-[60px] transition-all" 
                           rows={2}
                         />
-                        <button onClick={handleAddTopic} className="bg-[#34d399] text-white px-8 font-bold text-[15px] rounded-2xl flex items-center justify-center shrink-0 hover:bg-[#10b981] transition-colors shadow-sm gap-2 shadow-[#34d399]/20">
+                        <button onClick={handleAddTopic} className="bg-[#10b981] text-white px-8 font-bold text-[15px] rounded-2xl flex items-center justify-center shrink-0 hover:bg-[#059669] transition-all shadow-md gap-2 shadow-[#10b981]/20 hover:shadow-lg">
                           <Plus size={20} /> Add
                         </button>
                       </div>
 
                       {/* Topic List */}
-                      <div className="space-y-3 pt-4 border-t border-slate-50">
+                      <div className="space-y-3 pt-4">
                         {activeTopics.length === 0 ? (
-                          <div className="text-center py-10 text-slate-400 font-medium">No topics added yet.</div>
+                          <div className="text-center py-14 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                            <Layers className="mx-auto h-10 w-10 text-slate-300 mb-3" />
+                            <p className="text-slate-400 font-semibold text-[15px]">No topics added yet</p>
+                            <p className="text-slate-400 text-[13px] mt-1">Add topics above to build your curriculum</p>
+                          </div>
                         ) : (
                           activeTopics.map((topic, idx) => (
-                            <div key={topic.id} className="bg-[#f8fafc] rounded-2xl p-4 flex items-center gap-4">
-                              <div className="w-8 h-8 rounded-full bg-[#e2e8f0] flex items-center justify-center text-[#64748b] font-bold text-[13px] shrink-0">{idx + 1}</div>
-                              <div className="flex-1 font-bold text-[#1e293b]">{topic.name}</div>
+                            <div key={topic.id} className="bg-[#f8fafc] hover:bg-white rounded-2xl p-5 flex items-center gap-4 transition-all hover:shadow-sm border border-transparent hover:border-slate-200 group">
+                              <div className="w-9 h-9 rounded-full bg-[#10b981]/10 flex items-center justify-center text-[#10b981] font-bold text-[14px] shrink-0 border border-[#10b981]/20">{idx + 1}</div>
+                              <div className="flex-1 font-semibold text-[#1e293b] text-[15px] leading-relaxed">{topic.name}</div>
+                              <button 
+                                onClick={() => {
+                                  setCurriculum(curriculum.map(c => 
+                                    c.id === activeCourse?.id 
+                                      ? {
+                                          ...c, 
+                                          papers: c.papers.map(p => 
+                                            p.id === activePaper?.id 
+                                              ? { 
+                                                  ...p, 
+                                                  sections: p.sections.map(s => 
+                                                    s.id === activeSection?.id 
+                                                      ? { ...s, topics: s.topics.filter(t => t.id !== topic.id) }
+                                                      : s
+                                                  )
+                                                }
+                                              : p
+                                          )
+                                        }
+                                      : c
+                                  ));
+                                }}
+                                className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-xl transition-all opacity-0 group-hover:opacity-100 shrink-0"
+                                title="Remove topic"
+                              >
+                                <Trash2 size={15} />
+                              </button>
                             </div>
                           ))
                         )}
@@ -17156,7 +17424,7 @@ Return ONLY the JSON object, no extra text.`;
                         <button
                           onClick={handleGenerateLMSNotes}
                           disabled={isGeneratingLMS || selectedTopics.length === 0}
-                          className="w-full bg-[#4f46e5] text-white py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#3730a3] disabled:opacity-50 transition-colors shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
+                          className="w-full bg-gradient-to-r from-[#b8860b] to-[#d4a017] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:from-[#996f0a] hover:to-[#b8860b] disabled:opacity-50 transition-all shadow-lg shadow-[#d4a017]/30"
                         >
                            {isGeneratingLMS ? <span className="flex items-center gap-2"><div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin"></div> Generating...</span> : <span className="flex items-center gap-2"><Play size={16} /> Auto-Generate {activeTab === 'essay-questions' || activeTab === 'mcq-questions' ? 'Questions' : activeTab === 'flash-cards' ? 'Cards' : 'Notes'}</span>}
                         </button>
@@ -17870,7 +18138,13 @@ export default function App() {
 
   // Track supabase session and fetch user plan
   useEffect(() => {
-    _supabase.auth.getSession().then(({ data }) => setAuthSession(data.session));
+    // Refresh session first to get latest user_metadata from server
+    _supabase.auth.refreshSession().then(({ data }) => {
+      if (data?.session) setAuthSession(data.session);
+    }).catch(() => {
+      // Fallback: use cached session if refresh fails
+      _supabase.auth.getSession().then(({ data }) => setAuthSession(data.session));
+    });
     const { data: listener } = _supabase.auth.onAuthStateChange((_evt, session) => {
       setAuthSession(session);
       if (!session) setUserPlan('free'); // reset on logout
@@ -17888,7 +18162,12 @@ export default function App() {
           setUserPlan('free');
           return;
         }
-        setUserPlan(data.plan_id);
+        // During active trial period, grant full access regardless of plan_id
+        if (data.is_trial && !data.trial_expired) {
+          setUserPlan('trial');
+        } else {
+          setUserPlan(data.plan_id);
+        }
         if (data.trial_end_date) setTrialEndDate(data.trial_end_date);
         if (data.trial_expired) {
           console.log('⏰ Trial period has expired. Downgraded to free plan.');
@@ -17905,7 +18184,7 @@ export default function App() {
     if (!authSession?.user?.email) return;
 
     const interval = setInterval(async () => {
-      const sessionId = localStorage.getItem('medimentr_session_id');
+      const sessionId = localStorage.getItem('PGMentor_session_id');
       if (!sessionId) return; 
 
       try {
@@ -17922,7 +18201,7 @@ export default function App() {
             // Another device explicitly registered a DIFFERENT session
             clearInterval(interval);
             await _supabase.auth.signOut();
-            localStorage.removeItem('medimentr_session_id');
+            localStorage.removeItem('PGMentor_session_id');
             alert('Your session has ended because your account was accessed from another device.');
             window.location.href = '/';
           }

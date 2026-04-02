@@ -106,12 +106,41 @@ function selectAIModel(userRole?: string): string {
   return 'gemini-2.5-flash';
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// TOKEN USAGE TRACKING — PGMentor Token Multiplier: 2x Gemini Tokens
+// For every 1 Gemini AI token used, 2 PGMentor tokens are deducted
+// ═══════════════════════════════════════════════════════════════════════════
+const PGMENTOR_TOKEN_MULTIPLIER = 2;
+
+async function logTokenUsage(userId: string, geminiTokens: number, endpoint: string) {
+  if (!userId || geminiTokens <= 0) return;
+  const pgmentorTokens = geminiTokens * PGMENTOR_TOKEN_MULTIPLIER;
+  try {
+    const { error } = await supabaseAdmin
+      .from('token_usage_logs')
+      .insert({
+        user_id: userId,
+        tokens_used: pgmentorTokens,
+        gemini_tokens: geminiTokens,
+        endpoint: endpoint,
+        used_at: new Date().toISOString()
+      });
+    if (error) {
+      console.warn(`⚠️ Token log failed for ${endpoint}:`, error.message);
+    } else {
+      console.log(`📊 Token usage: ${geminiTokens} Gemini → ${pgmentorTokens} PGMentor tokens (${endpoint}) [user: ${userId.slice(0, 8)}...]`);
+    }
+  } catch (err: any) {
+    console.warn(`⚠️ Token log exception:`, err.message);
+  }
+}
+
 async function startServer() {
   const app = express();
   const PORT = parseInt(process.env.PORT || '3000', 10);
   const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-  const APP_URL = process.env.APP_URL || (IS_PRODUCTION ? 'https://www.medimentr.com' : `http://localhost:${PORT}`);
-  const EMAIL_FROM = process.env.EMAIL_FROM || 'Medimentr <noreply@medimentr.com>';
+  const APP_URL = process.env.APP_URL || (IS_PRODUCTION ? 'https://www.PGMentor.com' : `http://localhost:${PORT}`);
+  const EMAIL_FROM = process.env.EMAIL_FROM || 'PGMentor <noreply@PGMentor.com>';
   const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'healicco@gmail.com';
 
   app.use(express.json({ limit: '50mb' }));
@@ -161,11 +190,12 @@ async function startServer() {
   // ═══════════════════════════════════════════════════════════════════════════
   // AI PROXY ROUTES — All Gemini AI calls go through the backend
   // SECURITY: API key is never exposed to the client
+  // Token tracking: Every Gemini token = 2 PGMentor tokens deducted
   // ═══════════════════════════════════════════════════════════════════════════
 
   app.post("/api/ai/generate", async (req, res) => {
     if (!genAI) return res.status(503).json({ error: "AI service not configured" });
-    const { prompt, systemInstruction, responseMimeType, useSearch, userRole } = req.body;
+    const { prompt, systemInstruction, responseMimeType, useSearch, userRole, userId } = req.body;
     if (!prompt) return res.status(400).json({ error: "prompt is required" });
 
     const model = selectAIModel(userRole);
@@ -175,7 +205,10 @@ async function startServer() {
       const config: any = { systemInstruction, temperature: 0.7, responseMimeType: responseMimeType || "text/plain" };
       if (useSearch) config.tools = [{ googleSearch: {} }];
       const response = await genAI.models.generateContent({ model, contents: prompt, config });
-      res.json({ text: response.text });
+      // Track token usage: PGMentor tokens = 2x Gemini tokens
+      const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
+      if (userId) logTokenUsage(userId, geminiTokens, 'ai/generate');
+      res.json({ text: response.text, tokensUsed: geminiTokens * PGMENTOR_TOKEN_MULTIPLIER });
     } catch (error: any) {
       console.error(`❌ AI generate error (model: ${model}):`, error.message, error.stack?.slice(0, 500));
       res.status(500).json({ error: `AI generation failed: ${error.message}` });
@@ -184,13 +217,16 @@ async function startServer() {
 
   app.post("/api/ai/extract-contact", async (req, res) => {
     if (!genAI) return res.status(503).json({ error: "AI service not configured" });
-    const { image } = req.body;
+    const { image, userId } = req.body;
     if (!image) return res.status(400).json({ error: "image is required" });
 
     try {
       const systemInstruction = `You are an OCR specialist. Extract contact information from the provided visiting card image. Return JSON with: name, designation, organization, email, phone, website, address. If a field is not found, leave it as an empty string.`;
       const prompt = { parts: [{ text: "Extract contact info from this visiting card." }, { inlineData: { mimeType: "image/png", data: image.split(',')[1] || image } }] };
       const response = await genAI.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } });
+      // Track token usage: PGMentor tokens = 2x Gemini tokens
+      const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
+      if (userId) logTokenUsage(userId, geminiTokens, 'ai/extract-contact');
       res.json(JSON.parse(response.text || '{}'));
     } catch (error: any) {
       console.error("❌ AI extract-contact error:", error.message);
@@ -200,13 +236,16 @@ async function startServer() {
 
   app.post("/api/ai/analyze-prescription", async (req, res) => {
     if (!genAI) return res.status(503).json({ error: "AI service not configured" });
-    const { image } = req.body;
+    const { image, userId } = req.body;
     if (!image) return res.status(400).json({ error: "image is required" });
 
     try {
       const systemInstruction = `You are an expert AI healthcare systems evaluator. Analyze the provided medical prescription based on WHO Good Prescription Guidelines. Return a structured JSON report with: overall_score, quality_level, scores (patient_information, prescriber_details, clinical_documentation, drug_information, rational_drug_use, safety_compliance), strengths, deficiencies, recommendations.`;
       const prompt = { parts: [{ text: "Analyze this prescription and generate the evaluation JSON report." }, { inlineData: { mimeType: "image/jpeg", data: image.split(',')[1] || image } }] };
       const response = await genAI.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } });
+      // Track token usage: PGMentor tokens = 2x Gemini tokens
+      const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
+      if (userId) logTokenUsage(userId, geminiTokens, 'ai/analyze-prescription');
       res.json(JSON.parse(response.text || '{}'));
     } catch (error: any) {
       console.error("❌ AI analyze-prescription error:", error.message);
@@ -216,14 +255,17 @@ async function startServer() {
 
   app.post("/api/ai/extract-paper", async (req, res) => {
     if (!genAI) return res.status(503).json({ error: "AI service not configured" });
-    const { image } = req.body;
+    const { image, userId } = req.body;
     if (!image) return res.status(400).json({ error: "image is required" });
 
     try {
       const systemInstruction = `You are an expert AI extraction tool. Accurately transcribe the uploaded medical question paper. Maintain exact formatting, structure, question numbers. Return as plain text in Markdown.`;
       const prompt = { parts: [{ text: "Extract and format the question paper text exactly as shown." }, { inlineData: { mimeType: "image/jpeg", data: image.split(',')[1] || image } }] };
       const response = await genAI.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "text/plain" } });
-      res.json({ text: response.text });
+      // Track token usage: PGMentor tokens = 2x Gemini tokens
+      const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
+      if (userId) logTokenUsage(userId, geminiTokens, 'ai/extract-paper');
+      res.json({ text: response.text, tokensUsed: geminiTokens * PGMENTOR_TOKEN_MULTIPLIER });
     } catch (error: any) {
       console.error("❌ AI extract-paper error:", error.message);
       res.status(500).json({ error: "Paper extraction failed" });
@@ -294,11 +336,11 @@ async function startServer() {
         await resend.emails.send({
           from: EMAIL_FROM,
           to: [email],
-          subject: "Password Reset Code – Medimentr",
+          subject: "Password Reset Code – PGMentor",
           html: emailWrapper("Password Reset", `
             <h2 style="color:#0f172a;font-size:22px;margin:0 0 16px 0;">Password Reset Request 🔐</h2>
             <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 24px 0;">
-              We received a request to reset your Medimentr account password. Use the code below to verify your identity:
+              We received a request to reset your PGMentor account password. Use the code below to verify your identity:
             </p>
             
             <div style="background:linear-gradient(135deg,#1e293b,#0f172a);border-radius:16px;padding:32px;text-align:center;margin:0 0 24px 0;">
@@ -401,11 +443,11 @@ async function startServer() {
         resend.emails.send({
           from: EMAIL_FROM,
           to: [email],
-          subject: "Password Changed Successfully – Medimentr",
+          subject: "Password Changed Successfully – PGMentor",
           html: emailWrapper("Password Changed", `
             <h2 style="color:#0f172a;font-size:22px;margin:0 0 16px 0;">Password Changed Successfully ✅</h2>
             <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 20px 0;">
-              Your Medimentr account password has been updated. You can now sign in with your new password.
+              Your PGMentor account password has been updated. You can now sign in with your new password.
             </p>
             <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px 20px;margin:0 0 24px 0;">
               <p style="color:#166534;font-size:13px;margin:0;">
@@ -789,6 +831,95 @@ async function startServer() {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // USER TOKEN BALANCE (for dashboard display)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  app.get("/api/user/token-balance/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+
+      // 1. Get user's active subscription to determine plan
+      const { data: sub } = await supabaseAdmin
+        .from("subscriptions")
+        .select("plan_id, is_trial, trial_end_date, start_date, end_date, status")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      const planId = sub?.plan_id || 'free';
+
+      // 2. Get token policy for this plan
+      const { data: policy } = await supabaseAdmin
+        .from("token_policies")
+        .select("monthly_tokens, trial_tokens")
+        .eq("plan_id", planId)
+        .single();
+
+      // 3. Check for per-user token override
+      const { data: override } = await supabaseAdmin
+        .from("user_token_overrides")
+        .select("token_limit, is_active")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .single();
+
+      // 4. Calculate total monthly allocation
+      let monthlyAllocation = 0;
+      if (override?.token_limit) {
+        monthlyAllocation = override.token_limit;
+      } else if (policy) {
+        monthlyAllocation = sub?.is_trial ? (policy.trial_tokens || policy.monthly_tokens) : policy.monthly_tokens;
+      } else {
+        // Fallback defaults by plan
+        const defaults: Record<string, number> = { trial: 100000, free: 10000, standard: 100000, premium: 300000 };
+        monthlyAllocation = defaults[planId] || 10000;
+      }
+
+      // 5. Sum tokens used this calendar month
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+
+      const { data: usageLogs } = await supabaseAdmin
+        .from("token_usage_logs")
+        .select("tokens_used")
+        .eq("user_id", userId)
+        .gte("used_at", monthStart)
+        .lte("used_at", monthEnd);
+
+      const tokensUsed = (usageLogs || []).reduce((sum: number, row: any) => sum + (row.tokens_used || 0), 0);
+      const tokensRemaining = Math.max(0, monthlyAllocation - tokensUsed);
+
+      // 6. Compute subscription expiry
+      let subscriptionExpiry: string | null = null;
+      if (sub?.is_trial && sub?.trial_end_date) {
+        subscriptionExpiry = sub.trial_end_date;
+      } else if (sub?.end_date) {
+        subscriptionExpiry = sub.end_date;
+      }
+
+      res.json({
+        plan_id: planId,
+        is_trial: sub?.is_trial || false,
+        monthly_allocation: monthlyAllocation,
+        tokens_used: tokensUsed,
+        tokens_remaining: tokensRemaining,
+        usage_percentage: monthlyAllocation > 0 ? Math.round((tokensUsed / monthlyAllocation) * 100) : 0,
+        subscription_start: sub?.start_date || null,
+        subscription_expiry: subscriptionExpiry,
+        subscription_status: sub?.status || 'none',
+        has_override: !!override?.token_limit
+      });
+    } catch (error: any) {
+      console.error("❌ Token balance fetch error:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // SESSION MANAGEMENT (Single Device Login Enforcement)
   // ═══════════════════════════════════════════════════════════════════════════
   
@@ -910,39 +1041,60 @@ async function startServer() {
     try {
       const { userId } = req.params;
 
-      // Get referral code
-      const { data: profile } = await supabase
-        .from('user_profiles').select('referral_code').eq('user_id', userId).single();
-      
-      // If no code, generate one
-      let referralCode = profile?.referral_code;
+      // Generate a deterministic referral code from the user ID
+      // Format: PGM-XXXXXXXX (first 8 chars of userId, uppercased)
+      const generateCode = (uid: string) => 'PGM-' + uid.replace(/-/g, '').slice(0, 8).toUpperCase();
+
+      // Try to get existing code from user_profiles
+      let referralCode = '';
+      try {
+        const { data: profile } = await supabaseAdmin
+          .from('user_profiles').select('referral_code').eq('user_id', userId).single();
+        referralCode = profile?.referral_code || '';
+      } catch { /* table may not exist */ }
+
+      // If no code found, generate one and try to save it
       if (!referralCode) {
-        const { data: codeData } = await supabase.rpc('generate_referral_code');
-        referralCode = codeData;
-        await supabase.from('user_profiles').update({ referral_code: referralCode }).eq('user_id', userId);
+        referralCode = generateCode(userId);
+        try {
+          await supabaseAdmin.from('user_profiles')
+            .upsert({ user_id: userId, referral_code: referralCode }, { onConflict: 'user_id' });
+        } catch { /* save failed, that's ok — code is still generated */ }
       }
 
-      // Count referrals
-      const { count: totalReferred } = await supabase
-        .from('referrals').select('*', { count: 'exact', head: true }).eq('referrer_user_id', userId);
-      
-      const { count: totalSubscribed } = await supabase
-        .from('referrals').select('*', { count: 'exact', head: true })
-        .eq('referrer_user_id', userId).eq('status', 'subscribed');
+      // Count referrals (graceful if tables don't exist)
+      let totalReferred = 0;
+      let totalSubscribed = 0;
+      try {
+        const { count: refCount } = await supabaseAdmin
+          .from('referrals').select('*', { count: 'exact', head: true }).eq('referrer_user_id', userId);
+        totalReferred = refCount || 0;
 
-      // Get rewards
-      const { data: rewards } = await supabase
-        .from('referral_rewards').select('*').eq('user_id', userId).eq('status', 'active');
+        const { count: subCount } = await supabaseAdmin
+          .from('referrals').select('*', { count: 'exact', head: true })
+          .eq('referrer_user_id', userId).eq('status', 'subscribed');
+        totalSubscribed = subCount || 0;
+      } catch { /* referrals table may not exist */ }
+
+      // Get rewards (graceful)
+      let rewards: any[] = [];
+      try {
+        const { data } = await supabaseAdmin
+          .from('referral_rewards').select('*').eq('user_id', userId).eq('status', 'active');
+        rewards = data || [];
+      } catch { /* rewards table may not exist */ }
 
       res.json({
         referral_code: referralCode,
-        total_referred: totalReferred || 0,
-        total_subscribed: totalSubscribed || 0,
-        rewards: rewards || []
+        total_referred: totalReferred,
+        total_subscribed: totalSubscribed,
+        rewards
       });
     } catch (error: any) {
       console.error("❌ referral stats error:", error.message);
-      res.status(500).json({ error: error.message });
+      // Even on error, return a generated code so the UI always has something
+      const fallbackCode = 'PGM-' + req.params.userId.replace(/-/g, '').slice(0, 8).toUpperCase();
+      res.json({ referral_code: fallbackCode, total_referred: 0, total_subscribed: 0, rewards: [] });
     }
   });
 
@@ -1277,11 +1429,11 @@ async function startServer() {
           await resend.emails.send({
             from: EMAIL_FROM,
             to: [email],
-            subject: `Verify your email – Medimentr`,
+            subject: `Verify your email – PGMentor`,
             html: emailWrapper("Verify Your Email", `
               <h2 style="color:#0f172a;font-size:22px;margin:0 0 16px 0;">Verify Your Email Address ✉️</h2>
               <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 20px 0;">
-                Hi <strong>${userName}</strong>, thank you for creating a Medimentr account! 
+                Hi <strong>${userName}</strong>, thank you for creating a PGMentor account! 
                 Please verify your email address to activate your account and start your learning journey.
               </p>
               
@@ -1303,7 +1455,7 @@ async function startServer() {
               </div>
               
               <p style="color:#94a3b8;font-size:13px;margin:0;text-align:center;">
-                Once verified, you can sign in and start exploring Medimentr's AI-powered medical education tools.
+                Once verified, you can sign in and start exploring PGMentor's AI-powered medical education tools.
               </p>
             `)
           });
@@ -1619,43 +1771,6 @@ async function startServer() {
   // NOTE: Contacts State routes (first copy using user_contacts table) removed —
   // duplicate of routes at line ~2193 that use the contacts_management table instead.
 
-  // Thesis Notes Manager State
-  app.get("/api/state/thesis-manager/:userId", async (req, res) => {
-    try {
-      const { data, error } = await supabase.from('user_thesis_data')
-        .select('*').eq('user_id', req.params.userId).single();
-      
-      if (error && error.code !== 'PGRST116') throw error;
-      res.json({ 
-        projects: data?.projects || [], 
-        participants: data?.participants || [],
-        collections: data?.collections || [],
-        notes: data?.notes || [],
-        logs: data?.logs || []
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/state/thesis-manager", async (req, res) => {
-    try {
-      const { user_id, projects, participants, collections, notes, logs } = req.body;
-      const { error } = await supabase.from('user_thesis_data').upsert({
-        user_id: user_id || 'default',
-        projects: projects || [],
-        participants: participants || [],
-        collections: collections || [],
-        notes: notes || [],
-        logs: logs || [],
-        updated_at: new Date().toISOString()
-      });
-      if (error) throw error;
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
 
   app.get("/api/essay-generator", async (req, res) => {
     try {
@@ -3126,7 +3241,7 @@ async function startServer() {
   // EMAIL ROUTES (Resend)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // Helper: Medimentr branded email HTML wrapper
+  // Helper: PGMentor branded email HTML wrapper
   const emailWrapper = (title: string, bodyContent: string) => `
 <!DOCTYPE html>
 <html>
@@ -3143,7 +3258,7 @@ async function startServer() {
           <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);padding:32px 40px;text-align:center;">
-              <h1 style="color:#ffffff;font-size:28px;margin:0 0 4px 0;font-weight:800;letter-spacing:-0.5px;">Medimentr</h1>
+              <h1 style="color:#ffffff;font-size:28px;margin:0 0 4px 0;font-weight:800;letter-spacing:-0.5px;">PGMentor</h1>
               <p style="color:#94a3b8;font-size:13px;margin:0;letter-spacing:1px;text-transform:uppercase;">AI-Powered Medical Education</p>
             </td>
           </tr>
@@ -3156,7 +3271,7 @@ async function startServer() {
           <!-- Footer -->
           <tr>
             <td style="padding:24px 40px;background-color:#f8fafc;border-top:1px solid #e2e8f0;text-align:center;">
-              <p style="color:#94a3b8;font-size:12px;margin:0 0 4px 0;">© ${new Date().getFullYear()} Medimentr. All rights reserved.</p>
+              <p style="color:#94a3b8;font-size:12px;margin:0 0 4px 0;">© ${new Date().getFullYear()} PGMentor. All rights reserved.</p>
               <p style="color:#cbd5e1;font-size:11px;margin:0;">AI-generated content is for educational purposes only and should not replace clinical judgment.</p>
             </td>
           </tr>
@@ -3208,11 +3323,11 @@ async function startServer() {
       const { data, error } = await resend.emails.send({
         from: EMAIL_FROM,
         to: [email],
-        subject: `Verify your email – Medimentr`,
+        subject: `Verify your email – PGMentor`,
         html: emailWrapper("Verify Your Email", `
           <h2 style="color:#0f172a;font-size:22px;margin:0 0 16px 0;">Verify Your Email Address ✉️</h2>
           <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 20px 0;">
-            Hi <strong>${userName}</strong>, thank you for creating a Medimentr account! 
+            Hi <strong>${userName}</strong>, thank you for creating a PGMentor account! 
             Please verify your email address to activate your account and start your learning journey.
           </p>
           
@@ -3234,7 +3349,7 @@ async function startServer() {
           </div>
           
           <p style="color:#94a3b8;font-size:13px;margin:0;text-align:center;">
-            Once verified, you can sign in and start exploring Medimentr's AI-powered medical education tools.
+            Once verified, you can sign in and start exploring PGMentor's AI-powered medical education tools.
           </p>
         `)
       });
@@ -3353,7 +3468,7 @@ async function startServer() {
       await resend.emails.send({
         from: EMAIL_FROM,
         to: [email],
-        subject: `Verify your email – Medimentr`,
+        subject: `Verify your email – PGMentor`,
         html: emailWrapper("Verify Your Email", `
           <h2 style="color:#0f172a;font-size:22px;margin:0 0 16px 0;">Verify Your Email Address ✉️</h2>
           <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 20px 0;">
@@ -3392,11 +3507,11 @@ async function startServer() {
       const { data, error } = await resend.emails.send({
         from: EMAIL_FROM,
         to: [to],
-        subject: `Welcome to Medimentr, ${userName}! 🎓`,
-        html: emailWrapper("Welcome to Medimentr", `
+        subject: `Welcome to PGMentor, ${userName}! 🎓`,
+        html: emailWrapper("Welcome to PGMentor", `
           <h2 style="color:#0f172a;font-size:22px;margin:0 0 16px 0;">Welcome aboard, ${userName}! 🎉</h2>
           <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 20px 0;">
-            Thank you for joining <strong>Medimentr</strong> — your AI-powered companion for medical education and clinical excellence.
+            Thank you for joining <strong>PGMentor</strong> — your AI-powered companion for medical education and clinical excellence.
           </p>
           
           <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;margin:0 0 24px 0;">
@@ -3429,7 +3544,7 @@ async function startServer() {
 
           <div style="text-align:center;margin:32px 0 16px 0;">
             <a href="${APP_URL}" style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;text-decoration:none;padding:14px 40px;border-radius:12px;font-weight:700;font-size:15px;box-shadow:0 4px 14px rgba(59,130,246,0.3);">
-              Start Exploring Medimentr →
+              Start Exploring PGMentor →
             </a>
           </div>
           
@@ -3471,7 +3586,7 @@ async function startServer() {
         html: emailWrapper("Shared Content", `
           <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px 20px;margin:0 0 20px 0;">
             <p style="color:#1e40af;font-size:13px;margin:0;">
-              📤 <strong>${safeSenderName}</strong> shared this with you via Medimentr
+              📤 <strong>${safeSenderName}</strong> shared this with you via PGMentor
             </p>
           </div>
 
@@ -3483,7 +3598,7 @@ async function startServer() {
           
           <div style="text-align:center;">
             <a href="${APP_URL}" style="display:inline-block;background:#0f172a;color:#fff;text-decoration:none;padding:12px 32px;border-radius:10px;font-weight:600;font-size:14px;">
-              Open in Medimentr
+              Open in PGMentor
             </a>
           </div>
         `)
@@ -3560,7 +3675,7 @@ async function startServer() {
       await resend.emails.send({
         from: EMAIL_FROM,
         to: [email],
-        subject: "We received your message – Medimentr",
+        subject: "We received your message – PGMentor",
         html: emailWrapper("Message Received", `
           <h2 style="color:#0f172a;font-size:20px;margin:0 0 16px 0;">Thanks for reaching out, ${name}! 👋</h2>
           <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 16px 0;">
@@ -3624,11 +3739,11 @@ async function startServer() {
       const { data, error } = await resend.emails.send({
         from: EMAIL_FROM,
         to: [to],
-        subject: `⏰ Your Medimentr trial expires in ${days} day${days > 1 ? 's' : ''}`,
+        subject: `⏰ Your PGMentor trial expires in ${days} day${days > 1 ? 's' : ''}`,
         html: emailWrapper("Trial Expiring Soon", `
           <h2 style="color:#0f172a;font-size:22px;margin:0 0 16px 0;">Hi ${userName}, your trial is ending soon ⏰</h2>
           <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 20px 0;">
-            Your free trial of Medimentr will expire in <strong>${days} day${days > 1 ? 's' : ''}</strong>. 
+            Your free trial of PGMentor will expire in <strong>${days} day${days > 1 ? 's' : ''}</strong>. 
             Upgrade now to keep access to all your saved content and premium AI features.
           </p>
           
@@ -3667,7 +3782,7 @@ async function startServer() {
   // ═══════════════════════════════════════════════════════════════════════════
   app.get("/blog/:id", async (req, res) => {
     const { id } = req.params;
-    const siteUrl = "https://www.medimentr.com";
+    const siteUrl = "https://www.PGMentor.com";
     
     try {
       // Fetch the blog post from Supabase
@@ -3682,8 +3797,8 @@ async function startServer() {
         return res.redirect(`${siteUrl}/blog`);
       }
 
-      const title = post.title || "MediMentr Blog";
-      const description = (post.excerpt || post.title || "Read the latest on MediMentr").substring(0, 200);
+      const title = post.title || "PGMentor Blog";
+      const description = (post.excerpt || post.title || "Read the latest on PGMentor").substring(0, 200);
       const image = post.image_src || post.imageSrc || `${siteUrl}/og-default.png`;
       const blogUrl = `${siteUrl}/blog/${id}`;
       const hashtags = (post.hashtags || '').split(/\s+/).filter(Boolean).slice(0, 5).join(' ');
@@ -3695,18 +3810,18 @@ async function startServer() {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${title} | MediMentr</title>
-  <meta name="description" content="${description} — Explore MediMentr: AI-Powered Medical Education" />
+  <title>${title} | PGMentor</title>
+  <meta name="description" content="${description} — Explore PGMentor: AI-Powered Medical Education" />
 
   <!-- Open Graph / Facebook / LinkedIn / WhatsApp -->
   <meta property="og:type" content="article" />
   <meta property="og:url" content="${blogUrl}" />
   <meta property="og:title" content="${title}" />
-  <meta property="og:description" content="${description} — Explore MediMentr: AI-Powered Medical Education Platform for Medical Professionals" />
+  <meta property="og:description" content="${description} — Explore PGMentor: AI-Powered Medical Education Platform for Medical Professionals" />
   <meta property="og:image" content="${image}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:site_name" content="MediMentr" />
+  <meta property="og:site_name" content="PGMentor" />
   <meta property="article:published_time" content="${post.created_at || new Date().toISOString()}" />
   <meta property="article:section" content="${post.category || 'Medical Education'}" />
 
@@ -3714,9 +3829,9 @@ async function startServer() {
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content="${blogUrl}" />
   <meta name="twitter:title" content="${title}" />
-  <meta name="twitter:description" content="${description} — Explore MediMentr" />
+  <meta name="twitter:description" content="${description} — Explore PGMentor" />
   <meta name="twitter:image" content="${image}" />
-  <meta name="twitter:site" content="@medimentr" />
+  <meta name="twitter:site" content="@PGMentor" />
 
   <!-- Auto redirect for humans (crawlers will read the meta tags above) -->
   <meta http-equiv="refresh" content="0;url=${siteUrl}/#/blog/${id}" />
@@ -3742,9 +3857,9 @@ async function startServer() {
       <div class="cat">${post.category || 'Medical Education'}</div>
       <h1>${title}</h1>
       <p>${description}</p>
-      <a href="${siteUrl}" class="cta">🔬 Explore MediMentr →</a>
+      <a href="${siteUrl}" class="cta">🔬 Explore PGMentor →</a>
     </div>
-    <div class="brand">MediMentr — AI-Powered Medical Education Platform</div>
+    <div class="brand">PGMentor — AI-Powered Medical Education Platform</div>
   </div>
 </body>
 </html>`);
@@ -3778,7 +3893,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Medimentr Server running on http://localhost:${PORT}`);
+    console.log(`PGMentor Server running on http://localhost:${PORT}`);
   });
 }
 

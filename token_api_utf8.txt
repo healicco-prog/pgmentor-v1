@@ -1,0 +1,12 @@
+﻿{
+    "plan_id":  "free",
+    "is_trial":  true,
+    "monthly_allocation":  10000,
+    "tokens_used":  0,
+    "tokens_remaining":  10000,
+    "usage_percentage":  0,
+    "subscription_start":  "2026-04-02T14:11:38.55+00:00",
+    "subscription_expiry":  "2026-04-17T14:11:38.55+00:00",
+    "subscription_status":  "active",
+    "has_override":  false
+}

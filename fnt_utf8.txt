@@ -1,0 +1,16 @@
+﻿Auth metadata for drnarayanak@gmail.com: OK ΓåÆ Dr. Narayana K
+Users table for drnarayanak@gmail.com: FAILED - Could not find the 'full_name' column of 'users' in the schema cache
+Profile for drnarayanak@gmail.com: OK ΓåÆ Dr. Narayana K
+Auth metadata for aimsrcpharmac@gmail.com: OK ΓåÆ AIMS RC Pharma
+Users table for aimsrcpharmac@gmail.com: FAILED - Could not find the 'full_name' column of 'users' in the schema cache
+Profile for aimsrcpharmac@gmail.com: OK ΓåÆ AIMS RC Pharma
+Auth metadata for narayanakdr@yahoo.co.in: OK ΓåÆ Narayana K
+Users table for narayanakdr@yahoo.co.in: FAILED - Could not find the 'full_name' column of 'users' in the schema cache
+Profile for narayanakdr@yahoo.co.in: OK ΓåÆ Narayana K
+Auth metadata for bjpdoddaballapura@gmail.com: OK ΓåÆ BJP Doddaballapura
+Users table for bjpdoddaballapura@gmail.com: FAILED - Could not find the 'full_name' column of 'users' in the schema cache
+Profile for bjpdoddaballapura@gmail.com: OK ΓåÆ BJP Doddaballapura
+Plans table 'free' entry: FAILED - Could not find the table 'public.plans' in the schema cache
+Token policy for 'free' plan: FAILED - Could not find the 'alert_at_70' column of 'token_policies' in the schema cache
+
+Γ£à All fixes applied!

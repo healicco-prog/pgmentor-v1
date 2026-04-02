@@ -1,0 +1,36 @@
+﻿Working on user: ff367245-0b50-4b8c-8269-750f440e0eb8
+node : users table 
+error: {
+At line:1 char:1
++ node fix_role.mjs > 
+fix_out.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo       
+       : NotSpecified:   
+  (users table error:    
+ {:String) [], Remote    
+Exception
+    + FullyQualifiedErro 
+   rId : NativeCommandE  
+  rror
+ 
+  code: 'PGRST204',
+  details: null,
+  hint: null,
+  message: "Could not 
+find the 
+'subscription_plan' 
+column of 'users' in the 
+schema cache"
+}
+user_profiles error: {
+  code: 'PGRST204',
+  details: null,
+  hint: null,
+  message: "Could not 
+find the 'role' column 
+of 'user_profiles' in 
+the schema cache"
+}
+subscriptions table updated: plan_id='free'

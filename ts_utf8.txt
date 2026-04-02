@@ -1,0 +1,23 @@
+﻿SEND_API_RESULT: {
+  "data": null,
+  "error": {
+    "statusCode": 403,
+    "message": "The pgmentor.in domain is not verified. Please, add and verify your domain on https://resend.com/domains",
+    "name": "validation_error"
+  },
+  "headers": {
+    "cf-cache-status": "DYNAMIC",
+    "cf-ray": "9e60a58fdc6b179b-MAA",
+    "connection": "keep-alive",
+    "content-encoding": "br",
+    "content-type": "application/json",
+    "date": "Thu, 02 Apr 2026 14:50:36 GMT",
+    "ratelimit-limit": "5",
+    "ratelimit-policy": "5;w=1",
+    "ratelimit-remaining": "4",
+    "ratelimit-reset": "1",
+    "server": "cloudflare",
+    "transfer-encoding": "chunked",
+    "x-resend-monthly-quota": "36"
+  }
+}

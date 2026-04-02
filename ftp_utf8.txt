@@ -1,0 +1,35 @@
+﻿OK: free plan token policy set to 500 tokens/month
+Current token policies: [
+  {
+    "id": "7df0b96a-b77d-4c1c-9a5f-304fcf0d1842",
+    "plan_id": "trial",
+    "monthly_tokens": 100000,
+    "trial_tokens": 100000,
+    "created_at": "2026-04-02T10:14:50.498549+00:00",
+    "updated_at": "2026-04-02T10:14:50.498549+00:00"
+  },
+  {
+    "id": "4cedef20-2009-4878-a9bc-a86a195b809f",
+    "plan_id": "standard",
+    "monthly_tokens": 100000,
+    "trial_tokens": 0,
+    "created_at": "2026-04-02T10:14:50.498549+00:00",
+    "updated_at": "2026-04-02T10:14:50.498549+00:00"
+  },
+  {
+    "id": "974d9146-991e-4bfa-9299-aaa846585f47",
+    "plan_id": "premium",
+    "monthly_tokens": 300000,
+    "trial_tokens": 0,
+    "created_at": "2026-04-02T10:14:50.498549+00:00",
+    "updated_at": "2026-04-02T10:14:50.498549+00:00"
+  },
+  {
+    "id": "4297d2f7-98d6-4827-b710-f9bf80a03ffc",
+    "plan_id": "free",
+    "monthly_tokens": 500,
+    "trial_tokens": 0,
+    "created_at": "2026-04-02T10:14:50.498549+00:00",
+    "updated_at": "2026-04-02T10:14:50.498549+00:00"
+  }
+]

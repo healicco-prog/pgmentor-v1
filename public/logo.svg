@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <!-- Transparent background — logomark only, corners applied by CSS rounded-xl -->
+
+  <!-- ══════════════════════════════════════ -->
+  <!--  GRADUATION CAP (mortarboard)          -->
+  <!-- ══════════════════════════════════════ -->
+
+  <!-- Cap flat board (diamond/rhombus) -->
+  <polygon points="250,45  430,135  250,170  70,135" fill="#2e4a7a"/>
+
+  <!-- Right half darker for 3D fold depth -->
+  <polygon points="250,45  430,135  250,170" fill="#233a63"/>
+
+  <!-- Cap crown body -->
+  <rect x="195" y="143" width="82" height="72" rx="4" fill="#2e4a7a"/>
+
+  <!-- Tassel cord -->
+  <line x1="195" y1="155" x2="138" y2="230" stroke="#2e4a7a" stroke-width="10" stroke-linecap="round"/>
+  <!-- Tassel knot -->
+  <circle cx="136" cy="238" r="14" fill="#2e4a7a"/>
+  <!-- Tassel strands -->
+  <line x1="118" y1="252" x2="107" y2="295" stroke="#2e4a7a" stroke-width="7" stroke-linecap="round"/>
+  <line x1="136" y1="252" x2="132" y2="297" stroke="#2e4a7a" stroke-width="7" stroke-linecap="round"/>
+  <line x1="154" y1="252" x2="159" y2="293" stroke="#2e4a7a" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- ══════════════════════════════════════ -->
+  <!--  LETTER  P                             -->
+  <!-- ══════════════════════════════════════ -->
+
+  <!-- Vertical stem -->
+  <rect x="155" y="178" width="57" height="270" rx="12" fill="#2e4a7a"/>
+
+  <!-- P bowl outer -->
+  <path d="M212,182 L212,310 Q340,310 340,246 Q340,182 212,182 Z" fill="#2e4a7a"/>
+
+  <!-- P bowl white cutout -->
+  <path d="M212,210 L212,282 Q305,282 305,246 Q305,210 212,210 Z" fill="#ffffff"/>
+
+  <!-- White separation strip between cap bottom and P top -->
+  <rect x="150" y="160" width="130" height="22" fill="#ffffff"/>
+
+  <!-- ══════════════════════════════════════ -->
+  <!--  GOLD RISING ARROW                    -->
+  <!-- ══════════════════════════════════════ -->
+
+  <!-- Arrow shaft -->
+  <line x1="290" y1="390" x2="430" y2="190" stroke="#b8975a" stroke-width="42" stroke-linecap="round"/>
+
+  <!-- Arrow head -->
+  <polygon points="445,172  373,205  402,252" fill="#b8975a"/>
+</svg>

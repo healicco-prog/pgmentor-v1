@@ -1,0 +1,48 @@
+﻿Updated email_verified=true in user_profiles for drnarayanak@gmail.com
+node : Error updating 
+users table for 
+drnarayanak@gmail.com: 
+Could not find the 
+'email_verified' column 
+of 'users' in the schema 
+cache
+At line:1 char:1
++ node 
+update_profiles.mjs > 
+out_ups.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo       
+       : NotSpecified:   
+  (Error updating ...h   
+ e schema cache:Strin    
+g) [], RemoteExcepti    
+on
+    + FullyQualifiedErro 
+   rId : NativeCommandE  
+  rror
+ 
+Updated email_verified=true in user_profiles for aimsrcpharmac@gmail.com
+Error updating users 
+table for 
+aimsrcpharmac@gmail.com: 
+Could not find the 
+'email_verified' column 
+of 'users' in the schema 
+cache
+Updated email_verified=true in user_profiles for narayanakdr@yahoo.co.in
+Error updating users 
+table for 
+narayanakdr@yahoo.co.in: 
+Could not find the 
+'email_verified' column 
+of 'users' in the schema 
+cache
+Updated email_verified=true in user_profiles for bjpdoddaballapura@gmail.com
+Error updating users 
+table for bjpdoddaballapu
+ra@gmail.com: Could not 
+find the 
+'email_verified' column 
+of 'users' in the schema 
+cache

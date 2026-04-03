@@ -1,0 +1,13 @@
+.git
+.gitignore
+node_modules
+dist
+src
+public
+*.md
+.env*
+!server.ts
+!package.json
+!package-lock.json
+!tsconfig.json
+!Dockerfile

@@ -638,32 +638,43 @@ const LANDING_PRICING_PLANS = [
 ];
 const InstallPWAButton = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setIsInstallable(true);
     };
     window.addEventListener('beforeinstallprompt', handler);
     if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstallable(false);
+      setIsStandalone(true);
     }
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setIsInstallable(false);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setIsStandalone(true);
+      }
+      setDeferredPrompt(null);
+    } else {
+      // Fallback: guide user to install via browser menu
+      const ua = navigator.userAgent.toLowerCase();
+      if (ua.includes('iphone') || ua.includes('ipad')) {
+        alert('To install PGMentor:\n\n1. Tap the Share button (↑) at the bottom of Safari\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to confirm');
+      } else if (ua.includes('android')) {
+        alert('To install PGMentor:\n\n1. Tap the menu (⋮) in the top right corner\n2. Tap "Add to Home screen" or "Install app"\n3. Tap "Install" to confirm');
+      } else {
+        alert('To install PGMentor:\n\n1. Click the install icon (⊕) in the address bar\n   — or —\n2. Open browser menu (⋮) → "Install PGMentor"');
+      }
     }
-    setDeferredPrompt(null);
   };
 
-  if (!isInstallable) return null;
+  // Hide only if already running as installed PWA
+  if (isStandalone) return null;
 
   return (
     <button 

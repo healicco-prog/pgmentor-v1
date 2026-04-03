@@ -18179,7 +18179,13 @@ Return ONLY the JSON object, no extra text.`;
 export default function App() {
   const [currentPage, setCurrentPage] = useState(() => {
     const path = window.location.pathname.replace(/^\//, '');
+    // Map /login to 'home' — Auth modal will open via useEffect below
+    if (path === 'login' || path === 'signup') return 'home';
     return path || 'home';
+  });
+  const [initialPathWasLogin] = useState(() => {
+    const path = window.location.pathname.replace(/^\//, '');
+    return path === 'login' || path === 'signup';
   });
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authSession, setAuthSession] = useState<any>(null);
@@ -18201,6 +18207,24 @@ export default function App() {
     });
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  // PWA Auto-redirect: If started from /login (PWA start_url), handle routing
+  useEffect(() => {
+    if (!initialPathWasLogin) return;
+    // Wait for auth session to be determined
+    const timer = setTimeout(() => {
+      if (authSession) {
+        // User is signed in — go to dashboard
+        setCurrentPage('dashboard');
+        window.history.replaceState({}, '', '/dashboard');
+      } else {
+        // User is not signed in — show auth modal
+        setShowAuthModal(true);
+        window.history.replaceState({}, '', '/login');
+      }
+    }, 500); // Small delay to let auth session load
+    return () => clearTimeout(timer);
+  }, [authSession, initialPathWasLogin]);
 
   // Fetch user's subscription plan via server API (bypasses RLS)
   useEffect(() => {

@@ -87,14 +87,30 @@ function validateEmail(email: string): boolean {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GEMINI AI CLIENT (server-side only)
+// GEMINI AI CLIENT — Vertex AI with ADC (production) or API key (fallback)
+// Production: Uses service account attached to Cloud Run (ADC)
+// Local dev: Uses `gcloud auth application-default login`
 // ═══════════════════════════════════════════════════════════════════════════
-const geminiApiKey = process.env.GEMINI_API_KEY;
-const genAI = geminiApiKey ? new GoogleGenAI({ apiKey: geminiApiKey }) : null;
-if (!geminiApiKey) {
-  console.warn("⚠️ Missing GEMINI_API_KEY in .env. AI features will be disabled.");
+const gcpProject = process.env.GOOGLE_CLOUD_PROJECT;
+const gcpLocation = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
+const geminiApiKey = process.env.GEMINI_API_KEY; // legacy fallback only
+
+let genAI: InstanceType<typeof GoogleGenAI> | null = null;
+
+if (gcpProject) {
+  // Production path: Vertex AI with Application Default Credentials
+  genAI = new GoogleGenAI({
+    vertexai: true,
+    project: gcpProject,
+    location: gcpLocation
+  });
+  console.log(`✅ Vertex AI client initialized (project: ${gcpProject}, location: ${gcpLocation})`);
+} else if (geminiApiKey) {
+  // Fallback: Direct API key (not recommended for production)
+  genAI = new GoogleGenAI({ apiKey: geminiApiKey });
+  console.log("⚠️ Gemini AI client initialized with API key (fallback mode).");
 } else {
-  console.log("✅ Gemini AI client initialized (server-side).");
+  console.warn("⚠️ No GOOGLE_CLOUD_PROJECT or GEMINI_API_KEY set. AI features will be disabled.");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -343,7 +359,7 @@ async function startServer() {
               We received a request to reset your PGMentor account password. Use the code below to verify your identity:
             </p>
             
-            <div style="background:linear-gradient(135deg,#1e293b,#0f172a);border-radius:16px;padding:32px;text-align:center;margin:0 0 24px 0;">
+            <div style="background-color:#1e293b;border-radius:16px;padding:32px;text-align:center;margin:0 0 24px 0;">
               <p style="color:#94a3b8;font-size:12px;font-weight:600;margin:0 0 12px 0;text-transform:uppercase;letter-spacing:2px;">Your Verification Code</p>
               <p style="color:#ffffff;font-size:42px;font-weight:800;letter-spacing:12px;margin:0;font-family:'Courier New',monospace;">${code}</p>
             </div>
@@ -455,7 +471,7 @@ async function startServer() {
               </p>
             </div>
             <div style="text-align:center;">
-              <a href="${APP_URL}" style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;text-decoration:none;padding:12px 32px;border-radius:10px;font-weight:600;font-size:14px;">
+              <a href="${APP_URL}" style="display:inline-block;background-color:#1d4ed8;color:#fff;text-decoration:none;padding:12px 32px;border-radius:10px;font-weight:600;font-size:14px;">
                 Sign In Now
               </a>
             </div>
@@ -1438,7 +1454,7 @@ async function startServer() {
               </p>
               
               <div style="text-align:center;margin:32px 0;">
-                <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:16px 48px;border-radius:12px;font-weight:700;font-size:16px;box-shadow:0 4px 14px rgba(16,185,129,0.3);">
+                <a href="${verifyUrl}" style="display:inline-block;background-color:#059669;color:#fff;text-decoration:none;padding:16px 48px;border-radius:12px;font-weight:700;font-size:16px;">
                   ✅ Verify My Email
                 </a>
               </div>
@@ -3257,7 +3273,7 @@ async function startServer() {
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
           <!-- Header -->
           <tr>
-            <td style="background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);padding:32px 40px;text-align:center;">
+            <td style="background-color:#1e293b;padding:32px 40px;text-align:center;">
               <h1 style="color:#ffffff;font-size:28px;margin:0 0 4px 0;font-weight:800;letter-spacing:-0.5px;">PGMentor</h1>
               <p style="color:#94a3b8;font-size:13px;margin:0;letter-spacing:1px;text-transform:uppercase;">AI-Powered Medical Education</p>
             </td>
@@ -3332,7 +3348,7 @@ async function startServer() {
           </p>
           
           <div style="text-align:center;margin:32px 0;">
-            <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:16px 48px;border-radius:12px;font-weight:700;font-size:16px;box-shadow:0 4px 14px rgba(16,185,129,0.3);">
+            <a href="${verifyUrl}" style="display:inline-block;background-color:#059669;color:#fff;text-decoration:none;padding:16px 48px;border-radius:12px;font-weight:700;font-size:16px;">
               ✅ Verify My Email
             </a>
           </div>

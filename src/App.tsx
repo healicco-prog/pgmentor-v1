@@ -636,6 +636,44 @@ const LANDING_PRICING_PLANS = [
     ]
   }
 ];
+const InstallPWAButton = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstallable(false);
+    }
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsInstallable(false);
+    }
+    setDeferredPrompt(null);
+  };
+
+  if (!isInstallable) return null;
+
+  return (
+    <button 
+      onClick={handleInstallClick}
+      className="px-8 py-4 bg-white/10 hover:bg-white/20 text-[#ffffff] border border-white/20 rounded-full font-bold text-lg transition-all backdrop-blur-sm flex items-center gap-2"
+    >
+      <Download size={20} /> Install App →
+    </button>
+  );
+};
 const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => (
   <div className="pt-24">
     {/* Hero Section */}
@@ -686,6 +724,7 @@ const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
           >
             Explore App <ChevronRight size={20} />
           </button>
+          <InstallPWAButton />
           <button 
             onClick={() => onNavigate('features')}
             className="px-8 py-4 bg-white/10 hover:bg-white/20 text-[#ffffff] border border-white/20 rounded-full font-bold text-lg transition-all backdrop-blur-sm flex items-center gap-2"

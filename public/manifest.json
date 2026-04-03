@@ -1,0 +1,28 @@
+{
+  "name": "PGMentor – AI-Powered Medical Education Platform",
+  "short_name": "PGMentor",
+  "description": "AI-powered academic companion for Post Graduates of India. Prepare smarter for MD, MS, and DNB exams with specialized AI modules.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#1e3a6e",
+  "orientation": "any",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["education", "medical", "productivity"],
+  "lang": "en",
+  "dir": "ltr"
+}

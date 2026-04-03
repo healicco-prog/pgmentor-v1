@@ -1,5 +1,5 @@
 [build]
-  command = "sed -i \"s/__BACKEND_API_KEY__/$BACKEND_API_KEY/g\" netlify.toml && npm run build"
+  command = "npm run build"
   publish = "dist"
 
 [build.environment]
@@ -15,8 +15,7 @@
   status = 200
   force = true
   [redirects.headers]
-    # BACKEND_API_KEY is injected at build time via sed in the build command
-    X-API-Key = "__BACKEND_API_KEY__"
+    X-API-Key = "8c79db32a6134110a841b688b1f9bce7417b31448d57e43fb874970915c"
 
 # ═══════════════════════════════════════════════════════════════
 # Blog OG Card Proxy — Route /blog/* to backend for SSR meta tags

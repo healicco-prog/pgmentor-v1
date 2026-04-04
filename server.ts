@@ -1247,9 +1247,10 @@ async function startServer() {
 
   app.post("/api/saved", async (req, res) => {
     const { id, title, content, featureId, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title,
         content,
         feature_id: featureId,
@@ -1619,9 +1620,10 @@ async function startServer() {
 
   app.post("/api/knowledge", async (req, res) => {
     const { id, user_id, title, content, course, paper, section, topic } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('knowledge_library').upsert({
-        id, user_id: user_id || 'default', title, content, course, paper, section, topic
+        id: recordId, user_id: user_id || 'default', title, content, course, paper, section, topic
       });
       if (error) throw error;
       res.json({ success: true });
@@ -1642,9 +1644,10 @@ async function startServer() {
 
   app.post("/api/essays", async (req, res) => {
     const { id, user_id, title, content, course, paper, section, topic } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('essay_library').upsert({
-        id, user_id: user_id || 'default', title, content, course, paper, section, topic
+        id: recordId, user_id: user_id || 'default', title, content, course, paper, section, topic
       });
       if (error) throw error;
       res.json({ success: true });
@@ -1676,9 +1679,10 @@ async function startServer() {
 
   app.post("/api/mcqs", async (req, res) => {
     const { id, user_id, title, question, options, correct_answer, course, paper, section, topic } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('mcq_library').upsert({
-        id, user_id: user_id || 'default', title, question, options, correct_answer, course, paper, section, topic
+        id: recordId, user_id: user_id || 'default', title, question, options, correct_answer, course, paper, section, topic
       });
       if (error) throw error;
       res.json({ success: true });
@@ -1699,9 +1703,10 @@ async function startServer() {
 
   app.post("/api/flashcards", async (req, res) => {
     const { id, user_id, title, front_content, back_content, course, paper, section, topic } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('flash_cards').upsert({
-        id, user_id: user_id || 'default', title, front_content, back_content, course, paper, section, topic
+        id: recordId, user_id: user_id || 'default', title, front_content, back_content, course, paper, section, topic
       });
       if (error) throw error;
       res.json({ success: true });
@@ -1714,14 +1719,15 @@ async function startServer() {
 
   app.post("/api/question-paper", async (req, res) => {
     const { id, user_id, paper_number, topic, content, date, reference_content } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       // Save to specialized table
       const { error } = await supabase.from('question_paper_generator').upsert({
-        id, 
-        user_id: user_id || 'default', 
-        paper_number, 
-        topic, 
-        generated_question_paper: content, 
+        id: recordId,
+        user_id: user_id || 'default',
+        paper_number,
+        topic,
+        generated_question_paper: content,
         model_question_paper: reference_content,
         date: date || new Date().toISOString()
       });
@@ -1733,7 +1739,7 @@ async function startServer() {
       // Also save to generic saved_items table so it appears in the Dashboard Library
       const titleText = topic === 'Reference Paper' ? `Reference Paper: ${paper_number || 'N/A'}` : `Question Paper: ${topic || 'Generated'}`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: content,
         feature_id: 'question-paper',
@@ -1752,9 +1758,14 @@ async function startServer() {
   // Curriculum State
   app.get("/api/state/curriculum/:userId", async (req, res) => {
     try {
+      // user_curriculum.user_id is UUID — return null for unauthenticated 'default' user
+      if (!req.params.userId || req.params.userId === 'default') {
+        return res.json({ data: null });
+      }
+
       const { data, error } = await supabaseAdmin.from('user_curriculum')
         .select('*').eq('user_id', req.params.userId).single();
-      
+
       if (error && error.code !== 'PGRST116') throw error; // ignore no-row error
       res.json({ data: data?.data || null });
     } catch (error: any) {
@@ -1767,8 +1778,15 @@ async function startServer() {
       const { user_id, data } = req.body;
       const dataStr = JSON.stringify(data);
       console.log(`📥 Saving curriculum for user: ${user_id || 'default'}, data length: ${dataStr.length}, hasNotes: ${dataStr.includes('generatedContent')}, hasEssay: ${dataStr.includes('generatedEssayContent')}, hasMcq: ${dataStr.includes('generatedMcqContent')}, hasFlash: ${dataStr.includes('generatedFlashCardsContent')}`);
+
+      // Skip save if no valid user_id (user_curriculum.user_id is UUID, cannot store 'default')
+      if (!user_id || user_id === 'default') {
+        console.log('⏭️ Skipping curriculum save for unauthenticated user');
+        return res.json({ success: true });
+      }
+
       const { error } = await supabaseAdmin.from('user_curriculum').upsert({
-        user_id: user_id || 'default',
+        user_id,
         data,
         updated_at: new Date().toISOString()
       });
@@ -1800,14 +1818,15 @@ async function startServer() {
 
   app.post("/api/essay-generator", async (req, res) => {
     const { id, user_id, topic, type, content, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       // Save to specialized table
       const { error } = await supabase.from('essay_generator').upsert({
-        id, 
-        user_id: user_id || 'default', 
-        topic, 
-        type: type || 'long', 
-        content, 
+        id: recordId,
+        user_id: user_id || 'default',
+        topic,
+        type: type || 'long',
+        content,
         created_at: date || new Date().toISOString()
       });
       if (error) {
@@ -1818,7 +1837,7 @@ async function startServer() {
       // Also save to generic saved_items table so it appears in the Dashboard Library
       const titleText = topic ? `Essay: ${topic}` : `Generated Essay`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: content,
         feature_id: 'essay-generator',
@@ -1855,13 +1874,14 @@ async function startServer() {
 
   app.post("/api/seminar-builder", async (req, res) => {
     const { id, user_id, discipline, topic, ppt_structure, detailed_notes, date, title, content } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       // Save directly to specialized table
       // seminar_builder table has: id, user_id, discipline, topic, ppt_slides (JSONB), detailed_notes, created_at
       const { error } = await supabase.from('seminar_builder').upsert({
-        id, 
-        user_id: user_id || 'default', 
-        discipline, 
+        id: recordId,
+        user_id: user_id || 'default',
+        discipline,
         topic,
         ppt_slides: ppt_structure ? JSON.parse(ppt_structure) : null,
         detailed_notes,
@@ -1874,7 +1894,7 @@ async function startServer() {
 
       // Also save to generic saved_items table so it appears in the existing generic dashboards
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: title,
         content: content,
         feature_id: 'seminar-builder',
@@ -1922,16 +1942,17 @@ async function startServer() {
 
   app.post("/api/journal-club", async (req, res) => {
     const { id, user_id, discipline, topic, criteria, ppt_structure, detailed_notes, date, title, content } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       // Save directly to specialized table
       // journal_club table has: id, user_id, discipline, topic, criteria, ppt_structure (TEXT), detailed_notes, date
       const { error } = await supabase.from('journal_club').upsert({
-        id, 
-        user_id: user_id || 'default', 
-        discipline, 
-        topic, 
-        criteria, 
-        ppt_structure, 
+        id: recordId,
+        user_id: user_id || 'default',
+        discipline,
+        topic,
+        criteria,
+        ppt_structure,
         detailed_notes,
         date: date || new Date().toISOString()
       });
@@ -1942,7 +1963,7 @@ async function startServer() {
 
       // Also save to generic saved_items table so it appears in the existing generic dashboards
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: title,
         content: content,
         feature_id: 'journal-club',
@@ -1980,13 +2001,14 @@ async function startServer() {
 
   app.post("/api/protocol-generator", async (req, res) => {
     const { id, user_id, topic, content, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       // Save to specialized protocol_generator table
       const { error } = await supabase.from('protocol_generator').upsert({
-        id, 
-        user_id: user_id || 'default', 
-        topic, 
-        content, 
+        id: recordId,
+        user_id: user_id || 'default',
+        topic,
+        content,
         created_at: date || new Date().toISOString()
       });
       if (error) {
@@ -1997,7 +2019,7 @@ async function startServer() {
       // Also save to generic saved_items table so it appears in the Dashboard Library
       const titleText = topic ? `Protocol: ${topic}` : `Generated Protocol`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: content,
         feature_id: 'protocol-generator',
@@ -2035,12 +2057,13 @@ async function startServer() {
 
   app.post("/api/manuscript-generator", async (req, res) => {
     const { id, user_id, topic, content, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('manuscript_generator').upsert({
-        id, 
-        user_id: user_id || 'default', 
-        topic, 
-        content, 
+        id: recordId,
+        user_id: user_id || 'default',
+        topic,
+        content,
         created_at: date || new Date().toISOString()
       });
       if (error) {
@@ -2050,7 +2073,7 @@ async function startServer() {
 
       const titleText = topic ? `Manuscript: ${topic}` : `Generated Manuscript`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: content,
         feature_id: 'manuscript-generator',
@@ -2088,10 +2111,11 @@ async function startServer() {
 
   app.post("/api/statassist", async (req, res) => {
     const { id, user_id, study_title, methods, results, content, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('statassist').upsert({
-        id, 
-        user_id: user_id || 'default', 
+        id: recordId,
+        user_id: user_id || 'default',
         study_title,
         methods,
         results,
@@ -2105,7 +2129,7 @@ async function startServer() {
 
       const titleText = study_title ? `StatAssist: ${study_title}` : `Statistical Analysis`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: content,
         feature_id: 'stat-assist',
@@ -2143,10 +2167,11 @@ async function startServer() {
 
   app.post("/api/ai-exam-prep", async (req, res) => {
     const { id, user_id, course_id, analytics, content, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('ai_exam_preparation_system').upsert({
-        id, 
-        user_id: user_id || 'default', 
+        id: recordId,
+        user_id: user_id || 'default',
         course_id,
         analytics: analytics || null,
         created_at: date || new Date().toISOString()
@@ -2159,7 +2184,7 @@ async function startServer() {
       // Also save to generic saved_items table so it appears in the Dashboard Library
       const titleText = course_id ? `Exam Prep: ${course_id}` : `Exam Preparation System`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: content || JSON.stringify(analytics),
         feature_id: 'ai-exam-prep',
@@ -2200,13 +2225,14 @@ async function startServer() {
 
   app.post("/api/reflection-generator", async (req, res) => {
     const { id, user_id, subject, topic, content, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('reflection_generator').upsert({
-        id, 
-        user_id: user_id || 'default', 
+        id: recordId,
+        user_id: user_id || 'default',
         subject,
-        topic, 
-        content, 
+        topic,
+        content,
         created_at: date || new Date().toISOString()
       });
       if (error) {
@@ -2217,7 +2243,7 @@ async function startServer() {
       // Also save to generic saved_items table so it appears in the Dashboard Library
       const titleText = topic ? `Reflection: ${topic}` : `Generated Reflection`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: content,
         feature_id: 'reflection-generator',
@@ -2255,9 +2281,10 @@ async function startServer() {
 
   app.post("/api/clinical-decision-support", async (req, res) => {
     const { id, user_id, patient_data, recommendations, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('clinical_decision_support_system').upsert({
-        id,
+        id: recordId,
         user_id: user_id || 'default',
         patient_data,
         recommendations,
@@ -2271,7 +2298,7 @@ async function startServer() {
       // Also save to generic saved_items table
       const titleText = `Clinical Decision Support`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: recommendations,
         feature_id: 'clinical-decision-support',
@@ -2312,9 +2339,10 @@ async function startServer() {
 
   app.post("/api/doubt-solver", async (req, res) => {
     const { id, user_id, topic, style, depth, explanation, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('doubt_solver').upsert({
-        id,
+        id: recordId,
         user_id: user_id || 'default',
         topic,
         style,
@@ -2333,7 +2361,7 @@ async function startServer() {
       // Also save to generic saved_items table so it appears in the Dashboard Library
       const titleText = topic ? `Doubt: ${topic.slice(0, 60)}` : `Doubt Solver`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: explanation,
         feature_id: 'doubt-solver',
@@ -2373,10 +2401,11 @@ async function startServer() {
     const { id, user_id, full_name, professional_title, email, phone, location, linkedin, summary,
             education, experience, skills, publications, certifications, awards, memberships, conferences,
             selected_template, title, content, feature_id, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       // Save to dedicated resume_builder table
       const { error } = await supabase.from('resume_builder').upsert({
-        id,
+        id: recordId,
         user_id: user_id || 'default',
         full_name: full_name || '',
         professional_title: professional_title || '',
@@ -2403,7 +2432,7 @@ async function startServer() {
 
       // Also save to saved_items for dashboard library
       await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: title || `Resume: ${full_name}`,
         content: content || '',
         feature_id: feature_id || 'resume-builder',
@@ -2440,10 +2469,11 @@ async function startServer() {
 
   app.post("/api/scientific-session-search", async (req, res) => {
     const { id, user_id, subject, topic, region, month, results, date, title, content, featureId } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       // Save to dedicated table
       const { error } = await supabase.from('scientific_session_search').upsert({
-        id,
+        id: recordId,
         user_id: user_id || 'default',
         subject: subject || '',
         topic: topic || '',
@@ -2456,7 +2486,7 @@ async function startServer() {
 
       // Also save to saved_items for dashboard library
       await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: title || `Session Search: ${subject}`,
         content: content || (typeof results === 'string' ? results : JSON.stringify(results)),
         feature_id: featureId || 'session-search',
@@ -2493,9 +2523,10 @@ async function startServer() {
 
   app.post("/api/contacts-management", async (req, res) => {
     const { id, user_id, name, designation, organization, email, phone, website, address } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('contacts_management').upsert({
-        id,
+        id: recordId,
         user_id: user_id || 'default',
         name,
         designation,
@@ -2618,9 +2649,10 @@ async function startServer() {
 
   app.post("/api/digital-diary", async (req, res) => {
     const { id, user_id, entry_date, content, action_items, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('digital_diary').upsert({
-        id,
+        id: recordId,
         user_id: user_id || 'default',
         entry_date: entry_date || new Date().toISOString(),
         content,
@@ -2635,7 +2667,7 @@ async function startServer() {
       // Also save to generic saved_items table so it appears in the Dashboard Library
       const titleText = `Diary: ${new Date(entry_date || date || Date.now()).toLocaleDateString()}`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content,
         feature_id: 'digital-diary',
@@ -2673,10 +2705,11 @@ async function startServer() {
 
   app.post("/api/drug-treatment-assistant", async (req, res) => {
     const { id, user_id, query, drug_name, condition, patient_context, mode, style, response, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const titleText = `Drug: ${(query || drug_name || 'Untitled').slice(0, 60)}`;
       const { error } = await supabase.from('drug_treatment_assistant').upsert({
-        id,
+        id: recordId,
         user_id: user_id || 'default',
         query,
         drug_name,
@@ -2697,7 +2730,7 @@ async function startServer() {
 
       // Also save to generic saved_items table so it appears in the Dashboard Library
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: response,
         feature_id: 'drug-treatment-assistant',
@@ -2735,9 +2768,10 @@ async function startServer() {
 
   app.post("/api/guidelines/saved", async (req, res) => {
     const { id, userId, conditionName, title, organization, publicationYear, sourceUrl, category, summary, notes } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('saved_guidelines').upsert({
-        id,
+        id: recordId,
         userId: userId || 'default',
         conditionName,
         title,
@@ -2755,7 +2789,7 @@ async function startServer() {
 
       // Also save to generic saved_items table
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: `Guideline: ${title}`,
         content: summary || '',
         feature_id: 'guidelines-generator',
@@ -2793,9 +2827,10 @@ async function startServer() {
 
   app.post("/api/prescription-analyser", async (req, res) => {
     const { id, user_id, prescription_data, analysis, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('prescription_analyser').upsert({
-        id,
+        id: recordId,
         user_id: user_id || 'default',
         prescription_data,
         analysis,
@@ -2809,7 +2844,7 @@ async function startServer() {
       // Also save to generic saved_items table so it appears in the Dashboard Library
       const titleText = `Prescription Analysis`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: analysis,
         feature_id: 'prescription-analyser',
@@ -2847,9 +2882,10 @@ async function startServer() {
 
   app.post("/api/knowledge-analyser-essay", async (req, res) => {
     const { id, user_id, subject, topic, questions, evaluation, content, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('knowledge_analyser_essay').upsert({
-        id,
+        id: recordId,
         user_id: user_id || 'default',
         subject,
         topic,
@@ -2865,7 +2901,7 @@ async function startServer() {
       // Also save to generic saved_items table
       const titleText = subject ? `Essay Analysis: ${subject}` : `Essay Analysis`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: content || `Analysis for ${subject} - ${topic}`,
         feature_id: 'answer-analyser',
@@ -2903,9 +2939,10 @@ async function startServer() {
 
   app.post("/api/knowledge-analyser-mcqs", async (req, res) => {
     const { id, user_id, subject, topic, mcqs, evaluation, content, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('knowledge_analyser_mcqs').upsert({
-        id,
+        id: recordId,
         user_id: user_id || 'default',
         subject,
         topic,
@@ -2921,7 +2958,7 @@ async function startServer() {
       // Also save to generic saved_items table
       const titleText = subject ? `MCQ Analysis: ${subject} - ${topic}` : `MCQ Analysis`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: content || `MCQ Analysis for ${subject} - ${topic}`,
         feature_id: 'mcqs-analyser',
@@ -2959,9 +2996,10 @@ async function startServer() {
 
   app.post("/api/ai-exam-simulator", async (req, res) => {
     const { id, user_id, subject, paper, topics, questions, evaluation, content, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('ai_exam_simulator').upsert({
-        id,
+        id: recordId,
         user_id: user_id || 'default',
         subject,
         paper: paper || null,
@@ -2978,7 +3016,7 @@ async function startServer() {
       // Also save to generic saved_items table
       const titleText = subject ? `Exam Simulation: ${subject}${paper ? ' - ' + paper : ''}` : `Exam Simulation`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: content || `Exam Simulation for ${subject} - ${topics}`,
         feature_id: 'ai-exam-simulator',
@@ -3009,9 +3047,10 @@ async function startServer() {
   // Clinical Examination System Routes
   app.post("/api/clinical-exam/start", async (req, res) => {
     const { id, userId, specialty, subspecialty, examType, caseData } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('clinical_exam_sessions').insert({
-        id, 
+        id: recordId,
         user_id: userId || 'default', 
         specialty, 
         subspecialty, 
@@ -3028,9 +3067,10 @@ async function startServer() {
 
   app.post("/api/clinical-exam/interact", async (req, res) => {
     const { id, sessionId, step, userInput, aiResponse } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('clinical_exam_interactions').insert({
-        id, 
+        id: recordId,
         session_id: sessionId, 
         step, 
         user_input: userInput, 
@@ -3108,9 +3148,10 @@ async function startServer() {
 
   app.post("/api/clinical-examination-system", async (req, res) => {
     const { id, user_id, specialty, exam_type, case_data, history_log, examination_log, investigation_log, diagnosis_text, management_text, viva_qas, final_report, total_score, content, date } = req.body;
+    const recordId = id || crypto.randomUUID();
     try {
       const { error } = await supabase.from('clinical_examination_system').upsert({
-        id,
+        id: recordId,
         user_id: user_id || 'default',
         specialty,
         exam_type,
@@ -3133,7 +3174,7 @@ async function startServer() {
       // Also save to generic saved_items table
       const titleText = `Clinical Exam: ${specialty || 'General'} - ${exam_type || 'OSCE'}`;
       const { error: error2 } = await supabase.from('saved_items').upsert({
-        id,
+        id: recordId,
         title: titleText,
         content: content || `Clinical Examination for ${specialty} - Score: ${total_score || 'N/A'}`,
         feature_id: 'clinical-examination',

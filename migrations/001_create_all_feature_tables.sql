@@ -284,6 +284,28 @@ ALTER TABLE essay_library ADD COLUMN IF NOT EXISTS paper TEXT;
 ALTER TABLE essay_library ADD COLUMN IF NOT EXISTS section TEXT;
 ALTER TABLE essay_library ADD COLUMN IF NOT EXISTS title TEXT;
 
+-- essay_library, mcq_library, flash_cards: fix UUID columns to TEXT (server sends TEXT ids)
+-- Drop foreign keys and policies first, then alter, then recreate policies
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOR t IN SELECT unnest(ARRAY['essay_library','mcq_library','flash_cards']) LOOP
+    -- Drop FK constraints
+    EXECUTE (SELECT string_agg('ALTER TABLE ' || t || ' DROP CONSTRAINT "' || constraint_name || '"', '; ')
+             FROM information_schema.table_constraints
+             WHERE table_name = t AND constraint_type = 'FOREIGN KEY');
+    -- Drop RLS policies
+    EXECUTE (SELECT string_agg('DROP POLICY "' || policyname || '" ON ' || t, '; ')
+             FROM pg_policies WHERE tablename = t);
+    -- Alter columns
+    EXECUTE format('ALTER TABLE %I ALTER COLUMN id TYPE TEXT USING id::TEXT', t);
+    EXECUTE format('ALTER TABLE %I ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT', t);
+    EXECUTE format('ALTER TABLE %I ALTER COLUMN id SET DEFAULT gen_random_uuid()::text', t);
+    -- Recreate permissive policy
+    EXECUTE format('CREATE POLICY "allow_all_%s" ON %I FOR ALL USING (true) WITH CHECK (true)', t, t);
+  END LOOP;
+END $$;
+
 -- contacts_management: add missing columns
 ALTER TABLE contacts_management ADD COLUMN IF NOT EXISTS website TEXT;
 ALTER TABLE contacts_management ADD COLUMN IF NOT EXISTS address TEXT;

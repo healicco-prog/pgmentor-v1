@@ -17,7 +17,8 @@ export const FEATURES: Feature[] = [
 
   { id: "answer-analyser", title: "Knowledge Analyser (Essay)", description: "Evaluate your answers against standard rubrics with improvement tips.", icon: "CheckSquare", path: "/features/answer-analyser", category: "Assessment & Examination System" },
   { id: "mcqs-analyser", title: "Knowledge Analyser (MCQs)", description: "Upload your filled MCQ sheets for automated evaluation and detailed performance analysis.", icon: "Cpu", path: "/features/mcqs-analyser", category: "Assessment & Examination System" },
-  { id: "clinical-examination", title: "Clinical Examination System", description: "AI-powered step-by-step clinical examination protocol generator and OSCE checklist.", icon: "Activity", path: "/features/clinical-examination", category: "Assessment & Examination System" },
+  { id: "clinical-examination", title: "Clinical Examination System", description: "AI-powered step-by-step clinical examination protocol generator and OSCE/ OSPE checklist.", icon: "Activity", path: "/features/clinical-examination", category: "Assessment & Examination System" },
+  { id: "self-evaluation-system", title: "Self-Evaluation System", description: "Generate Answer Rubrics and auto-evaluate your answer scripts.", icon: "ClipboardList", path: "/features/self-evaluation-system", category: "Assessment & Examination System" },
 
   { id: "prescription-analyser", title: "Prescription Analyser", description: "Clinical analysis and review of medical prescriptions.", icon: "FileSymlink", path: "/features/prescription-analyser", category: "Clinical Decision & Practice Support" },
   { id: "guidelines-generator", title: "Guidelines Generator", description: "Stay updated with the latest clinical guidelines and protocols.", icon: "ShieldAlert", path: "/features/guidelines-generator", category: "Clinical Decision & Practice Support" },

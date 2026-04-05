@@ -23,6 +23,7 @@ import DrugTreatmentAssistant from './DrugTreatmentAssistant';
 import LearningManagementDashboard from './LearningManagementDashboard';
 import AiTutorWelcome from './AiTutorWelcome';
 import UserManagementSystem from './UserManagementSystem';
+import SelfEvaluationSystem from './SelfEvaluationSystem';
 import { AffiliatePartnerPanel } from './AffiliatePartnerPanel';
 import { AuthModal } from './AuthModal';
 import { createClient } from '@supabase/supabase-js';
@@ -185,7 +186,7 @@ const Footer = ({ onNavigate }: { onNavigate: (page: string) => void }) => (
 const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([
-    { role: 'ai', text: "Hello! I'm your PGMentor AI Mentor. How can I help you with your medical studies today?" }
+    { role: 'ai', text: "Hello! I'm your PGMentor AI Chatbot. What do you want to know about the PGMentor features" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -222,17 +223,17 @@ const ChatBot = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 w-[420px] h-[650px] rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden mb-6 ring-1 ring-white/10"
+            className="bg-white/95 backdrop-blur-xl border border-[#dfe6f0] w-[420px] h-[650px] rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] flex flex-col overflow-hidden mb-6 ring-1 ring-[#dfe6f0]"
           >
-            <div className="bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-500 p-4 flex justify-between items-center border-b border-white/10 shadow-sm relative overflow-hidden">
+            <div className="bg-gradient-to-r from-[#1e3a6e] to-[#2a4d8a] p-4 flex justify-between items-center border-b border-[#dfe6f0] shadow-sm relative overflow-hidden">
                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
                <div className="flex items-center gap-3 relative z-10">
-                 <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md shadow-inner border border-white/20">
+                 <div className="bg-white/10 p-2 rounded-xl backdrop-blur-md shadow-inner border border-white/10">
                    <Brain size={22} className="text-white drop-shadow-md" />
                  </div>
                  <div>
                    <h3 className="flex items-center gap-2 text-white font-bold leading-tight drop-shadow-sm text-lg">
-                     AI Mentor
+                     AI Chatbot
                      <span className="flex h-2 w-2">
                        <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-green-400 opacity-75"></span>
                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -246,36 +247,36 @@ const ChatBot = () => {
                </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+            <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {msg.role === 'ai' && (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0 mr-3 mt-1 shadow-md border border-white/20">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#d4b85c] via-[#c9a84c] to-[#b8942e] flex items-center justify-center shrink-0 mr-3 mt-1 shadow-sm border border-[#dfe6f0]">
                       <img src="/logo.svg" alt="PGMentor Logo" className="w-5 h-5 object-contain rounded-full" />
                     </div>
                   )}
                   <div className={`max-w-[82%] p-4 rounded-2xl text-[15px] shadow-sm ${
                     msg.role === 'user' 
-                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-tr-sm shadow-blue-500/20 shadow-md border border-blue-400/30' 
-                      : 'bg-slate-800/80 backdrop-blur-md text-slate-200 rounded-tl-sm border border-slate-700/60 shadow-black/20'
+                      ? 'bg-[#1e3a6e] text-white rounded-tr-sm shadow-sm border border-[#2a4d8a]' 
+                      : 'bg-[#f5f7fa] text-[#1e3a6e] rounded-tl-sm border border-[#dfe6f0]'
                   }`}>
                     {msg.role === 'user' ? (
                       <p className="leading-relaxed">{msg.text}</p>
                     ) : (
-                      <div className="prose prose-invert prose-sm max-w-none 
-                        prose-headings:text-slate-50 prose-headings:font-semibold prose-heading:tracking-tight
-                        prose-h1:text-xl prose-h1:mb-3 prose-h1:mt-4 prose-h1:text-transparent prose-h1:bg-clip-text prose-h1:bg-gradient-to-r prose-h1:from-blue-400 prose-h1:to-cyan-300
-                        prose-h2:text-lg prose-h2:mb-3 prose-h2:mt-4 prose-h2:text-blue-200
-                        prose-h3:text-base prose-h3:mb-2 prose-h3:mt-3 prose-h3:text-blue-300
-                        prose-p:leading-relaxed prose-p:mb-3 prose-p:text-slate-300
-                        prose-a:text-blue-400 prose-a:no-underline hover:prose-a:text-blue-300 hover:prose-a:underline
-                        prose-strong:text-slate-100 prose-strong:font-semibold
+                      <div className="prose prose-sm max-w-none 
+                        prose-headings:text-[#1e3a6e] prose-headings:font-semibold prose-heading:tracking-tight
+                        prose-h1:text-xl prose-h1:mb-3 prose-h1:mt-4 prose-h1:text-[#1e3a6e]
+                        prose-h2:text-lg prose-h2:mb-3 prose-h2:mt-4 prose-h2:text-[#1e3a6e]
+                        prose-h3:text-base prose-h3:mb-2 prose-h3:mt-3 prose-h3:text-[#1e3a6e]
+                        prose-p:leading-relaxed prose-p:mb-3 prose-p:text-[#4a5568]
+                        prose-a:text-blue-600 prose-a:no-underline hover:prose-a:text-blue-500 hover:prose-a:underline
+                        prose-strong:text-[#1e3a6e] prose-strong:font-semibold
                         prose-ul:my-3 prose-ul:list-disc prose-ul:pl-5 
                         prose-ol:my-3 prose-ol:list-decimal prose-ol:pl-5
-                        prose-li:my-1 prose-li:text-slate-300 prose-li:marker:text-blue-500
-                        prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:py-1 prose-blockquote:my-3 prose-blockquote:bg-slate-800/50 prose-blockquote:rounded-r-lg prose-blockquote:italic
-                        prose-code:text-blue-300 prose-code:bg-slate-900 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-xs prose-code:font-mono prose-code:border prose-code:border-slate-700
-                        prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-700 prose-pre:rounded-xl prose-pre:p-4 prose-pre:my-4 prose-pre:shadow-inner"
+                        prose-li:my-1 prose-li:text-[#4a5568] prose-li:marker:text-[#1e3a6e]
+                        prose-blockquote:border-l-4 prose-blockquote:border-[#1e3a6e] prose-blockquote:pl-4 prose-blockquote:py-1 prose-blockquote:my-3 prose-blockquote:bg-[#eef2f8] prose-blockquote:rounded-r-lg prose-blockquote:italic
+                        prose-code:text-[#1e3a6e] prose-code:bg-[#eef2f8] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-xs prose-code:font-mono prose-code:border prose-code:border-[#dfe6f0]
+                        prose-pre:bg-[#eef2f8] prose-pre:border prose-pre:border-[#dfe6f0] prose-pre:rounded-xl prose-pre:p-4 prose-pre:my-4 prose-pre:shadow-sm"
                       >
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {msg.text}
@@ -287,38 +288,38 @@ const ChatBot = () => {
               ))}
               {isLoading && (
                 <div className="flex justify-start">
-                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0 mr-3 mt-1 shadow-md border border-white/20">
+                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#d4b85c] via-[#c9a84c] to-[#b8942e] flex items-center justify-center shrink-0 mr-3 mt-1 shadow-sm border border-[#dfe6f0]">
                       <img src="/logo.svg" alt="PGMentor Logo" className="w-5 h-5 object-contain rounded-full" />
                     </div>
-                  <div className="bg-slate-800/80 backdrop-blur-md p-4 rounded-2xl rounded-tl-sm border border-slate-700/60 shadow-sm flex items-center gap-2 h-[46px]">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce shadow-[0_0_8px_rgba(96,165,250,0.6)]" />
-                    <div className="w-2 h-2 bg-violet-400 rounded-full animate-bounce [animation-delay:0.2s] shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
-                    <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce [animation-delay:0.4s] shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
+                  <div className="bg-[#f5f7fa] p-4 rounded-2xl rounded-tl-sm border border-[#dfe6f0] shadow-sm flex items-center gap-2 h-[46px]">
+                    <div className="w-2 h-2 bg-[#1e3a6e] rounded-full animate-bounce shadow-sm" />
+                    <div className="w-2 h-2 bg-[#1e3a6e]/70 rounded-full animate-bounce [animation-delay:0.2s] shadow-sm" />
+                    <div className="w-2 h-2 bg-[#1e3a6e]/40 rounded-full animate-bounce [animation-delay:0.4s] shadow-sm" />
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="p-4 border-t border-slate-700/50 bg-slate-900/80 backdrop-blur-md">
+            <div className="p-4 border-t border-[#dfe6f0] bg-white rounded-b-3xl">
               <div className="relative flex items-center group">
                 <input 
                   type="text" 
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Ask your mentor anything..."
-                  className="w-full bg-slate-800/80 border border-slate-600/50 rounded-full py-3 pl-5 pr-12 text-[15px] text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all shadow-inner"
+                  placeholder="Ask your chatbot anything..."
+                  className="w-full bg-[#f5f7fa] border border-[#dfe6f0] rounded-full py-3 pl-5 pr-12 text-[15px] text-[#1e3a6e] placeholder-slate-400 focus:outline-none focus:border-[#1e3a6e] focus:ring-1 focus:ring-[#1e3a6e]/30 transition-all shadow-sm"
                 />
                 <button 
                   onClick={handleSend}
                   disabled={!input.trim() || isLoading}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-blue-600 text-white rounded-full hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 transition-all shadow-md"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-gradient-to-br from-[#d4b85c] via-[#c9a84c] to-[#b8942e] text-[#1e3a6e] rounded-full hover:from-[#c9a84c] hover:to-[#b8942e] disabled:opacity-50 transition-all shadow-sm"
                 >
                   <Send size={16} className="-ml-0.5" />
                 </button>
               </div>
               <div className="text-center mt-2">
-                <span className="text-[10px] text-slate-500 font-medium">AI can make mistakes. Verify clinical information.</span>
+                <span className="text-[10px] text-slate-400 font-medium">AI can make mistakes. Verify clinical information.</span>
               </div>
             </div>
           </motion.div>
@@ -715,12 +716,12 @@ const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
           transition={{ duration: 0.6 }}
         >
           <span className="px-4 py-2 rounded-full bg-white/10 border border-white/20 text-[#c9a84c] text-sm font-semibold mb-6 inline-block backdrop-blur-sm">
-            Next-Gen Education for Post Graduates of India
+            Next-Gen Education for Post Graduates
           </span>
           <h1 className="text-5xl lg:text-7xl font-bold text-[#ffffff] tracking-tight leading-tight drop-shadow-lg">
             AI Powered Academic Companion <br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#c9a84c] to-[#e8d48b]">
-              for Post Graduates of India
+              for Post Graduates
             </span>
           </h1>
           <p className="text-xl text-white/75 max-w-3xl mx-auto mt-6 leading-relaxed">
@@ -791,7 +792,7 @@ const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
               transition={{ delay: i * 0.1 }}
               className="p-8 rounded-2xl bg-white border border-[#dfe6f0] hover:border-[#1e3a6e]/30 hover:shadow-lg transition-all group"
             >
-              <div className="w-12 h-12 bg-[#1e3a6e]/10 rounded-xl flex items-center justify-center text-[#1e3a6e] mb-6 group-hover:bg-[#1e3a6e] group-hover:text-white group-hover:scale-110 transition-all">
+              <div className="w-12 h-12 bg-gradient-to-br from-[#d4b85c] via-[#c9a84c] to-[#b8942e] rounded-xl flex items-center justify-center text-[#1e3a6e] mb-6 group-hover:scale-110 transition-all shadow-md">
                 {getIcon(feature.icon)}
               </div>
               <h3 className="text-xl font-bold text-[#1e3a6e] mb-3">{feature.title}</h3>
@@ -1501,8 +1502,8 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
         <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-[#c9a84c]/5 rounded-full blur-3xl" />
         <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#1e3a6e] to-[#2a4d8a] flex items-center justify-center shadow-lg shadow-[#1e3a6e]/20 shrink-0">
-              <BookOpen size={26} className="text-white" />
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#d4b85c] via-[#c9a84c] to-[#b8942e] flex items-center justify-center shadow-lg shadow-[#1e3a6e]/20 shrink-0">
+              <BookOpen size={26} className="text-[#1e3a6e]" />
             </div>
             <div>
               <div className="text-xs font-bold uppercase tracking-wider text-[#6b7e99] mb-1">Active Course</div>
@@ -1544,8 +1545,8 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
               className="bg-white border border-[#dfe6f0] rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl shadow-black/20"
             >
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1e3a6e] to-[#2a4d8a] flex items-center justify-center">
-                  <BookOpen size={22} className="text-white" />
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#d4b85c] via-[#c9a84c] to-[#b8942e] flex items-center justify-center">
+                  <BookOpen size={22} className="text-[#1e3a6e]" />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-[#1e3a6e]">{activeCourse ? 'Change Course' : 'Select Course'}</h3>
@@ -1977,7 +1978,7 @@ const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPl
                   onClick={() => onNavigate(`feature-${feature.id}`)}
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 bg-[#1e3a6e]/10 rounded-xl flex items-center justify-center text-[#1e3a6e] group-hover:bg-[#1e3a6e] group-hover:text-white transition-all">
+                    <div className="w-12 h-12 bg-gradient-to-br from-[#d4b85c] via-[#c9a84c] to-[#b8942e] rounded-xl flex items-center justify-center text-[#1e3a6e] group-hover:scale-105 transition-all shadow-md">
                       {getIcon(feature.icon)}
                     </div>
                     {feature.category !== 'Knowledge & Learning Resources' && (
@@ -2178,26 +2179,239 @@ const FlashcardViewer = ({ output }: { output: string }) => {
   );
 };
 
-const MarkdownBody = ({ content }: { content: string }) => (
-  <div className="prose prose-invert prose-lg max-w-none leading-relaxed
-    prose-headings:text-slate-50 prose-headings:font-bold prose-headings:tracking-tight
-    prose-h1:text-3xl prose-h1:mb-3 prose-h1:mt-4 prose-h1:text-transparent prose-h1:bg-clip-text prose-h1:bg-gradient-to-r prose-h1:from-blue-400 prose-h1:to-emerald-400
-    prose-h2:text-2xl prose-h2:mb-2 prose-h2:mt-4 prose-h2:text-blue-300
-    prose-h3:text-xl prose-h3:mb-2 prose-h3:mt-3 prose-h3:text-emerald-300
-    prose-p:text-slate-300 prose-p:mb-[0.75em] prose-p:mt-[0.75em] prose-p:leading-relaxed
-    prose-a:text-blue-400 prose-a:no-underline hover:prose-a:text-blue-300 hover:prose-a:underline
-    prose-strong:text-slate-100 prose-strong:font-semibold
-    prose-ul:my-2 prose-ul:list-disc prose-ul:pl-6 
-    prose-ol:my-2 prose-ol:list-decimal prose-ol:pl-6
-    prose-li:my-1 prose-li:text-slate-300 prose-li:marker:text-blue-500
-    prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:py-1 prose-blockquote:my-2 prose-blockquote:bg-slate-800/50 prose-blockquote:rounded-r-lg prose-blockquote:italic
-    prose-code:text-emerald-300 prose-code:bg-slate-900 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-sm prose-code:font-mono prose-code:border prose-code:border-slate-700
-    prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-700 prose-pre:rounded-xl prose-pre:p-4 prose-pre:my-2 prose-pre:shadow-inner">
-    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-      {content}
-    </ReactMarkdown>
-  </div>
-);
+const MarkdownBody = ({ content }: { content: string }) => {
+  // Preprocess content: bold section headings and ensure spacing
+  const preprocessContent = (raw: string): string => {
+    const lines = raw.split('\n');
+    const processed: string[] = [];
+    let foundTitle = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      
+      if (!foundTitle && trimmed === '') {
+        processed.push(line);
+        continue;
+      }
+      
+      // Strip leading # markers to get the core text (AI may output ### 1. , #### 1.1 etc.)
+      const stripped = trimmed.replace(/^#+\s*/, '');
+      
+      // Check numbered patterns on the stripped text
+      const isSubSection = /^\d+\.\d+(?:\.\d+)?\s+[A-Za-z]/.test(stripped) && stripped.length < 120;
+      const isMainSection = !isSubSection && /^\d+\.\s+[A-Za-z]/.test(stripped) && stripped.length < 120;
+      
+      // First non-empty, non-numbered line = essay title
+      if (!foundTitle && trimmed.length > 0 && !isSubSection && !isMainSection) {
+        foundTitle = true;
+        if (/^#{1,3}\s/.test(trimmed)) {
+          // Already a markdown heading - just ensure it's bold
+          const headingText = trimmed.replace(/^#+\s*/, '').replace(/^\*+/, '').replace(/\*+$/, '');
+          processed.push(`# **${headingText}**`);
+          processed.push('');
+        } else {
+          processed.push(`# **${trimmed}**`);
+          processed.push('');
+        }
+        continue;
+      }
+      
+      if (!foundTitle) foundTitle = true;
+      
+      if (isMainSection) {
+        // Main section: add extra blank lines and bold the text
+        processed.push('');
+        processed.push('---');
+        processed.push('');
+        processed.push(`**${stripped}**`);
+        processed.push('');
+      } else if (isSubSection) {
+        // Sub-section: add blank line and bold the text
+        processed.push('');
+        processed.push(`**${stripped}**`);
+        processed.push('');
+      } else {
+        processed.push(line);
+      }
+    }
+    
+    return processed.join('\n');
+  };
+
+  // DEBUG: Log the raw content to understand what AI is sending
+  console.log('=== RAW CONTENT (first 2000 chars) ===');
+  console.log(content.substring(0, 2000));
+  console.log('=== LINES CHECK ===');
+  const debugLines = content.split('\n').slice(0, 20);
+  debugLines.forEach((line, i) => {
+    const trimmed = line.trim();
+    const isSub = /^\d+\.\d+(?:\.\d+)?\s+[A-Za-z]/.test(trimmed);
+    const isMain = /^\d+\.\s+[A-Za-z]/.test(trimmed);
+    if (trimmed.length > 0 && trimmed.length < 120) {
+      console.log(`Line ${i}: [${isSub ? 'SUB' : isMain ? 'MAIN' : 'text'}] "${trimmed.substring(0, 80)}"`);
+    }
+  });
+
+  // Extract [YOUTUBE_SEARCH: ...] tags and split content into segments
+  const extractContentSegments = (raw: string) => {
+    const youtubeRegex = /\[YOUTUBE_SEARCH:\s*([^\]]+)\]/gi;
+    const segments: { type: 'text' | 'youtube_search'; content: string; query?: string }[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = youtubeRegex.exec(raw)) !== null) {
+      // Add text before this tag
+      if (match.index > lastIndex) {
+        const textBefore = raw.substring(lastIndex, match.index).trim();
+        if (textBefore) segments.push({ type: 'text', content: textBefore });
+      }
+      segments.push({ type: 'youtube_search', content: match[0], query: match[1].trim() });
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining text
+    if (lastIndex < raw.length) {
+      const remaining = raw.substring(lastIndex).trim();
+      if (remaining) segments.push({ type: 'text', content: remaining });
+    }
+    
+    return segments.length > 0 ? segments : [{ type: 'text' as const, content: raw }];
+  };
+
+  const processedContent = preprocessContent(content);
+  const segments = extractContentSegments(processedContent);
+
+  return (
+    <div className="essay-formatted-output prose prose-invert prose-lg max-w-none leading-relaxed
+      prose-headings:text-slate-50 prose-headings:font-bold prose-headings:tracking-tight
+      prose-h1:text-3xl prose-h1:mb-3 prose-h1:mt-4 prose-h1:text-transparent prose-h1:bg-clip-text prose-h1:bg-gradient-to-r prose-h1:from-blue-400 prose-h1:to-emerald-400
+      prose-p:text-slate-300 prose-p:mb-[0.75em] prose-p:mt-[0.75em] prose-p:leading-[1.85]
+      prose-a:text-blue-400 prose-a:no-underline hover:prose-a:text-blue-300 hover:prose-a:underline
+      prose-strong:text-slate-100 prose-strong:font-bold
+      prose-ul:my-2 prose-ul:list-disc prose-ul:pl-6 
+      prose-ol:my-2 prose-ol:list-decimal prose-ol:pl-6
+      prose-li:my-1 prose-li:text-slate-300 prose-li:marker:text-blue-500
+      prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:py-1 prose-blockquote:my-2 prose-blockquote:bg-slate-800/50 prose-blockquote:rounded-r-lg prose-blockquote:italic
+      prose-code:text-emerald-300 prose-code:bg-slate-900 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-sm prose-code:font-mono prose-code:border prose-code:border-slate-700
+      prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-700 prose-pre:rounded-xl prose-pre:p-4 prose-pre:my-2 prose-pre:shadow-inner">
+      {segments.map((seg, idx) => {
+        if (seg.type === 'youtube_search' && seg.query) {
+          return <YouTubeEmbedSection key={idx} query={seg.query} />;
+        }
+        return (
+          <ReactMarkdown 
+            key={idx}
+            remarkPlugins={[remarkGfm]}
+            components={{
+              a: ({ href, children }: any) => (
+                <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">
+                  {children}
+                </a>
+              )
+            }}
+          >
+            {seg.content}
+          </ReactMarkdown>
+        );
+      })}
+    </div>
+  );
+};
+
+// YouTube Embed Component — fetches real video IDs from backend and renders iframes
+const YouTubeEmbedSection = ({ query }: { query: string }) => {
+  const [video, setVideo] = useState<{ videoId: string; title: string; channelTitle: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const fetchVideo = async () => {
+      try {
+        const res = await fetch(`/api/youtube-search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        if (data.videos && data.videos.length > 0) {
+          setVideo(data.videos[0]);
+        } else {
+          setError(true);
+        }
+      } catch {
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVideo();
+  }, [query]);
+
+  if (loading) {
+    return (
+      <div className="my-4 not-prose">
+        <div className="bg-slate-800/60 border border-slate-700/40 rounded-2xl p-6 flex items-center gap-4 animate-pulse">
+          <div className="w-12 h-12 bg-slate-700 rounded-full" />
+          <div className="flex-1">
+            <div className="h-4 bg-slate-700 rounded w-3/4 mb-2" />
+            <div className="h-3 bg-slate-700/60 rounded w-1/2" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !video) {
+    return (
+      <div className="my-4 not-prose">
+        <a
+          href={`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex', alignItems: 'center', gap: '16px', padding: '16px',
+            backgroundColor: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(71, 85, 105, 0.5)',
+            borderRadius: '12px', textDecoration: 'none'
+          }}
+        >
+          <span style={{
+            width: '48px', height: '48px', backgroundColor: '#dc2626', borderRadius: '12px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+          }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </span>
+          <span style={{ flex: 1 }}>
+            <span style={{ display: 'block', color: 'white', fontWeight: 600 }}>{query}</span>
+            <span style={{ display: 'block', color: '#94a3b8', fontSize: '0.85rem', marginTop: '4px' }}>Search on YouTube →</span>
+          </span>
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="my-5 not-prose">
+      <div className="bg-slate-800/80 border border-slate-700/50 rounded-2xl overflow-hidden shadow-xl">
+        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+          <iframe
+            className="absolute top-0 left-0 w-full h-full"
+            src={`https://www.youtube-nocookie.com/embed/${video.videoId}`}
+            title={video.title}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        </div>
+        <div className="px-4 py-3 border-t border-slate-700/30 flex items-center gap-3">
+          <span className="text-red-500 text-lg">▶</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-sm font-semibold truncate m-0">{video.title}</p>
+            <p className="text-slate-400 text-xs m-0 mt-0.5">{video.channelTitle}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const InteractiveQuestionBlock = ({ q }: { q: string }) => {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -2350,6 +2564,9 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
   const [output, setOutput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'slides' | 'notes'>('slides');
+  // Edit states for generated content
+  const [isEditingOutput, setIsEditingOutput] = useState(false);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
   
   const [savedItems, setSavedItems] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -2519,6 +2736,7 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
 
   // Specialized states for Protocol Generator
   const [protocolCourse, setProtocolCourse] = useState('');
+  const [protocolSpecificInfo, setProtocolSpecificInfo] = useState('');
 
   // Specialized states for Manuscript Generator
   const [manuscriptCourse, setManuscriptCourse] = useState('');
@@ -2535,6 +2753,7 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
   // Specialized states for Journal Club Preparator
   const [jcDiscipline, setJcDiscipline] = useState('');
   const [jcTopic, setJcTopic] = useState('');
+  const [jcJournalLink, setJcJournalLink] = useState('');
   const [jcCriteria, setJcCriteria] = useState('');
 
   // Specialized states for Scientific Session Search
@@ -2624,6 +2843,22 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
   const [contactSearchQuery, setContactSearchQuery] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [scanImages, setScanImages] = useState<string[]>([]);
+  const [protocolScanImages, setProtocolScanImages] = useState<string[]>([]);
+  
+  const handleProtocolScanImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const images: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const reader = new FileReader();
+      const promise = new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+      });
+      reader.readAsDataURL(files[i]);
+      images.push(await promise);
+    }
+    setProtocolScanImages((prev) => [...prev, ...images]);
+  };
   const [currentScanIndex, setCurrentScanIndex] = useState(0);
 
 
@@ -2918,7 +3153,7 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
         alert("Please enter Discipline and Topic, or upload documents.");
         return;
       }
-      finalInput = `Discipline: ${jcDiscipline}\nTopic: ${jcTopic}\nCriteria: ${jcCriteria}`;
+      finalInput = `Discipline: ${jcDiscipline}\nTopic: ${jcTopic}\nJournal Link: ${jcJournalLink}\nCriteria: ${jcCriteria}`;
     } else if (featureId === 'session-search') {
       if (!searchSubject) {
         alert("Please enter a Subject to search.");
@@ -2944,17 +3179,17 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
       }
       finalInput = `Date: ${digitalDiaryDate}\n${input}`;
     } else if (featureId === 'clinical-examination') {
-      if (!examType || !examCourse) {
-        alert("Please provide the Examination Type and Course.");
+      if (!input.trim() && scanImages.length === 0) {
+        alert("Please enter the examination topic (e.g., Respiratory System Examination) or upload a clinical image.");
         return;
       }
-      finalInput = `Examination Type: ${examType}\nCourse: ${examCourse}`;
+      finalInput = `Examination Topic: ${input}\n${scanImages.length > 0 ? `Uploaded Images: ${scanImages.length}` : ''}`;
     } else if (featureId === 'protocol-generator') {
       if (!protocolCourse || (!input.trim() && scanImages.length === 0)) {
         alert("Please select a course and enter topic.");
         return;
       }
-      finalInput = `Course: ${protocolCourse}\nTopic: ${input}`;
+      finalInput = `Course: ${protocolCourse}\nTopic: ${input}\nSpecific Information: ${protocolSpecificInfo}\nRequirement: Ensure all budgeted costs or cost anywhere are shown in Indian Rupees (INR) and the cost should be based on Research in India.`;
     } else if (featureId === 'manuscript-generator') {
       if (!manuscriptCourse || (!input.trim() && scanImages.length === 0)) {
         alert("Please select a course and enter topic or specific requirements, or upload your full study.");
@@ -3012,10 +3247,10 @@ Required Word Count: ${refWordCount} words`;
       });
 
       let prompt: any = `Generate content for ${feature?.title}. Input: ${finalInput}`;
-      if ((featureId === 'clinical-decision-support' || featureId === 'digital-diary' || featureId === 'journal-club' || featureId === 'manuscript-generator' || featureId === 'stat-assist' || featureId === 'ai-exam-simulator' || featureId === 'question-paper') && scanImages.length > 0) {
+      if ((featureId === 'clinical-decision-support' || featureId === 'digital-diary' || featureId === 'journal-club' || featureId === 'manuscript-generator' || featureId === 'stat-assist' || featureId === 'ai-exam-simulator' || featureId === 'question-paper') && (scanImages.length > 0 || protocolScanImages.length > 0)) {
         prompt = [
           prompt,
-          ...scanImages.map(img => ({
+          ...[...protocolScanImages, ...scanImages].map(img => ({
             inlineData: {
               data: img.split(',')[1] || img,
               mimeType: img.startsWith('data:image/png') ? 'image/png' : 'image/jpeg'
@@ -3757,29 +3992,39 @@ Additional Instructions:
         ## 6. Emotional Support & Wellness Tracking
         Detect emotional signals (stress, fatigue) and offer supportive suggestions, reminders for rest, or motivational messages.`;
       } else if (featureId === 'clinical-examination') {
-        systemInstruction += `\nAn AI-Powered Clinical Examination System designed for medical students.
-        Based on the User's Examination Type and Course, generate a structured clinical examination learning module.
+        systemInstruction += `\nAn AI-Powered Clinical Examination System designed for postgraduate medical students.
+        CRITICAL: You MUST generate content for the EXACT examination topic provided by the user. Do NOT substitute, change, or default to any other topic. If the user says "Respiratory System", generate about Respiratory System Examination only.
+        Based on the User's Examination Topic, generate a structured OSCE/ OSPE station and checklist.
         Extract standard steps using textbook references like Hutchison's, Macleod's, or Davidson's.
-        Structure the output with the following sections clearly labeled using markdown:
+        Structure the output with the following sections clearly labeled using markdown.
+        IMPORTANT: Between each major section (## heading), add a blank line for visual spacing. Each section should feel clearly separated from the previous one.
+        Do NOT include any images, image placeholders, or image markdown in the output. Only use text-based content.
         
         ## 1. Topic Understanding
-        Provide the identified Topic, Course, and Target Level (UG/PG).
-        
+        Provide the identified Topic from the user's input, and Target Level: Postgraduate (PG). Use the EXACT topic the user provided.
+
         ## 2. Step-by-Step Examination Protocol
-        Outline the examination in strict sequence (e.g., Preparation, General Inspection, Inspection, Palpation, Percussion, Auscultation). Provide clinical rationale for each step.
-        Insert dummy image marker text like "![Placeholder Image](https://images.pexels.com/photos/4386467/pexels-photo-4386467.jpeg?auto=compress&cs=tinysrgb&w=600)" where visual aids are useful.
-        
+        Outline the examination in strict sequence (e.g., Preparation, General Inspection, Inspection, Palpation, Percussion, Auscultation). Provide clinical rationale for each step. Do NOT insert any images or image placeholders.
+
         ## 3. Clinical Tips and Interpretation
         Provide interpretation guidance for common findings (e.g., Elevated JVP implies Right heart failure, etc.).
-        
+
         ## 4. Quick Revision Checklist
-        Generate a short OSCE-style structured checkbox markdown list.
-        
+        Generate a short OSCE/ OSPE-style structured checkbox markdown list.
+
         ## 5. Optional Learning Extensions
         Provide 2 MCQs and 2 Viva questions related to the examination.
-        
+
         ## 6. Video Reference
-        Provide a relevant YouTube Search query link format: [Watch relevant Youtube Videos](https://www.youtube.com/results?search_query=clinical+examination+video+search) replacing the query with the specific targeted examination name.`;
+        Provide exactly 3 YouTube video search queries for the user to learn this examination topic.
+        Format each on its own line using this EXACT format (do not deviate):
+        [YOUTUBE_SEARCH: search query here]
+        Replace "search query here" with specific, targeted search terms.
+        Example:
+        [YOUTUBE_SEARCH: respiratory examination OSCE guide geeky medics]
+        [YOUTUBE_SEARCH: respiratory system clinical examination technique]
+        [YOUTUBE_SEARCH: chest examination OSCE clinical skills]
+        Make the search queries highly specific to the examination topic.`;
       } else if (featureId === 'stat-assist') {
         responseMimeType = "application/json";
         systemInstruction += `\nYou are a statistical AI assistant for medical research. 
@@ -4538,6 +4783,16 @@ Return the response in JSON format with the following schema:
         // Include fallback props for saved_items dashboard
         title: customTitle,
         featureId: featureId
+      };
+    } else if (featureId === 'clinical-examination') {
+      customTitle = `Clinical Examination: ${input}`;
+      endpoint = '/api/saved';
+      newItem = {
+        id: Date.now().toString(),
+        title: customTitle,
+        content: output,
+        featureId: featureId,
+        date: new Date().toISOString()
       };
     } else if (featureId === 'clinical-decision-support') {
       customTitle = `Clinical Decision Support: ${input.substring(0, 60)}`;
@@ -5686,6 +5941,16 @@ Return the response in JSON format with the following schema:
                   />
                 </div>
                 <div className="space-y-2">
+                  <label className="block text-slate-300 font-medium">Journal PDF Link</label>
+                  <input 
+                    type="url"
+                    value={jcJournalLink}
+                    onChange={(e) => setJcJournalLink(e.target.value)}
+                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    placeholder="Paste full PDF link of the Journal (Online or Google Drive)"
+                  />
+                </div>
+                <div className="space-y-2">
                   <label className="block text-slate-300 font-medium">Criteria / any details / any specific instruction</label>
                   <textarea 
                     value={jcCriteria}
@@ -5697,7 +5962,7 @@ Return the response in JSON format with the following schema:
                 
                 <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 mt-6">
                   <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Upload className="text-blue-500" /> Upload Documents (Images / PDFs)
+                    <Upload className="text-blue-500" /> Upload Journal (PDF Copy / Images)
                   </h4>
                   <div className="space-y-4">
                     <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-blue-500/50 transition-all bg-slate-800/50">
@@ -6837,6 +7102,12 @@ Return the response in JSON format with the following schema:
                       </h3>
                       <div className="flex flex-wrap gap-2">
                         <button 
+                          onClick={() => setIsEditingOutput(!isEditingOutput)}
+                          className="text-slate-400 hover:text-blue-400 text-xs sm:text-sm flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 rounded-lg transition-colors"
+                        >
+                          <Edit3 size={14} /> {isEditingOutput ? 'Finish Editing' : 'Edit Results'}
+                        </button>
+                        <button 
                           onClick={handleSave}
                           className="text-slate-400 hover:text-emerald-400 text-xs sm:text-sm flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 rounded-lg transition-colors"
                         >
@@ -6856,9 +7127,18 @@ Return the response in JSON format with the following schema:
                         </button>
                       </div>
                     </div>
-                    <div className="stat-results-content prose prose-invert max-w-none prose-sm sm:prose-base prose-p:text-slate-300 prose-headings:text-white prose-headings:font-bold prose-strong:text-white prose-strong:font-semibold prose-table:text-slate-300 prose-th:text-white prose-th:bg-white/5 prose-td:border-white/10 prose-th:border-white/10 prose-ul:text-slate-300 prose-ol:text-slate-300 prose-li:text-slate-300 prose-blockquote:text-slate-400 prose-blockquote:border-blue-500/30 leading-relaxed">
-                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{statData}</ReactMarkdown>
-                    </div>
+                    {isEditingOutput ? (
+                      <textarea
+                        value={statData}
+                        onChange={(e) => setStatData(e.target.value)}
+                        className="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-8 text-slate-300 min-h-[600px] font-mono whitespace-pre-wrap leading-relaxed focus:outline-none focus:border-blue-500 transition-all resize-y"
+                        placeholder="Edit statistical results here..."
+                      />
+                    ) : (
+                      <div className="stat-results-content prose prose-invert max-w-none prose-sm sm:prose-base prose-p:text-slate-300 prose-headings:text-white prose-headings:font-bold prose-strong:text-white prose-strong:font-semibold prose-table:text-slate-300 prose-th:text-white prose-th:bg-white/5 prose-td:border-white/10 prose-th:border-white/10 prose-ul:text-slate-300 prose-ol:text-slate-300 prose-li:text-slate-300 prose-blockquote:text-slate-400 prose-blockquote:border-blue-500/30 leading-relaxed">
+                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{statData}</ReactMarkdown>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -7065,25 +7345,68 @@ Return the response in JSON format with the following schema:
                     </div>
                   </div>
                 )}
-                <label className="block text-slate-300 font-medium mb-4">Input Topic or Criteria</label>
-                <textarea 
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  className="w-full bg-slate-800 border border-white/10 rounded-xl p-4 text-white h-32 focus:outline-none focus:border-blue-500 transition-colors"
-                  placeholder="Enter discipline, topic, or specific requirements..."
-                />
                 {featureId === 'manuscript-generator' && (
-                  <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 mt-6">
+                  <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 mt-6 mb-6">
                     <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                      <Upload className="text-blue-500" /> Upload Documents (Images / PDFs)
+                      <Upload className="text-blue-500" /> Upload Protocol PDF
                     </h4>
                     <div className="space-y-4">
                       <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-blue-500/50 transition-all bg-slate-800/50">
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                           <Plus className="w-8 h-8 text-slate-500 mb-2" />
-                          <p className="text-sm text-slate-400 font-semibold">Take Photo / Upload Files</p>
+                          <p className="text-sm text-slate-400 font-semibold">Upload Protocol PDF</p>
                         </div>
-                        <input type="file" className="hidden" multiple accept="image/*,.pdf" onChange={handleScanImage} />
+                        <input type="file" className="hidden" multiple accept=".pdf" onChange={handleProtocolScanImage} />
+                      </label>
+                      {protocolScanImages.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-4">
+                          {protocolScanImages.map((img, i) => (
+                            <div key={i} className="relative w-24 h-24 rounded-lg overflow-hidden border border-white/10">
+                              <div className="w-full h-full flex items-center justify-center bg-slate-800 text-xs text-slate-400 break-words text-center px-1">Protocol {i+1}</div>
+                              <button 
+                                onClick={() => setProtocolScanImages(protocolScanImages.filter((_, idx) => idx !== i))}
+                                className="absolute top-1 right-1 w-6 h-6 bg-red-500/80 hover:bg-red-500 rounded-full flex items-center justify-center text-white transition-colors"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <label className="block text-slate-300 font-medium mb-4">Input Topic or Criteria</label>
+                <textarea 
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  className="w-full bg-slate-800 border border-white/10 rounded-xl p-4 text-white h-32 focus:outline-none focus:border-blue-500 transition-colors"
+                  placeholder={featureId === 'manuscript-generator' ? "Enter all details related to the Study Done" : "Enter discipline, topic, or specific requirements..."}
+                />
+                
+                {featureId === 'protocol-generator' && (
+                  <div className="space-y-2 mt-6">
+                    <label className="block text-slate-300 font-medium">Input Specific Information/ Data</label>
+                    <textarea 
+                      value={protocolSpecificInfo}
+                      onChange={(e) => setProtocolSpecificInfo(e.target.value)}
+                      className="w-full bg-slate-800 border border-white/10 rounded-xl p-4 text-white h-24 focus:outline-none focus:border-blue-500 transition-colors"
+                      placeholder="Any specific information you want to add"
+                    />
+                  </div>
+                )}
+                {(featureId === 'manuscript-generator' || featureId === 'clinical-examination') && (
+                  <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 mt-6">
+                    <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                      <Upload className="text-blue-500" /> {featureId === 'clinical-examination' ? 'Upload Clinical Images (Optional)' : 'Upload data of the study Done'}
+                    </h4>
+                    <div className="space-y-4">
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-blue-500/50 transition-all bg-slate-800/50">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Plus className="w-8 h-8 text-slate-500 mb-2" />
+                          <p className="text-sm text-slate-400 font-semibold">{featureId === 'clinical-examination' ? 'Clinical Images (JPEG, PNG)' : 'Excel Datasheet, PDF copies'}</p>
+                        </div>
+                        <input type="file" className="hidden" multiple accept={featureId === 'clinical-examination' ? "image/*" : "image/*,.pdf,.xls,.xlsx,.csv"} onChange={handleScanImage} />
                       </label>
                       {scanImages.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-4">
@@ -7113,7 +7436,7 @@ Return the response in JSON format with the following schema:
             <button 
               onClick={handleGenerate}
               disabled={isLoading || (featureId === 'ai-exam-prep' && !prepCourseId)}
-              className={`w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 ${(featureId === 'contacts-management' || featureId === 'search-topic' || featureId === 'knowledge-library' || featureId === 'essay-library' || featureId === 'mcq-library' || featureId === 'flash-cards' || featureId === 'thesis-notes' || featureId === 'clinical-decision-support' || (featureId === 'ai-exam-simulator' && (simExamActive || simUploadPhase || isEvaluatingSim || simEvaluationResult)) || (featureId === 'answer-analyser' && analyzerSelectedQuestion) || (featureId === 'mcqs-analyser' && mcqGeneratedList.length > 0)) ? 'hidden' : ''}`}
+              className={`w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 ${(featureId === 'prescription-analyser' || featureId === 'contacts-management' || featureId === 'search-topic' || featureId === 'knowledge-library' || featureId === 'essay-library' || featureId === 'mcq-library' || featureId === 'flash-cards' || featureId === 'thesis-notes' || featureId === 'clinical-decision-support' || (featureId === 'ai-exam-simulator' && (simExamActive || simUploadPhase || isEvaluatingSim || simEvaluationResult)) || (featureId === 'answer-analyser' && analyzerSelectedQuestion) || (featureId === 'mcqs-analyser' && mcqGeneratedList.length > 0)) ? 'hidden' : ''}`}
             >
               {isLoading ? (
                 <>
@@ -7122,7 +7445,7 @@ Return the response in JSON format with the following schema:
                 </>
               ) : (
                 <>
-                  <Brain size={20} /> {isQuestionPaper ? 'Generate Question Papers' : featureId === 'session-search' ? 'Search Scientific Sessions' : featureId === 'essay-generator' ? 'Generate Essay Answer' : featureId === 'seminar-builder' ? 'Generate Seminar PPT and Notes' : featureId === 'journal-club' ? 'Generate Journal Club PPT and Notes' : featureId === 'manuscript-generator' ? 'Generate Manuscript' : featureId === 'protocol-generator' ? 'Generate Protocol' : featureId === 'stat-assist' ? 'Generate Statistical Methods' : featureId === 'reflection-generator' ? 'Generate Reflection' : featureId === 'answer-analyser' ? 'Generate Question (5 questions)' : featureId === 'mcqs-analyser' ? 'Generate MCQs' : featureId === 'ai-exam-prep' ? 'Exam Preparation System' : featureId === 'ai-exam-simulator' ? 'Generate Complete Exam Simulation' : featureId === 'guidelines-generator' ? 'Generate Guidelines' : featureId === 'resume-builder' ? 'Generate Resume' : featureId === 'doubt-solver' ? 'Generate Discussion' : featureId === 'drug-treatment-assistant' ? 'Generate Drug Info' : 'Generate AI Content'}
+                  <Brain size={20} /> {isQuestionPaper ? 'Generate Question Papers' : featureId === 'session-search' ? 'Search Scientific Sessions' : featureId === 'essay-generator' ? 'Generate Essay Answer' : featureId === 'seminar-builder' ? 'Generate Seminar PPT and Notes' : featureId === 'journal-club' ? 'Generate Journal Club PPT and Notes' : featureId === 'manuscript-generator' ? 'Generate Manuscript' : featureId === 'protocol-generator' ? 'Generate Protocol' : featureId === 'stat-assist' ? 'Generate Statistical Methods' : featureId === 'reflection-generator' ? 'Generate Reflection' : featureId === 'answer-analyser' ? 'Generate Question (5 questions)' : featureId === 'mcqs-analyser' ? 'Generate MCQs' : featureId === 'ai-exam-prep' ? 'Exam Preparation System' : featureId === 'ai-exam-simulator' ? 'Generate Complete Exam Simulation' : featureId === 'guidelines-generator' ? 'Generate Guidelines' : featureId === 'resume-builder' ? 'Generate Resume' : featureId === 'doubt-solver' ? 'Generate Discussion' : featureId === 'drug-treatment-assistant' ? 'Generate Drug Info' : featureId === 'clinical-examination' ? 'Generate OSCE/ OSPE Station and Checklist' : 'Generate Notes'}
                 </>
               )}
             </button>
@@ -7151,9 +7474,20 @@ Return the response in JSON format with the following schema:
                     alert('Failed to save diary entry. Please try again.');
                   }
                 }}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 mt-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
+                className="w-full bg-[#86b588] hover:bg-[#74a176] text-white font-bold py-4 mt-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#86b588]/20"
               >
                 <Save size={20} /> Save to Diary records
+              </button>
+            )}
+
+            {featureId === 'session-search' && (
+              <button 
+                onClick={() => {
+                  alert('Saved to Scientific Session successfully!');
+                }}
+                className="w-full bg-[#86b588] hover:bg-[#74a176] text-white font-bold py-4 mt-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#86b588]/20"
+              >
+                <Save size={20} /> Saved to Scientific Session
               </button>
             )}
           </div>
@@ -7196,12 +7530,20 @@ Return the response in JSON format with the following schema:
                       </button>
                     </>
                   ) : (
-                    <button 
-                      onClick={handleDownloadNotes}
-                      className="text-slate-400 hover:text-emerald-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
-                    >
-                      <Download size={16} /> Download Notes
-                    </button>
+                    <>
+                      <button 
+                        onClick={() => setIsEditingNotes(!isEditingNotes)}
+                        className="text-slate-400 hover:text-blue-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
+                      >
+                        <Edit3 size={16} /> {isEditingNotes ? 'Finish Editing' : 'Edit Notes'}
+                      </button>
+                      <button 
+                        onClick={handleDownloadNotes}
+                        className="text-slate-400 hover:text-emerald-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
+                      >
+                        <Download size={16} /> Download Notes
+                      </button>
+                    </>
                   )}
                   <button 
                     onClick={handleSave}
@@ -7260,7 +7602,14 @@ Return the response in JSON format with the following schema:
                 </div>
               ) : (
                 <div id="pdf-download-notes-content" className="w-full">
-                  {(() => {
+                  {isEditingNotes ? (
+                    <textarea
+                      value={detailedNotes}
+                      onChange={(e) => setDetailedNotes(e.target.value)}
+                      className="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-8 text-slate-300 min-h-[600px] font-mono whitespace-pre-wrap leading-relaxed focus:outline-none focus:border-blue-500 transition-all resize-y"
+                      placeholder="Edit detailed notes here..."
+                    />
+                  ) : (() => {
                     const lines = detailedNotes.split('\n');
                     const sections: { title: string; content: string[] }[] = [];
                     let currentSection = { title: '', content: [] as string[] };
@@ -7404,17 +7753,27 @@ Return the response in JSON format with the following schema:
                 <h3 className="text-xl font-bold text-white m-0">
                   {['essay-library', 'mcq-library', 'flash-cards'].includes(featureId) && klActiveCourse && klActiveSection && klTopicId 
                     ? `${klActiveCourse.name} / ${klActiveSection.name} / ${klActiveTopics.find((t: any) => t.id?.toString() === klTopicId?.toString())?.name || ''}`
+                    : featureId === 'clinical-examination' ? 'Curated OSCE/ OSPE Station and Checklist'
+                    : featureId === 'protocol-generator' ? 'Curated Protocol'
                     : 'Curated Essay'
                   }
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {!['knowledge-library', 'essay-library', 'mcq-library', 'flash-cards', 'thesis-notes'].includes(featureId) && (
-                    <button 
-                      onClick={handleSave}
-                      className="text-slate-400 hover:text-emerald-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
-                    >
-                      <Save size={16} /> Save to Database
-                    </button>
+                    <>
+                      <button 
+                        onClick={() => setIsEditingOutput(!isEditingOutput)}
+                        className="text-slate-400 hover:text-blue-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
+                      >
+                        <Edit3 size={16} /> {isEditingOutput ? 'Finish Editing' : 'Edit Content'}
+                      </button>
+                      <button 
+                        onClick={handleSave}
+                        className="text-slate-400 hover:text-emerald-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
+                      >
+                        <Save size={16} /> Save to Database
+                      </button>
+                    </>
                   )}
                   {featureId !== 'knowledge-library' && (
                     <>
@@ -7731,6 +8090,13 @@ Return the response in JSON format with the following schema:
                     );
                   })()}
                 </div>
+              ) : isEditingOutput ? (
+                <textarea
+                  value={output}
+                  onChange={(e) => setOutput(e.target.value)}
+                  className="w-full bg-slate-900 border border-white/10 rounded-lg px-6 py-8 text-slate-300 min-h-[600px] font-mono whitespace-pre-wrap leading-relaxed focus:outline-none focus:border-blue-500 transition-all resize-y shadow-inner"
+                  placeholder="Edit generated content here..."
+                />
               ) : featureId === 'flash-cards' ? (
                 <FlashcardViewer output={output} />
               ) : (
@@ -18519,6 +18885,8 @@ export default function App() {
               <DashboardLayout onNavigate={handleNavigate} currentPage={currentPage} curriculum={curriculum} userPlan={userPlan} authSession={authSession} trialEndDate={trialEndDate}>
                 {currentPage === 'feature-ai-tutor' ? (
                   <AiTutorWelcome onNavigate={handleNavigate} curriculum={curriculum} />
+                ) : currentPage === 'feature-self-evaluation-system' ? (
+                  <SelfEvaluationSystem onNavigate={handleNavigate} curriculum={curriculum} />
                 ) : currentPage.startsWith('feature-') && (
                   <FeatureModule 
                     featureId={currentPage.replace('feature-', '')} 

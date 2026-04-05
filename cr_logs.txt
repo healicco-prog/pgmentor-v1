@@ -1,0 +1,360 @@
+﻿[
+  {
+    "httpRequest": {
+      "latency": "0.009463935s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://pgmentor.in/",
+      "remoteIp": "3.121.55.133",
+      "requestMethod": "POST",
+      "requestSize": "103445",
+      "requestUrl": "https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/api/state/curriculum",
+      "responseSize": "449",
+      "serverIp": "34.143.73.2",
+      "status": 403,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cf92dd000c8ed3e3eee677",
+    "labels": {
+      "instanceId": "008c15ff083b377ef35ff8da3dea9be19725a2c7e58cc350142a19e185fba32665b188aa4cfd0227c909bd4a41da561342842b5f1fd3f403c3b04774279d92b4bf56fa5a12cabc33fbdc94f9bbc8"
+    },
+    "logName": "projects/pgmentor-ver-1/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-03T10:13:49.904933465Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "pgmentor-backend",
+        "location": "us-central1",
+        "project_id": "pgmentor-ver-1",
+        "revision_name": "pgmentor-backend-00011-4gw",
+        "service_name": "pgmentor-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "WARNING",
+    "spanId": "5d621fd45364d04a",
+    "timestamp": "2026-04-03T10:13:49.811074Z",
+    "trace": "projects/pgmentor-ver-1/traces/019d52d5b12d68e002aaaba0402c5dc0",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.008565914s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://pgmentor.in/",
+      "remoteIp": "3.121.55.133",
+      "requestMethod": "POST",
+      "requestSize": "103447",
+      "requestUrl": "https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/api/state/curriculum",
+      "responseSize": "449",
+      "serverIp": "34.143.73.2",
+      "status": 403,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cf92dd000918a04064890c",
+    "labels": {
+      "instanceId": "008c15ff083b377ef35ff8da3dea9be19725a2c7e58cc350142a19e185fba32665b188aa4cfd0227c909bd4a41da561342842b5f1fd3f403c3b04774279d92b4bf56fa5a12cabc33fbdc94f9bbc8"
+    },
+    "logName": "projects/pgmentor-ver-1/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-03T10:13:49.904933465Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "pgmentor-backend",
+        "location": "us-central1",
+        "project_id": "pgmentor-ver-1",
+        "revision_name": "pgmentor-backend-00011-4gw",
+        "service_name": "pgmentor-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "WARNING",
+    "spanId": "c7de15413c788b62",
+    "timestamp": "2026-04-03T10:13:49.585051Z",
+    "trace": "projects/pgmentor-ver-1/traces/019d52d5b0196e35df767de75decb67c",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.005220075s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://pgmentor.in/",
+      "remoteIp": "3.121.55.133",
+      "requestMethod": "GET",
+      "requestSize": "1571",
+      "requestUrl": "https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/api/blog-publications",
+      "responseSize": "367",
+      "serverIp": "34.143.73.2",
+      "status": 403,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cf92db000f2d90545cfc0f",
+    "labels": {
+      "instanceId": "008c15ff083b377ef35ff8da3dea9be19725a2c7e58cc350142a19e185fba32665b188aa4cfd0227c909bd4a41da561342842b5f1fd3f403c3b04774279d92b4bf56fa5a12cabc33fbdc94f9bbc8"
+    },
+    "logName": "projects/pgmentor-ver-1/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-03T10:13:48.237617812Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "pgmentor-backend",
+        "location": "us-central1",
+        "project_id": "pgmentor-ver-1",
+        "revision_name": "pgmentor-backend-00011-4gw",
+        "service_name": "pgmentor-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "WARNING",
+    "spanId": "3b110c53a820455d",
+    "timestamp": "2026-04-03T10:13:47.987172Z",
+    "trace": "projects/pgmentor-ver-1/traces/019d52d5aab6ace82501ec4e4d61c7a3"
+  },
+  {
+    "httpRequest": {
+      "latency": "0.003019121s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://pgmentor.in/",
+      "remoteIp": "3.121.55.133",
+      "requestMethod": "GET",
+      "requestSize": "1578",
+      "requestUrl": "https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/api/state/curriculum/default",
+      "responseSize": "367",
+      "serverIp": "34.143.73.2",
+      "status": 403,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cf92db000f0ff02259dc7b",
+    "labels": {
+      "instanceId": "008c15ff083b377ef35ff8da3dea9be19725a2c7e58cc350142a19e185fba32665b188aa4cfd0227c909bd4a41da561342842b5f1fd3f403c3b04774279d92b4bf56fa5a12cabc33fbdc94f9bbc8"
+    },
+    "logName": "projects/pgmentor-ver-1/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-03T10:13:48.237617812Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "pgmentor-backend",
+        "location": "us-central1",
+        "project_id": "pgmentor-ver-1",
+        "revision_name": "pgmentor-backend-00011-4gw",
+        "service_name": "pgmentor-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "WARNING",
+    "spanId": "49ec12d69c6f9b36",
+    "timestamp": "2026-04-03T10:13:47.981862Z",
+    "trace": "projects/pgmentor-ver-1/traces/019d52d5aab605d7e3a2d87ae274c54a",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.003988429s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://pgmentor.in/",
+      "remoteIp": "3.121.55.133",
+      "requestMethod": "GET",
+      "requestSize": "1571",
+      "requestUrl": "https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/api/blog-publications",
+      "responseSize": "367",
+      "serverIp": "34.143.73.2",
+      "status": 403,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cf92db000ca0b68460ac56",
+    "labels": {
+      "instanceId": "008c15ff083b377ef35ff8da3dea9be19725a2c7e58cc350142a19e185fba32665b188aa4cfd0227c909bd4a41da561342842b5f1fd3f403c3b04774279d92b4bf56fa5a12cabc33fbdc94f9bbc8"
+    },
+    "logName": "projects/pgmentor-ver-1/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-03T10:13:47.904439620Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "pgmentor-backend",
+        "location": "us-central1",
+        "project_id": "pgmentor-ver-1",
+        "revision_name": "pgmentor-backend-00011-4gw",
+        "service_name": "pgmentor-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "WARNING",
+    "spanId": "c20a5eba8ee3d0e5",
+    "timestamp": "2026-04-03T10:13:47.821807Z",
+    "trace": "projects/pgmentor-ver-1/traces/019d52d5aa7127399c14fe0080e56da8"
+  },
+  {
+    "httpRequest": {
+      "latency": "0.003375971s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://pgmentor.in/",
+      "remoteIp": "3.121.55.133",
+      "requestMethod": "GET",
+      "requestSize": "1579",
+      "requestUrl": "https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/api/state/curriculum/default",
+      "responseSize": "367",
+      "serverIp": "34.143.73.2",
+      "status": 403,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cf92db000c9d678495e42b",
+    "labels": {
+      "instanceId": "008c15ff083b377ef35ff8da3dea9be19725a2c7e58cc350142a19e185fba32665b188aa4cfd0227c909bd4a41da561342842b5f1fd3f403c3b04774279d92b4bf56fa5a12cabc33fbdc94f9bbc8"
+    },
+    "logName": "projects/pgmentor-ver-1/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-03T10:13:47.904439620Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "pgmentor-backend",
+        "location": "us-central1",
+        "project_id": "pgmentor-ver-1",
+        "revision_name": "pgmentor-backend-00011-4gw",
+        "service_name": "pgmentor-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "WARNING",
+    "spanId": "8f4f24e14c99353e",
+    "timestamp": "2026-04-03T10:13:47.821017Z",
+    "trace": "projects/pgmentor-ver-1/traces/019d52d5aa706eb86b75366ef4cdf4a1",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.015990492s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://pgmentor.in/",
+      "remoteIp": "98.89.82.91",
+      "requestMethod": "POST",
+      "requestSize": "103476",
+      "requestUrl": "https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/api/state/curriculum",
+      "responseSize": "449",
+      "serverIp": "34.143.74.2",
+      "status": 403,
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+    },
+    "insertId": "69cf92d200041c14efbb091b",
+    "labels": {
+      "instanceId": "008c15ff083b377ef35ff8da3dea9be19725a2c7e58cc350142a19e185fba32665b188aa4cfd0227c909bd4a41da561342842b5f1fd3f403c3b04774279d92b4bf56fa5a12cabc33fbdc94f9bbc8"
+    },
+    "logName": "projects/pgmentor-ver-1/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-03T10:13:38.580254184Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "pgmentor-backend",
+        "location": "us-central1",
+        "project_id": "pgmentor-ver-1",
+        "revision_name": "pgmentor-backend-00011-4gw",
+        "service_name": "pgmentor-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "WARNING",
+    "spanId": "1caacb742acf3157",
+    "timestamp": "2026-04-03T10:13:38.250629Z",
+    "trace": "projects/pgmentor-ver-1/traces/019d52d5849b6b66aa9c30c15ee702e2",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.007932269s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://pgmentor.in/",
+      "remoteIp": "98.89.82.91",
+      "requestMethod": "POST",
+      "requestSize": "103477",
+      "requestUrl": "https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/api/state/curriculum",
+      "responseSize": "449",
+      "serverIp": "34.143.74.2",
+      "status": 403,
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+    },
+    "insertId": "69cf92d1000c47cb58bed6ae",
+    "labels": {
+      "instanceId": "008c15ff083b377ef35ff8da3dea9be19725a2c7e58cc350142a19e185fba32665b188aa4cfd0227c909bd4a41da561342842b5f1fd3f403c3b04774279d92b4bf56fa5a12cabc33fbdc94f9bbc8"
+    },
+    "logName": "projects/pgmentor-ver-1/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-03T10:13:37.915500385Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "pgmentor-backend",
+        "location": "us-central1",
+        "project_id": "pgmentor-ver-1",
+        "revision_name": "pgmentor-backend-00011-4gw",
+        "service_name": "pgmentor-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "WARNING",
+    "spanId": "d9d16b0d2f2e3aa8",
+    "timestamp": "2026-04-03T10:13:37.793782Z",
+    "trace": "projects/pgmentor-ver-1/traces/019d52d5833a3318a60b7ab4d15b2a4d",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.007012364s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://pgmentor.in/",
+      "remoteIp": "44.209.230.69",
+      "requestMethod": "POST",
+      "requestSize": "103450",
+      "requestUrl": "https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/api/state/curriculum",
+      "responseSize": "449",
+      "serverIp": "34.143.74.2",
+      "status": 403,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cf92d0000ef7ddf8b02570",
+    "labels": {
+      "instanceId": "008c15ff083b377ef35ff8da3dea9be19725a2c7e58cc350142a19e185fba32665b188aa4cfd0227c909bd4a41da561342842b5f1fd3f403c3b04774279d92b4bf56fa5a12cabc33fbdc94f9bbc8"
+    },
+    "logName": "projects/pgmentor-ver-1/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-03T10:13:37.251047867Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "pgmentor-backend",
+        "location": "us-central1",
+        "project_id": "pgmentor-ver-1",
+        "revision_name": "pgmentor-backend-00011-4gw",
+        "service_name": "pgmentor-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "WARNING",
+    "spanId": "8d79ad223b5e0c32",
+    "timestamp": "2026-04-03T10:13:36.971008Z",
+    "trace": "projects/pgmentor-ver-1/traces/019d52d57fc1872f797b834ffb0f4ca4",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.003618056s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://pgmentor.in/",
+      "remoteIp": "98.89.82.91",
+      "requestMethod": "GET",
+      "requestSize": "1609",
+      "requestUrl": "https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/api/state/curriculum/default",
+      "responseSize": "367",
+      "serverIp": "34.143.74.2",
+      "status": 403,
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+    },
+    "insertId": "69cf92d000030e93ddd76156",
+    "labels": {
+      "instanceId": "008c15ff083b377ef35ff8da3dea9be19725a2c7e58cc350142a19e185fba32665b188aa4cfd0227c909bd4a41da561342842b5f1fd3f403c3b04774279d92b4bf56fa5a12cabc33fbdc94f9bbc8"
+    },
+    "logName": "projects/pgmentor-ver-1/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-03T10:13:36.248563615Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "pgmentor-backend",
+        "location": "us-central1",
+        "project_id": "pgmentor-ver-1",
+        "revision_name": "pgmentor-backend-00011-4gw",
+        "service_name": "pgmentor-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "WARNING",
+    "spanId": "ba966385d7147aef",
+    "timestamp": "2026-04-03T10:13:36.194505Z",
+    "trace": "projects/pgmentor-ver-1/traces/019d52d57d2ea151f3ae8bd613523871",
+    "traceSampled": true
+  }
+]

@@ -1,0 +1,37 @@
+﻿python.exe : Building 
+using Dockerfile and 
+deploying container to 
+Cloud Run service 
+[pgmentor-backend] in 
+project [pgmentor-ver-1] 
+region [us-central1]
+At C:\Users\Dr Narayana K
+\AppData\Local\Google\Clo
+ud SDK\google-cloud-sdk\b
+in\gcloud.ps1:114 char:3
++   & "$cloudsdk_python" 
+$run_args_array
++   ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo       
+       : NotSpecified:   
+  (Building using ...n   
+  [us-central1]:Strin    
+g) [], RemoteExcepti    
+on
+    + FullyQualifiedErro 
+   rId : NativeCommandE  
+  rror
+ 
+Building and deploying...
+Validating configuration.
+........failed
+Deployment failed
+ERROR: 
+(gcloud.run.deploy) spec.
+template.spec.containers[
+0].env: The following 
+reserved env names were 
+provided: PORT. These 
+values are automatically 
+set by the system.

@@ -1,0 +1,97 @@
+﻿[96m[1mΓÇï[22m[39m
+[96m[1mNetlify Build                                                 [22m[39m
+[96m[1mΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ[22m[39m
+[36m[1mΓÇï[22m[39m
+[36m[1mΓ¥» Version[22m[39m
+  @netlify/build 35.8.9
+[36m[1mΓÇï[22m[39m
+[36m[1mΓ¥» Flags[22m[39m
+  accountId: 69b2c960ce166ea81f4ebcce
+  deployId: 69cf8aca73d3ac91b8d1ebf3
+[36m[1mΓÇï[22m[39m
+[36m[1mΓ¥» Current directory[22m[39m
+  D:\Lenovo Narayana 2026\Software Products\Antigravity Projects\pgmentor\pgmentor Ver 1
+[36m[1mΓÇï[22m[39m
+[36m[1mΓ¥» Config file[22m[39m
+  D:\Lenovo Narayana 2026\Software Products\Antigravity Projects\pgmentor\pgmentor Ver 1\netlify.toml
+[36m[1mΓÇï[22m[39m
+[36m[1mΓ¥» Context[22m[39m
+  production
+[96m[1mΓÇï[22m[39m
+[96m[1mbuild.command from netlify.toml                               [22m[39m
+[96m[1mΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ[22m[39m
+ΓÇï
+[36m$ sed -i "s/__BACKEND_API_KEY__/$BACKEND_API_KEY/g" netlify.toml && npm run build[39m
+node.exe : 'sed' is not 
+recognized as an 
+internal or external 
+command,
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo       
+       : NotSpecified:   
+  ('sed' is not re...t   
+ ernal command,:Strin    
+g) [], RemoteExcepti    
+on
+    + FullyQualifiedErro 
+   rId : NativeCommandE  
+  rror
+ 
+operable program or 
+batch file.
+[91m[1mΓÇï[22m[39m
+[91m[1m"build.command" failed                                        [22m[39m
+[91m[1mΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ[22m[39m
+ΓÇï
+  [31m[1mError message[22m[39m
+  Command failed with exit code 1: sed -i "s/__BACKEND_API_KEY__/$BACKEND_API_KEY/g" netlify.toml && npm run build
+ΓÇï
+  [31m[1mError location[22m[39m
+  In build.command from netlify.toml:
+  sed -i "s/__BACKEND_API_KEY__/$BACKEND_API_KEY/g" netlify.toml && npm run build
+ΓÇï
+  [31m[1mResolved config[22m[39m
+  build:
+    command: sed -i "s/__BACKEND_API_KEY__/$BACKEND_API_KEY/g" netlify.toml && npm
+      run build
+    commandOrigin: config
+    environment:
+      - NODE_VERSION
+    publish: D:\Lenovo Narayana 2026\Software Products\Antigravity
+      Projects\pgmentor\pgmentor Ver 1\dist
+    publishOrigin: config
+  headers:
+    - for: /*
+      values:
+        Permissions-Policy: camera=(), microphone=(), geolocation=()
+        Referrer-Policy: strict-origin-when-cross-origin
+        X-Content-Type-Options: nosniff
+        X-Frame-Options: DENY
+    - for: /assets/*
+      values:
+        Cache-Control: public, max-age=31536000, immutable
+  headersOrigin: config
+  redirects:
+    - force: true
+      from: /api/*
+      headers:
+        X-API-Key: __BACKEND_API_KEY__
+      status: 200
+      to: https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/api/:splat
+    - force: true
+      from: /blog/*
+      status: 200
+      to: https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/blog/:splat
+    - from: /*
+      status: 200
+      to: /index.html
+  redirectsOrigin: config
+ ┬╗   Error: Error while 
+running build

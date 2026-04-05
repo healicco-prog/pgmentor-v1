@@ -1,0 +1,74 @@
+﻿ΓÇï
+Netlify Build                                                 
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓÇï
+Γ¥» Version
+  @netlify/build 35.8.9
+ΓÇï
+Γ¥» Flags
+  accountId: 69b2c960ce166ea81f4ebcce
+  deployId: 69cf8b62b890b780d3794a5b
+ΓÇï
+Γ¥» Current directory
+  D:\Lenovo Narayana 2026\Software Products\Antigravity Projects\pgmentor\pgmentor Ver 1
+ΓÇï
+Γ¥» Config file
+  D:\Lenovo Narayana 2026\Software Products\Antigravity Projects\pgmentor\pgmentor Ver 1\netlify.toml
+ΓÇï
+Γ¥» Context
+  production
+ΓÇï
+build.command from netlify.toml                               
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓÇï
+$ sed -i "s/__BACKEND_API_KEY__/$BACKEND_API_KEY/g" netlify.toml && npm run build
+'sed' is not recognized as an internal or external command,
+operable program or batch file.
+ΓÇï
+"build.command" failed                                        
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓÇï
+  Error message
+  Command failed with exit code 1: sed -i "s/__BACKEND_API_KEY__/$BACKEND_API_KEY/g" netlify.toml && npm run build
+ΓÇï
+  Error location
+  In build.command from netlify.toml:
+  sed -i "s/__BACKEND_API_KEY__/$BACKEND_API_KEY/g" netlify.toml && npm run build
+ΓÇï
+  Resolved config
+  build:
+    command: sed -i "s/__BACKEND_API_KEY__/$BACKEND_API_KEY/g" netlify.toml && npm
+      run build
+    commandOrigin: config
+    environment:
+      - NODE_VERSION
+    publish: D:\Lenovo Narayana 2026\Software Products\Antigravity
+      Projects\pgmentor\pgmentor Ver 1\dist
+    publishOrigin: config
+  headers:
+    - for: /*
+      values:
+        Permissions-Policy: camera=(), microphone=(), geolocation=()
+        Referrer-Policy: strict-origin-when-cross-origin
+        X-Content-Type-Options: nosniff
+        X-Frame-Options: DENY
+    - for: /assets/*
+      values:
+        Cache-Control: public, max-age=31536000, immutable
+  headersOrigin: config
+  redirects:
+    - force: true
+      from: /api/*
+      headers:
+        X-API-Key: __BACKEND_API_KEY__
+      status: 200
+      to: https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/api/:splat
+    - force: true
+      from: /blog/*
+      status: 200
+      to: https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/blog/:splat
+    - from: /*
+      status: 200
+      to: /index.html
+  redirectsOrigin: config
+ ┬╗   Error: Error while running build

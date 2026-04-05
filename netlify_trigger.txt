@@ -1,0 +1,1 @@
+﻿Γ¼Ñ A new deployment was triggered successfully. Visit https://app.netlify.com/projects/medimentr/deploys/69cf8cddb20b93bb9a956006 to see the logs.

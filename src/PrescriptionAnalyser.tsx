@@ -13,9 +13,9 @@ interface AnalysisResult {
     rational_drug_use: number;
     safety_compliance: number;
   };
-  strengths: string[];
-  deficiencies: string[];
-  recommendations: string[];
+  what_was_done_right: string[];
+  what_went_wrong: string[];
+  how_to_correct: string[];
 }
 
 export default function PrescriptionAnalyser({ onSave }: { onSave?: (data: any) => void }) {
@@ -314,11 +314,11 @@ export default function PrescriptionAnalyser({ onSave }: { onSave?: (data: any) 
             <div className="space-y-6">
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
                 <h4 className="text-lg font-bold text-white mb-4 flex items-center text-emerald-400">
-                  <CheckCircle size={20} className="mr-2" /> Strengths
+                  <CheckCircle size={20} className="mr-2" /> What was done right
                 </h4>
-                {result.strengths.length > 0 ? (
+                {result.what_was_done_right?.length > 0 ? (
                   <ul className="space-y-2">
-                    {result.strengths.map((item, idx) => (
+                    {result.what_was_done_right.map((item, idx) => (
                       <li key={idx} className="flex items-start text-slate-300 text-sm">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 mr-3 shrink-0"></span>
                         {item}
@@ -326,17 +326,17 @@ export default function PrescriptionAnalyser({ onSave }: { onSave?: (data: any) 
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-slate-500 text-sm italic">No significant strengths identified.</p>
+                  <p className="text-slate-500 text-sm italic">Nothing notable identified.</p>
                 )}
               </div>
 
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
                 <h4 className="text-lg font-bold text-white mb-4 flex items-center text-red-400">
-                  <AlertTriangle size={20} className="mr-2" /> Deficiencies
+                  <AlertTriangle size={20} className="mr-2" /> What went wrong
                 </h4>
-                {result.deficiencies.length > 0 ? (
+                {result.what_went_wrong?.length > 0 ? (
                   <ul className="space-y-2">
-                    {result.deficiencies.map((item, idx) => (
+                    {result.what_went_wrong.map((item, idx) => (
                       <li key={idx} className="flex items-start text-slate-300 text-sm">
                         <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-2 mr-3 shrink-0"></span>
                         {item}
@@ -344,7 +344,7 @@ export default function PrescriptionAnalyser({ onSave }: { onSave?: (data: any) 
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-slate-500 text-sm italic">No significant deficiencies identified.</p>
+                  <p className="text-slate-500 text-sm italic">No significant errors identified.</p>
                 )}
               </div>
             </div>
@@ -353,10 +353,10 @@ export default function PrescriptionAnalyser({ onSave }: { onSave?: (data: any) 
           {/* Recommendations */}
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-6">
             <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center">
-              <AlertCircle size={20} className="mr-2 text-blue-400" /> Recommendations for Improvement
+              <AlertCircle size={20} className="mr-2 text-blue-400" /> How to correct
             </h4>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {result.recommendations.map((item, idx) => (
+              {result.how_to_correct?.map((item, idx) => (
                 <li key={idx} className="flex items-start bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-slate-300 text-sm">
                   <span className="text-blue-500 font-bold mr-3 mt-0.5">•</span>
                   {item}

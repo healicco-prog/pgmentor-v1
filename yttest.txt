@@ -1,0 +1,46 @@
+{
+  "kind": "youtube#searchListResponse",
+  "etag": "Exj5-MevOWD4AlfbIKy-mfdV9AA",
+  "nextPageToken": "CAEQAA",
+  "regionCode": "IN",
+  "pageInfo": {
+    "totalResults": 713151,
+    "resultsPerPage": 1
+  },
+  "items": [
+    {
+      "kind": "youtube#searchResult",
+      "etag": "RuKaIavghdL0kZUjhp0AUO-3yTw",
+      "id": {
+        "kind": "youtube#video",
+        "videoId": "q6w3CClfhdk"
+      },
+      "snippet": {
+        "publishedAt": "2025-01-21T16:52:17Z",
+        "channelId": "UCkjnrEHQ8bQQmlfNdAQC_5w",
+        "title": "Respiratory Examination | OSCE Guide | UKMLA | CPSA | PLAB 2",
+        "description": "This video provides a guide for performing a respiratory examination in an OSCE station, including real-time auscultation sounds ...",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/q6w3CClfhdk/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/q6w3CClfhdk/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/q6w3CClfhdk/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          }
+        },
+        "channelTitle": "Geeky Medics",
+        "liveBroadcastContent": "none",
+        "publishTime": "2025-01-21T16:52:17Z"
+      }
+    }
+  ]
+}

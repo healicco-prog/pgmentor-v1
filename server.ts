@@ -204,6 +204,44 @@ async function startServer() {
   app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // YOUTUBE SEARCH — Find real YouTube videos for embedding
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  app.get("/api/youtube-search", async (req, res) => {
+    const query = req.query.q as string;
+    if (!query) return res.status(400).json({ error: "q query parameter is required" });
+
+    const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+    if (!YOUTUBE_API_KEY) {
+      console.warn("⚠️ YOUTUBE_API_KEY not set — returning empty results");
+      return res.json({ videos: [] });
+    }
+
+    try {
+      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=3&videoEmbeddable=true&key=${YOUTUBE_API_KEY}`;
+      const response = await fetch(searchUrl);
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("❌ YouTube API error:", data);
+        return res.status(500).json({ error: "YouTube search failed", details: data.error?.message });
+      }
+
+      const videos = (data.items || []).map((item: any) => ({
+        videoId: item.id?.videoId,
+        title: item.snippet?.title,
+        channelTitle: item.snippet?.channelTitle,
+        thumbnail: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.default?.url
+      }));
+
+      res.json({ videos });
+    } catch (error: any) {
+      console.error("❌ YouTube search error:", error.message);
+      res.status(500).json({ error: "YouTube search failed" });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // AI PROXY ROUTES — All Gemini AI calls go through the backend
   // SECURITY: API key is never exposed to the client
   // Token tracking: Every Gemini token = 2 PGMentor tokens deducted
@@ -238,7 +276,8 @@ async function startServer() {
 
     try {
       const systemInstruction = `You are an OCR specialist. Extract contact information from the provided visiting card image. Return JSON with: name, designation, organization, email, phone, website, address. If a field is not found, leave it as an empty string.`;
-      const prompt = { parts: [{ text: "Extract contact info from this visiting card." }, { inlineData: { mimeType: "image/png", data: image.split(',')[1] || image } }] };
+      const mimeType = image.startsWith('data:') ? image.substring(image.indexOf(':') + 1, image.indexOf(';')) : 'image/jpeg';
+      const prompt = { parts: [{ text: "Extract contact info from this visiting card." }, { inlineData: { mimeType: mimeType, data: image.split(',')[1] || image } }] };
       const response = await genAI.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } });
       // Track token usage: PGMentor tokens = 2x Gemini tokens
       const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
@@ -256,8 +295,9 @@ async function startServer() {
     if (!image) return res.status(400).json({ error: "image is required" });
 
     try {
-      const systemInstruction = `You are an expert AI healthcare systems evaluator. Analyze the provided medical prescription based on WHO Good Prescription Guidelines. Return a structured JSON report with: overall_score, quality_level, scores (patient_information, prescriber_details, clinical_documentation, drug_information, rational_drug_use, safety_compliance), strengths, deficiencies, recommendations.`;
-      const prompt = { parts: [{ text: "Analyze this prescription and generate the evaluation JSON report." }, { inlineData: { mimeType: "image/jpeg", data: image.split(',')[1] || image } }] };
+      const systemInstruction = `You are an expert AI healthcare systems evaluator. Analyze the provided medical prescription based on WHO Good Prescription Guidelines. Return a structured JSON report with exactly these keys: overall_score, quality_level, scores (patient_information, prescriber_details, clinical_documentation, drug_information, rational_drug_use, safety_compliance), what_was_done_right (array of strings), what_went_wrong (array of strings), how_to_correct (array of strings).`;
+      const mimeType = image.startsWith('data:') ? image.substring(image.indexOf(':') + 1, image.indexOf(';')) : 'image/jpeg';
+      const prompt = { parts: [{ text: "Analyze this prescription and generate the evaluation JSON report." }, { inlineData: { mimeType: mimeType, data: image.split(',')[1] || image } }] };
       const response = await genAI.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } });
       // Track token usage: PGMentor tokens = 2x Gemini tokens
       const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
@@ -265,7 +305,7 @@ async function startServer() {
       res.json(JSON.parse(response.text || '{}'));
     } catch (error: any) {
       console.error("❌ AI analyze-prescription error:", error.message);
-      res.status(500).json({ error: "Prescription analysis failed" });
+      res.status(500).json({ error: "Prescription analysis failed: " + error.message });
     }
   });
 
@@ -276,7 +316,8 @@ async function startServer() {
 
     try {
       const systemInstruction = `You are an expert AI extraction tool. Accurately transcribe the uploaded medical question paper. Maintain exact formatting, structure, question numbers. Return as plain text in Markdown.`;
-      const prompt = { parts: [{ text: "Extract and format the question paper text exactly as shown." }, { inlineData: { mimeType: "image/jpeg", data: image.split(',')[1] || image } }] };
+      const mimeType = image.startsWith('data:') ? image.substring(image.indexOf(':') + 1, image.indexOf(';')) : 'image/jpeg';
+      const prompt = { parts: [{ text: "Extract and format the question paper text exactly as shown." }, { inlineData: { mimeType: mimeType, data: image.split(',')[1] || image } }] };
       const response = await genAI.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "text/plain" } });
       // Track token usage: PGMentor tokens = 2x Gemini tokens
       const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
@@ -1237,7 +1278,7 @@ async function startServer() {
   // API Routes
   app.get("/api/saved", async (req, res) => {
     try {
-      const { data, error } = await supabase.from('saved_items').select('*').order('date', { ascending: false });
+      const { data, error } = await supabaseAdmin.from('saved_items').select('*').order('date', { ascending: false });
       if (error) throw error;
       res.json(data);
     } catch (error: any) {
@@ -1248,7 +1289,7 @@ async function startServer() {
   app.post("/api/saved", async (req, res) => {
     const { id, title, content, featureId, date } = req.body;
     try {
-      const { error } = await supabase.from('saved_items').upsert({
+      const { error } = await supabaseAdmin.from('saved_items').upsert({
         id,
         title,
         content,
@@ -1265,7 +1306,7 @@ async function startServer() {
   app.delete("/api/saved/:id", async (req, res) => {
     const { id } = req.params;
     try {
-      const { error } = await supabase.from('saved_items').delete().eq('id', id);
+      const { error } = await supabaseAdmin.from('saved_items').delete().eq('id', id);
       if (error) throw error;
       res.json({ success: true });
     } catch (error: any) {
@@ -1726,8 +1767,7 @@ async function startServer() {
         date: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on question_paper_generator upsert:", error);
-        throw error;
+        console.error("Supabase Error on question_paper_generator upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table so it appears in the Dashboard Library
@@ -1811,8 +1851,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on essay_generator upsert:", error);
-        throw error;
+        console.error("Supabase Error on essay_generator upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table so it appears in the Dashboard Library
@@ -1868,8 +1907,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on seminar_builder upsert:", error);
-        throw error;
+        console.error("Supabase Error on seminar_builder upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table so it appears in the existing generic dashboards
@@ -1936,8 +1974,7 @@ async function startServer() {
         date: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on journal_club upsert:", error);
-        throw error;
+        console.error("Supabase Error on journal_club upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table so it appears in the existing generic dashboards
@@ -1990,8 +2027,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on protocol_generator upsert:", error);
-        throw error;
+        console.error("Supabase Error on protocol_generator upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table so it appears in the Dashboard Library
@@ -2044,8 +2080,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on manuscript_generator upsert:", error);
-        throw error;
+        console.error("Supabase Error on manuscript_generator upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       const titleText = topic ? `Manuscript: ${topic}` : `Generated Manuscript`;
@@ -2099,8 +2134,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on statassist upsert:", error);
-        throw error;
+        console.error("Supabase Error on statassist upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       const titleText = study_title ? `StatAssist: ${study_title}` : `Statistical Analysis`;
@@ -2152,8 +2186,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on ai_exam_preparation_system upsert:", error);
-        throw error;
+        console.error("Supabase Error on ai_exam_preparation_system upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table so it appears in the Dashboard Library
@@ -2210,8 +2243,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on reflection_generator upsert:", error);
-        throw error;
+        console.error("Supabase Error on reflection_generator upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table so it appears in the Dashboard Library
@@ -2264,8 +2296,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on clinical_decision_support_system upsert:", error);
-        throw error;
+        console.error("Supabase Error on clinical_decision_support_system upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table
@@ -2326,8 +2357,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on doubt_solver upsert:", error);
-        throw error;
+        console.error("Supabase Error on doubt_solver upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table so it appears in the Dashboard Library
@@ -2507,8 +2537,7 @@ async function startServer() {
         created_at: new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on contacts_management upsert:", error);
-        throw error;
+        console.error("Supabase Error on contacts_management upsert:", error.message); // Fallback: proceed to save in saved_items
       }
       res.json({ success: true });
     } catch (error: any) {
@@ -2628,23 +2657,58 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on digital_diary upsert:", error);
-        throw error;
+        console.error("Supabase Error on digital_diary upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table so it appears in the Dashboard Library
-      const titleText = `Diary: ${new Date(entry_date || date || Date.now()).toLocaleDateString()}`;
-      const { error: error2 } = await supabase.from('saved_items').upsert({
+      const titleName = "Digital Diary Entry";
+      await supabase.from('saved_items').upsert({
         id,
-        title: titleText,
-        content,
+        user_id: user_id || 'default',
         feature_id: 'digital-diary',
+        title: titleName,
+        content: content,
         date: date || new Date().toISOString()
       });
-      if (error2) console.error("Error saving to saved_items:", error2);
 
-      res.json({ success: true });
+      res.json({ success: true, id });
     } catch (error: any) {
+      console.error("Error saving diary:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Prescription Analyser Report Save Route
+  app.post("/api/prescription-analyser", async (req, res) => {
+    const { id, user_id, prescription_data, analysis, date } = req.body;
+    try {
+      // First try to insert into prescription_reports if the table exists
+      const { error } = await supabase.from('prescription_reports').upsert({
+        id,
+        user_id: user_id || 'default',
+        prescription_data,
+        analysis,
+        created_at: date || new Date().toISOString()
+      });
+      
+      if (error) {
+        console.error("Supabase Error on prescription_reports upsert:", error.message);
+      }
+
+      // Also save to generic saved_items table so it appears in the Dashboard Library
+      const titleName = "Prescription Analysis Report";
+      await supabase.from('saved_items').upsert({
+        id,
+        user_id: user_id || 'default',
+        feature_id: 'prescription-analyser',
+        title: titleName,
+        content: `**Prescription Analysis**\n\n${analysis}`,
+        date: date || new Date().toISOString()
+      });
+
+      res.json({ success: true, id });
+    } catch (error: any) {
+      console.error("Error saving prescription analysis:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -2691,8 +2755,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on drug_treatment_assistant upsert:", error);
-        throw error;
+        console.error("Supabase Error on drug_treatment_assistant upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table so it appears in the Dashboard Library
@@ -2749,8 +2812,7 @@ async function startServer() {
         notes
       });
       if (error) {
-        console.error("Supabase Error on saved_guidelines upsert:", error);
-        throw error;
+        console.error("Supabase Error on saved_guidelines upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table
@@ -2802,8 +2864,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on prescription_analyser upsert:", error);
-        throw error;
+        console.error("Supabase Error on prescription_analyser upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table so it appears in the Dashboard Library
@@ -2858,8 +2919,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on knowledge_analyser_essay upsert:", error);
-        throw error;
+        console.error("Supabase Error on knowledge_analyser_essay upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table
@@ -2914,8 +2974,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on knowledge_analyser_mcqs upsert:", error);
-        throw error;
+        console.error("Supabase Error on knowledge_analyser_mcqs upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table
@@ -2971,8 +3030,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on ai_exam_simulator upsert:", error);
-        throw error;
+        console.error("Supabase Error on ai_exam_simulator upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table
@@ -3126,8 +3184,7 @@ async function startServer() {
         created_at: date || new Date().toISOString()
       });
       if (error) {
-        console.error("Supabase Error on clinical_examination_system upsert:", error);
-        throw error;
+        console.error("Supabase Error on clinical_examination_system upsert:", error.message); // Fallback: proceed to save in saved_items
       }
 
       // Also save to generic saved_items table

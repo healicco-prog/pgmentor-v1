@@ -3024,7 +3024,18 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
 
   const handleGenerate = async () => {
     let finalInput = input;
-    
+
+    // ── Journal Club Guard ───────────────────────────────────────────────────
+    // Do NOT allow generation unless the user has pasted a Journal PDF link
+    // OR uploaded at least one journal file (PDF / image).
+    if (featureId === 'journal-club') {
+      if (!jcJournalLink.trim() && scanImages.length === 0) {
+        alert('Please paste a Journal PDF Link or upload the journal article (PDF / Images) before generating.');
+        return;
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     if (featureId === 'question-paper') {
       if (!questionPaperCourse || !paperNumber || !input) {
         alert("Please select a Course, fill in Paper Number and Topic.");
@@ -4114,11 +4125,17 @@ Return the response in JSON format with the following schema:
       }
       
       const response = await generateMedicalContent(prompt, systemInstruction, responseMimeType, useSearch);
-      const cleanResponse = response ? response.replace(/^\s*```(?:json)?|```\s*$/gi, '').trim() : '';
-      
+      let cleanResponse = response ? response.trim() : '';
       if ((featureId === 'seminar-builder' || featureId === 'journal-club') && response) {
         try {
-          const parsed = JSON.parse(cleanResponse);
+          // Robust JSON extraction
+          let jsonString = cleanResponse;
+          const startIdx = cleanResponse.indexOf('{');
+          const endIdx = cleanResponse.lastIndexOf('}');
+          if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+            jsonString = cleanResponse.substring(startIdx, endIdx + 1);
+          }
+          const parsed = JSON.parse(jsonString);
           const rawSlides = parsed.slides || [];
           const sanitizedSlides = rawSlides.map((s: any) => {
             let contentStr = "";
@@ -4213,8 +4230,18 @@ Return the response in JSON format with the following schema:
       } else {
         setOutput(response || "Failed to generate content.");
       }
-    } catch (error) {
-      setOutput("Error generating content. Please try again.");
+    } catch (error: any) {
+      console.error('❌ handleGenerate error:', error?.message || error);
+      const errMsg = error?.message || '';
+      if (errMsg.toLowerCase().includes('timeout') || errMsg.toLowerCase().includes('time out')) {
+        setOutput("⏱ Generation timed out. The content is too long to generate in one request. Please try a more specific topic or shorter input.");
+      } else if (errMsg.toLowerCase().includes('rate') || errMsg.toLowerCase().includes('quota') || errMsg.toLowerCase().includes('429')) {
+        setOutput("⚠️ AI service is busy. Please wait a moment and try again.");
+      } else if (errMsg) {
+        setOutput(`❌ Error: ${errMsg}. Please try again.`);
+      } else {
+        setOutput("Error generating content. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -4700,7 +4727,18 @@ Return the response in JSON format with the following schema:
       };
     } else if (featureId === 'stat-assist') {
       const selectedMethods = statMethods.filter(m => m.selected).map(m => m.name);
-      const compiledContent = `# Statistical Analysis: ${statStudyTitle}\n\n## Selected Methods\n${selectedMethods.join(', ')}\n\n## Results\n${statData || output || 'No results generated yet.'}`;
+      
+      let rawMethodsText = '';
+      if (!statData && output) {
+         try {
+            const parsed = JSON.parse(output.replace(/`{3}json|`{3}/g, '').trim());
+            if (parsed.methods) {
+              rawMethodsText = parsed.methods.map((m: any) => `- **${m.name}**\n  Advantages: ${m.advantages}\n  Disadvantages: ${m.disadvantages}`).join('\n\n');
+            }
+         } catch(e) {}
+      }
+      
+      const compiledContent = `# Statistical Analysis: ${statStudyTitle}\n\n## Selected Methods\n${selectedMethods.length > 0 ? selectedMethods.join(', ') : 'None selected'}\n\n## Results / Methods Detail\n${statData || rawMethodsText || 'No results generated yet.'}`;
       customTitle = `StatAssist: ${statStudyTitle}`;
       endpoint = '/api/statassist';
       contentToSave = compiledContent;
@@ -4710,7 +4748,7 @@ Return the response in JSON format with the following schema:
         study_title: statStudyTitle,
         course: statCourse,
         methods: JSON.stringify(selectedMethods),
-        results: statData || output || '',
+        results: statData || rawMethodsText || '',
         content: compiledContent,
         date: new Date().toISOString(),
         
@@ -7074,22 +7112,30 @@ Return the response in JSON format with the following schema:
                       ))}
                     </div>
                     
-                    <button 
-                      onClick={handleGenerateStatResults}
-                      disabled={isGeneratingResults || statMethods.filter(m => m.selected).length === 0}
-                      className="w-full mt-8 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
-                    >
-                      {isGeneratingResults ? (
-                         <>
-                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                           Generating Final Results...
-                         </>
-                      ) : (
-                         <>
-                           <BarChart3 size={20} /> Generate Results
-                         </>
-                      )}
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-4 mt-8">
+                      <button 
+                        onClick={handleGenerateStatResults}
+                        disabled={isGeneratingResults || statMethods.filter(m => m.selected).length === 0}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+                      >
+                        {isGeneratingResults ? (
+                           <>
+                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                             Generating Final Results...
+                           </>
+                        ) : (
+                           <>
+                             <BarChart3 size={20} /> Generate Results
+                           </>
+                        )}
+                      </button>
+                      <button 
+                        onClick={handleSave}
+                        className="sm:w-1/3 bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                      >
+                        <Save size={20} /> Save Methods
+                      </button>
+                    </div>
                   </div>
                 )}
                 
@@ -7433,10 +7479,19 @@ Return the response in JSON format with the following schema:
               </>
             )}
 
+            {featureId === 'journal-club' && !jcJournalLink.trim() && scanImages.length === 0 && (
+              <div className="flex items-center gap-3 bg-amber-900/30 border border-amber-500/40 rounded-xl px-4 py-3 mb-2">
+                <span className="text-amber-400 text-xl">⚠️</span>
+                <p className="text-amber-300 text-sm font-medium">
+                  Please paste a <strong>Journal PDF Link</strong> or <strong>upload the journal article</strong> (PDF / Images) to proceed.
+                </p>
+              </div>
+            )}
+
             <button 
               onClick={handleGenerate}
-              disabled={isLoading || (featureId === 'ai-exam-prep' && !prepCourseId)}
-              className={`w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 ${(featureId === 'prescription-analyser' || featureId === 'contacts-management' || featureId === 'search-topic' || featureId === 'knowledge-library' || featureId === 'essay-library' || featureId === 'mcq-library' || featureId === 'flash-cards' || featureId === 'thesis-notes' || featureId === 'clinical-decision-support' || (featureId === 'ai-exam-simulator' && (simExamActive || simUploadPhase || isEvaluatingSim || simEvaluationResult)) || (featureId === 'answer-analyser' && analyzerSelectedQuestion) || (featureId === 'mcqs-analyser' && mcqGeneratedList.length > 0)) ? 'hidden' : ''}`}
+              disabled={isLoading || (featureId === 'ai-exam-prep' && !prepCourseId) || (featureId === 'journal-club' && !jcJournalLink.trim() && scanImages.length === 0)}
+              className={`w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 ${(featureId === 'prescription-analyser' || featureId === 'contacts-management' || featureId === 'search-topic' || featureId === 'knowledge-library' || featureId === 'essay-library' || featureId === 'mcq-library' || featureId === 'flash-cards' || featureId === 'thesis-notes' || featureId === 'clinical-decision-support' || (featureId === 'ai-exam-simulator' && (simExamActive || simUploadPhase || isEvaluatingSim || simEvaluationResult)) || (featureId === 'answer-analyser' && analyzerSelectedQuestion) || (featureId === 'mcqs-analyser' && mcqGeneratedList.length > 0)) ? 'hidden' : ''}`}
             >
               {isLoading ? (
                 <>
@@ -7556,53 +7611,65 @@ Return the response in JSON format with the following schema:
 
               {activeTab === 'slides' ? (
                 <div className="space-y-6">
-                  {slides.map((slide, idx) => (
-                    <div key={idx} className="bg-slate-800/50 border border-white/5 rounded-xl p-6 relative group">
-                      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">Slide {idx + 1}</span>
+                  {slides.length === 0 && !output.includes('successfully') ? (
+                    <div className="bg-slate-800/50 border border-white/5 rounded-xl p-6 relative group">
+                      <div className="text-slate-300 leading-relaxed prose prose-invert max-w-none prose-li:my-1 prose-ul:my-2 prose-ul:list-disc">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{output}</ReactMarkdown>
                       </div>
-                      {isEditingPPT ? (
-                        <div className="space-y-4">
-                          <input 
-                            value={slide.title}
-                            onChange={(e) => {
-                              const newSlides = [...slides];
-                              newSlides[idx].title = e.target.value;
-                              setSlides(newSlides);
-                            }}
-                            className="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-2 text-white font-bold"
-                          />
-                          <textarea 
-                            value={slide.content}
-                            onChange={(e) => {
-                              const newSlides = [...slides];
-                              newSlides[idx].content = e.target.value;
-                              setSlides(newSlides);
-                            }}
-                            className="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-2 text-slate-300 h-32"
-                          />
-                        </div>
-                      ) : (
-                        <>
-                          <h4 className="text-xl font-bold text-white mb-4">{slide.title}</h4>
-                          <div className="text-slate-300 leading-relaxed prose prose-invert max-w-none prose-li:my-1 prose-ul:my-2 prose-ul:list-disc">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {slide.content
-                                .replace(/<ul>/g, '')
-                                .replace(/<\/ul>/g, '')
-                                .replace(/<li>/g, '\n* ')
-                                .replace(/<\/li>/g, '')
-                                .replace(/(?<!\n)-\s/g, '\n* ')}
-                            </ReactMarkdown>
-                          </div>
-                        </>
-                      )}
                     </div>
-                  ))}
+                  ) : (
+                    slides.map((slide, idx) => (
+                      <div key={idx} className="bg-slate-800/50 border border-white/5 rounded-xl p-6 relative group">
+                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">Slide {idx + 1}</span>
+                        </div>
+                        {isEditingPPT ? (
+                          <div className="space-y-4">
+                            <input 
+                              value={slide.title}
+                              onChange={(e) => {
+                                const newSlides = [...slides];
+                                newSlides[idx].title = e.target.value;
+                                setSlides(newSlides);
+                              }}
+                              className="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-2 text-white font-bold"
+                            />
+                            <textarea 
+                              value={slide.content}
+                              onChange={(e) => {
+                                const newSlides = [...slides];
+                                newSlides[idx].content = e.target.value;
+                                setSlides(newSlides);
+                              }}
+                              className="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-2 text-slate-300 h-32"
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <h4 className="text-xl font-bold text-white mb-4">{slide.title}</h4>
+                            <div className="text-slate-300 leading-relaxed prose prose-invert max-w-none prose-li:my-1 prose-ul:my-2 prose-ul:list-disc">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {slide.content
+                                  .replace(/<ul>/g, '')
+                                  .replace(/<\/ul>/g, '')
+                                  .replace(/<li>/g, '\n* ')
+                                  .replace(/<\/li>/g, '')
+                                  .replace(/(?<!\n)-\s/g, '\n* ')}
+                              </ReactMarkdown>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               ) : (
                 <div id="pdf-download-notes-content" className="w-full">
-                  {isEditingNotes ? (
+                  {!detailedNotes && slides.length === 0 && !output.includes('successfully') ? (
+                    <div className="bg-slate-800/50 border border-white/5 rounded-xl p-8 prose prose-invert text-slate-300 max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{output}</ReactMarkdown>
+                    </div>
+                  ) : isEditingNotes ? (
                     <textarea
                       value={detailedNotes}
                       onChange={(e) => setDetailedNotes(e.target.value)}

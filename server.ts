@@ -87,39 +87,76 @@ function validateEmail(email: string): boolean {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GEMINI AI CLIENT — Vertex AI with ADC (production) or API key (fallback)
-// Production: Uses service account attached to Cloud Run (ADC)
-// Local dev: Uses `gcloud auth application-default login`
+// GEMINI AI CLIENT — Vertex AI with service account ADC (production)
+// Production (Cloud Run): Uses service account pgmentor-backend-sa via ADC
+// Local dev: Uses `gcloud auth application-default login` for ADC
+// SECURITY: No API key exposed. All AI calls stay server-side only.
 // ═══════════════════════════════════════════════════════════════════════════
 const gcpProject = process.env.GOOGLE_CLOUD_PROJECT;
 const gcpLocation = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
-const geminiApiKey = process.env.GEMINI_API_KEY; // legacy fallback only
+const geminiApiKey = process.env.GEMINI_API_KEY; // Only for local dev fallback
 
 let genAI: InstanceType<typeof GoogleGenAI> | null = null;
 
 if (gcpProject) {
-  // Production path: Vertex AI with Application Default Credentials
+  // ✅ PRIMARY PATH: Vertex AI with Application Default Credentials
+  // On Cloud Run: ADC uses the attached service account (pgmentor-backend-sa)
+  // Locally: ADC uses credentials from `gcloud auth application-default login`
   genAI = new GoogleGenAI({
     vertexai: true,
     project: gcpProject,
     location: gcpLocation
   });
-  console.log(`✅ Vertex AI client initialized (project: ${gcpProject}, location: ${gcpLocation})`);
+  console.log(`✅ Vertex AI client initialized via ADC (project: ${gcpProject}, location: ${gcpLocation})`);
 } else if (geminiApiKey) {
-  // Fallback: Direct API key (not recommended for production)
+  // ⚠️ FALLBACK: Direct API key (local dev only — never use in production)
   genAI = new GoogleGenAI({ apiKey: geminiApiKey });
-  console.log("⚠️ Gemini AI client initialized with API key (fallback mode).");
+  console.log("⚠️ Gemini AI client initialized with API key (local dev fallback).");
 } else {
   console.warn("⚠️ No GOOGLE_CLOUD_PROJECT or GEMINI_API_KEY set. AI features will be disabled.");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // AI MODEL SELECTION
-// Using gemini-2.5-flash for all users — high quality + no quota limits
-// (gemini-3.1-pro-preview has a 250 req/day free-tier cap)
+// Primary: gemini-2.5-flash | Fallback: gemini-2.0-flash (faster, for timeouts)
 // ═══════════════════════════════════════════════════════════════════════════
 function selectAIModel(userRole?: string): string {
   return 'gemini-2.5-flash';
+}
+
+function selectFallbackModel(): string {
+  return 'gemini-2.0-flash';
+}
+
+// Wrap a promise with a timeout — rejects after ms milliseconds
+function withTimeout<T>(promise: Promise<T>, ms: number, label?: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Timeout after ${ms}ms${label ? ` (${label})` : ''}`));
+    }, ms);
+    promise.then(v => { clearTimeout(timer); resolve(v); }, e => { clearTimeout(timer); reject(e); });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RETRY WITH EXPONENTIAL BACKOFF — handles 429 RESOURCE_EXHAUSTED errors
+// ═══════════════════════════════════════════════════════════════════════════
+async function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      const is429 = error?.message?.includes('429') || error?.message?.includes('RESOURCE_EXHAUSTED');
+      if (is429 && attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000; // 1-2s, 2-3s, 4-5s
+        console.log(`⏳ Rate limited (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${Math.round(delay)}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('Retry exhausted');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -252,21 +289,51 @@ async function startServer() {
     const { prompt, systemInstruction, responseMimeType, useSearch, userRole, userId } = req.body;
     if (!prompt) return res.status(400).json({ error: "prompt is required" });
 
-    const model = selectAIModel(userRole);
-    console.log(`🤖 AI generate request — model: ${model} (role: ${userRole || 'public'})`);
+    const primaryModel = selectAIModel(userRole);
+    const fallbackModel = selectFallbackModel();
+    console.log(`🤖 AI generate request — model: ${primaryModel} (role: ${userRole || 'public'})`);
 
+    const config: any = { systemInstruction, temperature: 0.7, responseMimeType: responseMimeType || "text/plain" };
+    if (useSearch) config.tools = [{ googleSearch: {} }];
+
+    // Try primary model with 22s timeout, then fallback model with 20s timeout
+    // This ensures we respond before Netlify's 26s proxy timeout
+    let response: any;
+    let usedModel = primaryModel;
     try {
-      const config: any = { systemInstruction, temperature: 0.7, responseMimeType: responseMimeType || "text/plain" };
-      if (useSearch) config.tools = [{ googleSearch: {} }];
-      const response = await genAI.models.generateContent({ model, contents: prompt, config });
-      // Track token usage: PGMentor tokens = 2x Gemini tokens
-      const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
-      if (userId) logTokenUsage(userId, geminiTokens, 'ai/generate');
-      res.json({ text: response.text, tokensUsed: geminiTokens * PGMENTOR_TOKEN_MULTIPLIER });
-    } catch (error: any) {
-      console.error(`❌ AI generate error (model: ${model}):`, error.message, error.stack?.slice(0, 500));
-      res.status(500).json({ error: `AI generation failed: ${error.message}` });
+      response = await withTimeout(
+        retryWithBackoff(() => genAI!.models.generateContent({ model: primaryModel, contents: prompt, config }), 1),
+        22000,
+        `${primaryModel} primary`
+      );
+    } catch (primaryError: any) {
+      const isTimeout = primaryError.message?.includes('Timeout');
+      const is429 = primaryError.message?.includes('429') || primaryError.message?.includes('RESOURCE_EXHAUSTED');
+      console.warn(`⚠️ Primary model ${primaryModel} failed (${primaryError.message?.slice(0, 80)}). ${isTimeout || is429 ? 'Trying fallback...' : 'Not retrying.'}`);
+      if (isTimeout || is429) {
+        try {
+          usedModel = fallbackModel;
+          response = await withTimeout(
+            retryWithBackoff(() => genAI!.models.generateContent({ model: fallbackModel, contents: prompt, config }), 1),
+            20000,
+            `${fallbackModel} fallback`
+          );
+          console.log(`✅ Fallback model ${fallbackModel} succeeded`);
+        } catch (fallbackError: any) {
+          console.error(`❌ Fallback model ${fallbackModel} also failed:`, fallbackError.message);
+          return res.status(500).json({ error: `AI generation failed: ${fallbackError.message}` });
+        }
+      } else {
+        console.error(`❌ AI generate error (model: ${primaryModel}):`, primaryError.message, primaryError.stack?.slice(0, 500));
+        return res.status(500).json({ error: `AI generation failed: ${primaryError.message}` });
+      }
     }
+
+    // Track token usage: PGMentor tokens = 2x Gemini tokens
+    const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
+    if (userId) logTokenUsage(userId, geminiTokens, 'ai/generate');
+    console.log(`✅ AI generate success — model: ${usedModel}, tokens: ${geminiTokens}`);
+    res.json({ text: response.text, tokensUsed: geminiTokens * PGMENTOR_TOKEN_MULTIPLIER });
   });
 
   app.post("/api/ai/extract-contact", async (req, res) => {
@@ -278,7 +345,7 @@ async function startServer() {
       const systemInstruction = `You are an OCR specialist. Extract contact information from the provided visiting card image. Return JSON with: name, designation, organization, email, phone, website, address. If a field is not found, leave it as an empty string.`;
       const mimeType = image.startsWith('data:') ? image.substring(image.indexOf(':') + 1, image.indexOf(';')) : 'image/jpeg';
       const prompt = { parts: [{ text: "Extract contact info from this visiting card." }, { inlineData: { mimeType: mimeType, data: image.split(',')[1] || image } }] };
-      const response = await genAI.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } });
+      const response = await retryWithBackoff(() => genAI!.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } }));
       // Track token usage: PGMentor tokens = 2x Gemini tokens
       const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
       if (userId) logTokenUsage(userId, geminiTokens, 'ai/extract-contact');
@@ -298,7 +365,7 @@ async function startServer() {
       const systemInstruction = `You are an expert AI healthcare systems evaluator. Analyze the provided medical prescription based on WHO Good Prescription Guidelines. Return a structured JSON report with exactly these keys: overall_score, quality_level, scores (patient_information, prescriber_details, clinical_documentation, drug_information, rational_drug_use, safety_compliance), what_was_done_right (array of strings), what_went_wrong (array of strings), how_to_correct (array of strings).`;
       const mimeType = image.startsWith('data:') ? image.substring(image.indexOf(':') + 1, image.indexOf(';')) : 'image/jpeg';
       const prompt = { parts: [{ text: "Analyze this prescription and generate the evaluation JSON report." }, { inlineData: { mimeType: mimeType, data: image.split(',')[1] || image } }] };
-      const response = await genAI.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } });
+      const response = await retryWithBackoff(() => genAI!.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } }));
       // Track token usage: PGMentor tokens = 2x Gemini tokens
       const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
       if (userId) logTokenUsage(userId, geminiTokens, 'ai/analyze-prescription');
@@ -318,7 +385,7 @@ async function startServer() {
       const systemInstruction = `You are an expert AI extraction tool. Accurately transcribe the uploaded medical question paper. Maintain exact formatting, structure, question numbers. Return as plain text in Markdown.`;
       const mimeType = image.startsWith('data:') ? image.substring(image.indexOf(':') + 1, image.indexOf(';')) : 'image/jpeg';
       const prompt = { parts: [{ text: "Extract and format the question paper text exactly as shown." }, { inlineData: { mimeType: mimeType, data: image.split(',')[1] || image } }] };
-      const response = await genAI.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "text/plain" } });
+      const response = await retryWithBackoff(() => genAI!.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "text/plain" } }));
       // Track token usage: PGMentor tokens = 2x Gemini tokens
       const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
       if (userId) logTokenUsage(userId, geminiTokens, 'ai/extract-paper');
@@ -1150,7 +1217,7 @@ async function startServer() {
     } catch (error: any) {
       console.error("❌ referral stats error:", error.message);
       // Even on error, return a generated code so the UI always has something
-      const fallbackCode = 'PGM-' + req.params.userId.replace(/-/g, '').slice(0, 8).toUpperCase();
+      const fallbackCode = 'PGM-' + (req.params.userId === 'default' ? '00000000-0000-0000-0000-000000000000' : req.params.userId).replace(/-/g, '').slice(0, 8).toUpperCase();
       res.json({ referral_code: fallbackCode, total_referred: 0, total_subscribed: 0, rewards: [] });
     }
   });
@@ -1215,7 +1282,7 @@ async function startServer() {
   // Admin: Get detailed referrals for a specific user
   app.get("/api/admin/referral/user/:userId", async (req, res) => {
     try {
-      const { data, error } = await supabase.rpc('admin_get_user_referrals', { p_user_id: req.params.userId });
+      const { data, error } = await supabase.rpc('admin_get_user_referrals', { p_user_id: (req.params.userId === 'default' ? '00000000-0000-0000-0000-000000000000' : req.params.userId) });
       if (error) throw error;
       res.json(data || []);
     } catch (error: any) {
@@ -1662,7 +1729,7 @@ async function startServer() {
     const { id, user_id, title, content, course, paper, section, topic } = req.body;
     try {
       const { error } = await supabase.from('knowledge_library').upsert({
-        id, user_id: user_id || 'default', title, content, course, paper, section, topic
+        id, user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), title, content, course, paper, section, topic
       });
       if (error) throw error;
       res.json({ success: true });
@@ -1685,7 +1752,7 @@ async function startServer() {
     const { id, user_id, title, content, course, paper, section, topic } = req.body;
     try {
       const { error } = await supabase.from('essay_library').upsert({
-        id, user_id: user_id || 'default', title, content, course, paper, section, topic
+        id, user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), title, content, course, paper, section, topic
       });
       if (error) throw error;
       res.json({ success: true });
@@ -1719,7 +1786,7 @@ async function startServer() {
     const { id, user_id, title, question, options, correct_answer, course, paper, section, topic } = req.body;
     try {
       const { error } = await supabase.from('mcq_library').upsert({
-        id, user_id: user_id || 'default', title, question, options, correct_answer, course, paper, section, topic
+        id, user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), title, question, options, correct_answer, course, paper, section, topic
       });
       if (error) throw error;
       res.json({ success: true });
@@ -1742,7 +1809,7 @@ async function startServer() {
     const { id, user_id, title, front_content, back_content, course, paper, section, topic } = req.body;
     try {
       const { error } = await supabase.from('flash_cards').upsert({
-        id, user_id: user_id || 'default', title, front_content, back_content, course, paper, section, topic
+        id, user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), title, front_content, back_content, course, paper, section, topic
       });
       if (error) throw error;
       res.json({ success: true });
@@ -1759,7 +1826,7 @@ async function startServer() {
       // Save to specialized table
       const { error } = await supabase.from('question_paper_generator').upsert({
         id, 
-        user_id: user_id || 'default', 
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), 
         paper_number, 
         topic, 
         generated_question_paper: content, 
@@ -1793,7 +1860,7 @@ async function startServer() {
   app.get("/api/state/curriculum/:userId", async (req, res) => {
     try {
       const { data, error } = await supabaseAdmin.from('user_curriculum')
-        .select('*').eq('user_id', req.params.userId).single();
+        .select('*').eq('user_id', (req.params.userId === 'default' ? '00000000-0000-0000-0000-000000000000' : req.params.userId)).single();
       
       if (error && error.code !== 'PGRST116') throw error; // ignore no-row error
       res.json({ data: data?.data || null });
@@ -1806,9 +1873,9 @@ async function startServer() {
     try {
       const { user_id, data } = req.body;
       const dataStr = JSON.stringify(data);
-      console.log(`📥 Saving curriculum for user: ${user_id || 'default'}, data length: ${dataStr.length}, hasNotes: ${dataStr.includes('generatedContent')}, hasEssay: ${dataStr.includes('generatedEssayContent')}, hasMcq: ${dataStr.includes('generatedMcqContent')}, hasFlash: ${dataStr.includes('generatedFlashCardsContent')}`);
+      console.log(`📥 Saving curriculum for user: ${(user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id)}, data length: ${dataStr.length}, hasNotes: ${dataStr.includes('generatedContent')}, hasEssay: ${dataStr.includes('generatedEssayContent')}, hasMcq: ${dataStr.includes('generatedMcqContent')}, hasFlash: ${dataStr.includes('generatedFlashCardsContent')}`);
       const { error } = await supabaseAdmin.from('user_curriculum').upsert({
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         data,
         updated_at: new Date().toISOString()
       });
@@ -1844,7 +1911,7 @@ async function startServer() {
       // Save to specialized table
       const { error } = await supabase.from('essay_generator').upsert({
         id, 
-        user_id: user_id || 'default', 
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), 
         topic, 
         type: type || 'long', 
         content, 
@@ -1899,7 +1966,7 @@ async function startServer() {
       // seminar_builder table has: id, user_id, discipline, topic, ppt_slides (JSONB), detailed_notes, created_at
       const { error } = await supabase.from('seminar_builder').upsert({
         id, 
-        user_id: user_id || 'default', 
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), 
         discipline, 
         topic,
         ppt_slides: ppt_structure ? JSON.parse(ppt_structure) : null,
@@ -1965,7 +2032,7 @@ async function startServer() {
       // journal_club table has: id, user_id, discipline, topic, criteria, ppt_structure (TEXT), detailed_notes, date
       const { error } = await supabase.from('journal_club').upsert({
         id, 
-        user_id: user_id || 'default', 
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), 
         discipline, 
         topic, 
         criteria, 
@@ -2021,7 +2088,7 @@ async function startServer() {
       // Save to specialized protocol_generator table
       const { error } = await supabase.from('protocol_generator').upsert({
         id, 
-        user_id: user_id || 'default', 
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), 
         topic, 
         content, 
         created_at: date || new Date().toISOString()
@@ -2074,7 +2141,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('manuscript_generator').upsert({
         id, 
-        user_id: user_id || 'default', 
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), 
         topic, 
         content, 
         created_at: date || new Date().toISOString()
@@ -2126,7 +2193,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('statassist').upsert({
         id, 
-        user_id: user_id || 'default', 
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), 
         study_title,
         methods,
         results,
@@ -2180,7 +2247,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('ai_exam_preparation_system').upsert({
         id, 
-        user_id: user_id || 'default', 
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), 
         course_id,
         analytics: analytics || null,
         created_at: date || new Date().toISOString()
@@ -2236,7 +2303,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('reflection_generator').upsert({
         id, 
-        user_id: user_id || 'default', 
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), 
         subject,
         topic, 
         content, 
@@ -2290,7 +2357,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('clinical_decision_support_system').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         patient_data,
         recommendations,
         created_at: date || new Date().toISOString()
@@ -2346,7 +2413,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('doubt_solver').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         topic,
         style,
         depth,
@@ -2407,7 +2474,7 @@ async function startServer() {
       // Save to dedicated resume_builder table
       const { error } = await supabase.from('resume_builder').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         full_name: full_name || '',
         professional_title: professional_title || '',
         email: email || '',
@@ -2474,7 +2541,7 @@ async function startServer() {
       // Save to dedicated table
       const { error } = await supabase.from('scientific_session_search').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         subject: subject || '',
         topic: topic || '',
         region: region || '',
@@ -2526,7 +2593,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('contacts_management').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         name,
         designation,
         organization,
@@ -2588,7 +2655,7 @@ async function startServer() {
           const contactId = contact.id || `contact-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
           const { error } = await supabase.from('contacts_management').upsert({
             id: contactId,
-            user_id: user_id || 'default',
+            user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
             name: contact.name || '',
             designation: contact.designation || '',
             organization: contact.organization || '',
@@ -2609,8 +2676,8 @@ async function startServer() {
       // Save personal card as a special entry
       if (personal_card) {
         const { error } = await supabase.from('contacts_management').upsert({
-          id: `personal-card-${user_id || 'default'}`,
-          user_id: user_id || 'default',
+          id: `personal-card-${(user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id)}`,
+          user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
           name: personal_card.name || 'Your Name',
           designation: '__personal_card__',
           organization: personal_card.organization || '',
@@ -2650,7 +2717,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('digital_diary').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         entry_date: entry_date || new Date().toISOString(),
         content,
         action_items,
@@ -2664,7 +2731,7 @@ async function startServer() {
       const titleName = "Digital Diary Entry";
       await supabase.from('saved_items').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         feature_id: 'digital-diary',
         title: titleName,
         content: content,
@@ -2685,7 +2752,7 @@ async function startServer() {
       // First try to insert into prescription_reports if the table exists
       const { error } = await supabase.from('prescription_reports').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         prescription_data,
         analysis,
         created_at: date || new Date().toISOString()
@@ -2699,7 +2766,7 @@ async function startServer() {
       const titleName = "Prescription Analysis Report";
       await supabase.from('saved_items').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         feature_id: 'prescription-analyser',
         title: titleName,
         content: `**Prescription Analysis**\n\n${analysis}`,
@@ -2741,7 +2808,7 @@ async function startServer() {
       const titleText = `Drug: ${(query || drug_name || 'Untitled').slice(0, 60)}`;
       const { error } = await supabase.from('drug_treatment_assistant').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         query,
         drug_name,
         condition,
@@ -2801,7 +2868,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('saved_guidelines').upsert({
         id,
-        userId: userId || 'default',
+        userId: (userId === 'default' || !userId ? '00000000-0000-0000-0000-000000000000' : userId),
         conditionName,
         title,
         organization,
@@ -2858,7 +2925,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('prescription_analyser').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         prescription_data,
         analysis,
         created_at: date || new Date().toISOString()
@@ -2911,7 +2978,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('knowledge_analyser_essay').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         subject,
         topic,
         questions: questions || null,
@@ -2966,7 +3033,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('knowledge_analyser_mcqs').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         subject,
         topic,
         mcqs: mcqs || null,
@@ -3021,7 +3088,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('ai_exam_simulator').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         subject,
         paper: paper || null,
         topics: topics || null,
@@ -3070,7 +3137,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('clinical_exam_sessions').insert({
         id, 
-        user_id: userId || 'default', 
+        user_id: (userId === 'default' || !userId ? '00000000-0000-0000-0000-000000000000' : userId), 
         specialty, 
         subspecialty, 
         exam_type: examType, 
@@ -3169,7 +3236,7 @@ async function startServer() {
     try {
       const { error } = await supabase.from('clinical_examination_system').upsert({
         id,
-        user_id: user_id || 'default',
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
         specialty,
         exam_type,
         case_data: case_data || null,
@@ -3503,7 +3570,7 @@ async function startServer() {
       const { data, error } = await supabaseAdmin
         .from("user_profiles")
         .select("email_verified")
-        .eq("user_id", req.params.userId)
+        .eq("user_id", (req.params.userId === 'default' ? '00000000-0000-0000-0000-000000000000' : req.params.userId))
         .single();
 
       if (error) return res.status(404).json({ verified: false });

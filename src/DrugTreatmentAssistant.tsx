@@ -359,11 +359,11 @@ const DrugTreatmentAssistant = ({ onSave }: { onSave?: (data: any) => Promise<vo
         <button
           onClick={handleGenerate}
           disabled={isLoading || (!query.trim() && !drugName.trim() && !condition.trim())}
-          className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
+          className={`w-full font-bold py-4 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 ${isLoading ? 'bg-orange-100 text-blue-900 shadow-orange-100/20' : 'bg-[#FFD700] hover:bg-[#F2C800] disabled:opacity-40 disabled:cursor-not-allowed text-blue-900 shadow-[#FFD700]/20'}`}
         >
           {isLoading ? (
             <>
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-blue-900/40 border-t-blue-900 rounded-full animate-spin" />
               Analyzing Drug Information...
             </>
           ) : (

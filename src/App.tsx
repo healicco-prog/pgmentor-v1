@@ -5622,7 +5622,7 @@ Return the response in JSON format with the following schema:
                               setMcqUserAnswers({});
                               setMcqEvaluationResult('');
                             }}
-                            className="flex-1 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-lg"
+                            className="flex-1 px-8 py-4 bg-[#FFD700] hover:bg-[#F2C800] text-blue-900 font-bold rounded-xl transition-all shadow-md"
                           >
                             Generate New MCQs
                           </button>
@@ -7116,11 +7116,11 @@ Return the response in JSON format with the following schema:
                       <button 
                         onClick={handleGenerateStatResults}
                         disabled={isGeneratingResults || statMethods.filter(m => m.selected).length === 0}
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+                        className={`font-bold py-4 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 ${isGeneratingResults ? 'bg-orange-100 text-blue-900 shadow-orange-100/20 w-full md:flex-1' : 'bg-[#FFD700] hover:bg-[#F2C800] disabled:opacity-40 disabled:bg-[#dfe6f0] text-blue-900 shadow-[#FFD700]/20 flex-1'}`}
                       >
                         {isGeneratingResults ? (
                            <>
-                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                             <div className="w-5 h-5 border-2 border-blue-900/40 border-t-blue-900 rounded-full animate-spin" />
                              Generating Final Results...
                            </>
                         ) : (
@@ -7491,12 +7491,12 @@ Return the response in JSON format with the following schema:
             <button 
               onClick={handleGenerate}
               disabled={isLoading || (featureId === 'ai-exam-prep' && !prepCourseId) || (featureId === 'journal-club' && !jcJournalLink.trim() && scanImages.length === 0)}
-              className={`w-full font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg cursor-not-allowed disabled:cursor-not-allowed ${isLoading ? 'bg-slate-700 text-white shadow-slate-700/20' : 'bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:opacity-60 text-white shadow-blue-600/20'} ${(featureId === 'prescription-analyser' || featureId === 'contacts-management' || featureId === 'search-topic' || featureId === 'knowledge-library' || featureId === 'essay-library' || featureId === 'mcq-library' || featureId === 'flash-cards' || featureId === 'thesis-notes' || featureId === 'clinical-decision-support' || (featureId === 'ai-exam-simulator' && (simExamActive || simUploadPhase || isEvaluatingSim || simEvaluationResult)) || (featureId === 'answer-analyser' && analyzerSelectedQuestion) || (featureId === 'mcqs-analyser' && mcqGeneratedList.length > 0)) ? 'hidden' : ''}`}
+              className={`w-full font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg cursor-not-allowed disabled:cursor-not-allowed ${isLoading ? 'bg-orange-100 text-blue-900 shadow-orange-100/20' : 'bg-[#FFD700] hover:bg-[#F2C800] disabled:bg-slate-700 disabled:opacity-60 text-blue-900 shadow-[#FFD700]/20'} ${(featureId === 'prescription-analyser' || featureId === 'contacts-management' || featureId === 'search-topic' || featureId === 'knowledge-library' || featureId === 'essay-library' || featureId === 'mcq-library' || featureId === 'flash-cards' || featureId === 'thesis-notes' || featureId === 'clinical-decision-support' || (featureId === 'ai-exam-simulator' && (simExamActive || simUploadPhase || isEvaluatingSim || simEvaluationResult)) || (featureId === 'answer-analyser' && analyzerSelectedQuestion) || (featureId === 'mcqs-analyser' && mcqGeneratedList.length > 0)) ? 'hidden' : ''}`}
             >
               {isLoading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  <span className="text-white font-bold">Generating...</span>
+                  <div className="w-5 h-5 border-2 border-blue-900/40 border-t-blue-900 rounded-full animate-spin" />
+                  <span className="text-blue-900 font-bold">Generating...</span>
                 </>
               ) : (
                 <>
@@ -18280,10 +18280,10 @@ Return ONLY the JSON object, no extra text.`;
                           <button
                             onClick={generateArticleContent}
                             disabled={isGeneratingContent || !blogForm.title.trim()}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#6d28d9] to-[#4f46e5] hover:from-[#5b21b6] hover:to-[#3730a3] text-white text-[13px] font-bold rounded-xl shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                            className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap ${isGeneratingContent ? 'bg-orange-100 text-blue-900 shadow-orange-100/20' : 'bg-[#FFD700] hover:bg-[#F2C800] text-blue-900 shadow-[#FFD700]/20'}`}
                           >
                             {isGeneratingContent ? (
-                              <><div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin"></div> Generating...</>
+                              <><div className="w-4 h-4 rounded-full border-2 border-blue-900/40 border-t-blue-900 animate-spin"></div> Generating...</>
                             ) : (
                               <><Sparkles size={16} /> Generate with AI</>
                             )}

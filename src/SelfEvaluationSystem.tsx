@@ -345,11 +345,11 @@ Do not include any other text except the JSON. Determine the marks awarded objec
               <button 
                 onClick={handleGenerateRubrics}
                 disabled={isGeneratingRubrics || !topic || (!questionText && !questionImage)}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-[#dfe6f0] disabled:text-[#8a9ab4] text-white font-bold py-4 rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+                className={`w-full font-bold py-4 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 ${isGeneratingRubrics ? 'bg-orange-100 text-blue-900 shadow-orange-100/20' : 'bg-[#FFD700] hover:bg-[#F2C800] disabled:bg-[#dfe6f0] disabled:text-[#8a9ab4] text-blue-900'}`}
               >
                 {isGeneratingRubrics ? (
                    <>
-                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                     <div className="w-5 h-5 border-2 border-blue-900/40 border-t-blue-900 rounded-full animate-spin" />
                      Developing Answer Rubrics...
                    </>
                 ) : (

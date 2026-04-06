@@ -392,9 +392,9 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
                 <button
                   onClick={aiGenerateSummary}
                   disabled={isGenerating}
-                  className="flex items-center gap-1.5 text-xs bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 text-white px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 shadow-md"
+                  className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all shadow-md ${isGenerating ? 'bg-orange-100 text-blue-900 shadow-orange-100/20 disabled:opacity-100 cursor-wait' : 'bg-[#FFD700] hover:bg-[#F2C800] disabled:opacity-50 text-blue-900 shadow-[#FFD700]/20'}`}
                 >
-                  <Sparkles size={12} /> {isGenerating ? 'Generating...' : 'AI Generate'}
+                  {isGenerating ? <div className="w-3 h-3 rounded-full border-2 border-blue-900/40 border-t-blue-900 animate-spin" /> : <Sparkles size={12} />} {isGenerating ? 'Generating...' : 'AI Generate'}
                 </button>
               </div>
               <textarea

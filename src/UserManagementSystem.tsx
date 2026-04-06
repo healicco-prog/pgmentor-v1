@@ -1,17 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Users, Search, Filter, ChevronDown, ChevronRight, MoreVertical,
-  Shield, Coins, BarChart3, FileText, CheckCircle, XCircle, AlertTriangle,
-  Clock, ArrowUpRight, ArrowDownRight, RefreshCw, Edit3, Eye,
-  UserX, UserCheck, Sliders, BookOpen, Activity, Download, Mail,
-  Phone, MapPin, Calendar, TrendingUp, Settings, X, Save, Plus, Minus,
-  AlertCircle, Info, CreditCard, RotateCcw
+  Users, Search, Shield, Coins, FileText, CheckCircle, XCircle, AlertTriangle,
+  Clock, RefreshCw, Edit3, Eye, UserX, UserCheck, X, Save, Plus, Minus,
+  Info, CreditCard, Key, ChevronDown, MoreHorizontal, Activity
 } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,8 +28,10 @@ interface UserProfile {
   state: string;
   city: string;
   account_status: string;
+  role?: string;
   email_verified: boolean;
   created_at: string;
+  email?: string;
 }
 
 interface Subscription {
@@ -78,6 +72,33 @@ interface AuditLog {
   created_at: string;
 }
 
+// ─── API helpers ──────────────────────────────────────────────────────────────
+
+const adminFetch = async (path: string, options?: RequestInit) => {
+  // Get the auth token from localStorage (the user session)
+  const session = localStorage.getItem('supabase.auth.token') ||
+    localStorage.getItem('sb-yrelfdwkjtaidtoulwrj-auth-token');
+  let token = '';
+  try {
+    const parsed = JSON.parse(session || '{}');
+    token = parsed?.access_token || parsed?.currentSession?.access_token || '';
+  } catch {}
+
+  const res = await fetch(path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options?.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+};
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const PLAN_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -95,6 +116,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   pending:   { bg: '#f0f9ff', text: '#0284c7' },
 };
 
+const ROLES = ['student', 'teacher', 'dept_admin', 'institution_admin', 'master_admin', 'super_admin'];
 const TABS = [
   { id: 'users', label: 'Users', icon: Users },
   { id: 'tokens', label: 'Token Policy', icon: Coins },
@@ -102,354 +124,89 @@ const TABS = [
   { id: 'audit', label: 'Audit Logs', icon: FileText },
 ];
 
-// ─── Helper Components ────────────────────────────────────────────────────────
-
-const StatCard = ({ label, value, sub, icon: Icon, color }: any) => (
-  <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex items-start gap-4">
-    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: color + '20' }}>
-      <Icon size={20} style={{ color }} />
-    </div>
-    <div>
-      <p className="text-2xl font-bold text-slate-900">{value}</p>
-      <p className="text-sm font-medium text-slate-500">{label}</p>
-      {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
-    </div>
-  </div>
-);
-
-const TokenMeter = ({ used, total, size = 'md' }: { used: number; total: number; size?: 'sm' | 'md' }) => {
-  const pct = total > 0 ? Math.min(Math.round((used / total) * 100), 100) : 0;
-  const color = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#10b981';
-  return (
-    <div>
-      <div className="flex justify-between items-center mb-1">
-        <span className="text-xs text-slate-500">{used.toLocaleString()} / {total.toLocaleString()} tokens</span>
-        <span className="text-xs font-bold" style={{ color }}>{pct}%</span>
-      </div>
-      <div className="w-full bg-slate-100 rounded-full" style={{ height: size === 'sm' ? 4 : 6 }}>
-        <div className="rounded-full transition-all" style={{ width: `${pct}%`, height: '100%', background: color }} />
-      </div>
-    </div>
-  );
-};
+// ─── Small Components ─────────────────────────────────────────────────────────
 
 const Badge = ({ text, style }: { text: string; style: { bg: string; text: string } }) => (
-  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
+  <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold capitalize"
     style={{ background: style.bg, color: style.text }}>
     {text}
   </span>
 );
 
 const PlanBadge = ({ planId }: { planId: string }) => {
-  const c = PLAN_COLORS[planId] || { bg: '#f1f5f9', text: '#64748b', border: '#cbd5e1' };
+  const c = PLAN_COLORS[planId] || PLAN_COLORS.trial;
   return (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold capitalize border"
-      style={{ background: c.bg, color: c.text, borderColor: c.border }}>
+    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold capitalize"
+      style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}` }}>
       {planId}
     </span>
   );
 };
 
-// ─── User Detail Modal ─────────────────────────────────────────────────────────
-
-const UserDetailModal = ({ user, plans, onClose, onUpdate }: {
-  user: UserRow; plans: Plan[]; onClose: () => void; onUpdate: () => void;
-}) => {
-  const [editingPlan, setEditingPlan] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(user.subscription?.plan_id || 'trial');
-  const [tokenOverride, setTokenOverride] = useState<number | null>(null);
-  const [overrideReason, setOverrideReason] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [tokenLogs, setTokenLogs] = useState<any[]>([]);
-  const [subjectHistory, setSubjectHistory] = useState<any[]>([]);
-  const [activeInnerTab, setActiveInnerTab] = useState<'profile' | 'tokens' | 'history'>('profile');
-
-  useEffect(() => {
-    // Load token logs for this user
-    supabase.from('token_usage_logs').select('*, modules(name)').eq('user_id', user.id)
-      .order('used_at', { ascending: false }).limit(20)
-      .then(({ data }) => setTokenLogs(data || []));
-    // Load subject change history
-    supabase.from('subject_change_history').select('*, old_subject:course_subjects!old_subject_id(name), new_subject:course_subjects!new_subject_id(name)')
-      .eq('user_id', user.id).order('changed_at', { ascending: false })
-      .then(({ data }) => setSubjectHistory(data || []));
-    // Load token override
-    supabase.from('user_token_overrides').select('token_limit, override_reason').eq('user_id', user.id).eq('is_active', true).single()
-      .then(({ data }) => { if (data) { setTokenOverride(data.token_limit); setOverrideReason(data.override_reason || ''); } });
-  }, [user.id]);
-
-  const handlePlanChange = async () => {
-    setSaving(true);
-    await supabase.from('subscriptions').upsert({ user_id: user.id, plan_id: selectedPlan, status: 'active', is_trial: selectedPlan === 'trial' });
-    await supabase.from('admin_audit_logs').insert({ action_type: 'plan_change', performed_by: 'Super Admin', target_user_id: user.id, target_user_email: user.email, details: { old_plan: user.subscription?.plan_id, new_plan: selectedPlan } });
-    setSaving(false);
-    setEditingPlan(false);
-    onUpdate();
-  };
-
-  const handleTokenOverride = async () => {
-    if (!tokenOverride) return;
-    setSaving(true);
-    await supabase.from('user_token_overrides').upsert({ user_id: user.id, token_limit: tokenOverride, override_reason: overrideReason, overridden_by: 'Super Admin', is_active: true });
-    await supabase.from('admin_audit_logs').insert({ action_type: 'token_override', performed_by: 'Super Admin', target_user_id: user.id, target_user_email: user.email, details: { token_limit: tokenOverride, reason: overrideReason } });
-    setSaving(false);
-    onUpdate();
-  };
-
-  const handleStatusChange = async (status: string) => {
-    setSaving(true);
-    await supabase.from('user_profiles').update({ account_status: status }).eq('user_id', user.id);
-    await supabase.from('admin_audit_logs').insert({ action_type: 'status_change', performed_by: 'Super Admin', target_user_id: user.id, target_user_email: user.email, details: { status } });
-    setSaving(false);
-    onUpdate();
-  };
-
-  const p = user.profile;
-  const pct = user.token_limit > 0 ? Math.round((user.token_used / user.token_limit) * 100) : 0;
-
+const TokenMeter = ({ used, total, size = 'md' }: { used: number; total: number; size?: 'sm' | 'md' }) => {
+  const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+  const color = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#10b981';
+  const h = size === 'sm' ? 'h-1.5' : 'h-2';
   return (
-    <div className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-slate-100">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white text-xl font-bold shadow">
-              {(p?.full_name || user.email || 'U')[0].toUpperCase()}
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">{p?.full_name || 'Unknown'}</h2>
-              <p className="text-sm text-slate-500">{user.email}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <PlanBadge planId={user.subscription?.plan_id || 'trial'} />
-                {p?.account_status && <Badge text={p.account_status} style={STATUS_COLORS[p.account_status] || STATUS_COLORS.active} />}
-              </div>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 transition-colors"><X size={20} /></button>
-        </div>
-
-        {/* Inner Tabs */}
-        <div className="flex gap-1 px-6 pt-4">
-          {(['profile', 'tokens', 'history'] as const).map(t => (
-            <button key={t} onClick={() => setActiveInnerTab(t)}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-colors ${activeInnerTab === t ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
-              {t}
-            </button>
-          ))}
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {activeInnerTab === 'profile' && (
-            <div className="space-y-4">
-              {/* Profile fields */}
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'Profession', value: p?.profession },
-                  { label: 'Specialty', value: p?.specialty },
-                  { label: 'Qualification', value: p?.highest_qualification },
-                  { label: 'Stage', value: p?.current_stage },
-                  { label: 'Country', value: p?.country },
-                  { label: 'City', value: p?.city },
-                ].map(({ label, value }) => (
-                  <div key={label} className="bg-slate-50 rounded-2xl p-4">
-                    <p className="text-xs text-slate-400 font-medium mb-1">{label}</p>
-                    <p className="text-sm font-semibold text-slate-800">{value || '—'}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Plan Management */}
-              <div className="bg-slate-50 rounded-2xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-bold text-slate-700">Subscription Plan</p>
-                  <button onClick={() => setEditingPlan(!editingPlan)} className="text-xs text-emerald-600 font-bold hover:text-emerald-700">
-                    {editingPlan ? 'Cancel' : 'Change Plan'}
-                  </button>
-                </div>
-                {editingPlan ? (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-2">
-                      {plans.map(plan => (
-                        <button key={plan.id} onClick={() => setSelectedPlan(plan.id)}
-                          className={`p-3 rounded-xl border-2 text-left transition-all ${selectedPlan === plan.id ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                          <p className="text-sm font-bold text-slate-800">{plan.name}</p>
-                          <p className="text-xs text-slate-500">₹{plan.price_monthly}/mo</p>
-                        </button>
-                      ))}
-                    </div>
-                    <button onClick={handlePlanChange} disabled={saving}
-                      className="w-full py-2.5 rounded-xl bg-emerald-500 text-white font-bold text-sm hover:bg-emerald-600 disabled:opacity-60 transition-colors">
-                      {saving ? 'Saving…' : 'Confirm Plan Change'}
-                    </button>
-                  </div>
-                ) : (
-                  <PlanBadge planId={user.subscription?.plan_id || 'trial'} />
-                )}
-              </div>
-
-              {/* Account Actions */}
-              <div className="bg-slate-50 rounded-2xl p-4">
-                <p className="text-sm font-bold text-slate-700 mb-3">Account Actions</p>
-                <div className="flex flex-wrap gap-2">
-                  {p?.account_status !== 'active' && (
-                    <button onClick={() => handleStatusChange('active')} disabled={saving}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold hover:bg-emerald-200 transition-colors">
-                      <UserCheck size={13} /> Reactivate
-                    </button>
-                  )}
-                  {p?.account_status !== 'suspended' && (
-                    <button onClick={() => handleStatusChange('suspended')} disabled={saving}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 text-xs font-bold hover:bg-amber-200 transition-colors">
-                      <AlertTriangle size={13} /> Suspend
-                    </button>
-                  )}
-                  {p?.account_status !== 'blocked' && (
-                    <button onClick={() => handleStatusChange('blocked')} disabled={saving}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 text-red-700 text-xs font-bold hover:bg-red-200 transition-colors">
-                      <UserX size={13} /> Block
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeInnerTab === 'tokens' && (
-            <div className="space-y-4">
-              {/* Token Usage */}
-              <div className="bg-slate-50 rounded-2xl p-4">
-                <p className="text-sm font-bold text-slate-700 mb-3">Token Usage</p>
-                <TokenMeter used={user.token_used} total={user.token_limit} />
-                <p className="text-xs text-slate-400 mt-2">{pct >= 90 ? '⚠️ Critical – near limit' : pct >= 70 ? '⚡ Warning – 70% used' : '✅ Healthy'}</p>
-              </div>
-              {/* Override */}
-              <div className="bg-slate-50 rounded-2xl p-4">
-                <p className="text-sm font-bold text-slate-700 mb-3">Override Token Limit</p>
-                <input type="number" value={tokenOverride || ''} onChange={e => setTokenOverride(Number(e.target.value))} placeholder="e.g. 5000"
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-emerald-400 mb-2" />
-                <input value={overrideReason} onChange={e => setOverrideReason(e.target.value)} placeholder="Reason for override…"
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-emerald-400 mb-3" />
-                <button onClick={handleTokenOverride} disabled={saving || !tokenOverride}
-                  className="w-full py-2.5 rounded-xl bg-emerald-500 text-white font-bold text-sm hover:bg-emerald-600 disabled:opacity-60 transition-colors">
-                  {saving ? 'Saving…' : 'Apply Override'}
-                </button>
-              </div>
-              {/* Token logs */}
-              <div className="bg-slate-50 rounded-2xl p-4">
-                <p className="text-sm font-bold text-slate-700 mb-3">Recent Usage</p>
-                {tokenLogs.length === 0 ? <p className="text-xs text-slate-400">No usage recorded yet.</p> : (
-                  <div className="space-y-2">
-                    {tokenLogs.map(log => (
-                      <div key={log.id} className="flex justify-between items-center text-xs">
-                        <span className="text-slate-600">{(log.modules as any)?.name || log.module_id}</span>
-                        <span className="font-bold text-slate-800">−{log.tokens_used}</span>
-                        <span className="text-slate-400">{new Date(log.used_at).toLocaleDateString()}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeInnerTab === 'history' && (
-            <div className="space-y-3">
-              <p className="text-sm font-bold text-slate-700">Subject Change History</p>
-              {subjectHistory.length === 0 ? (
-                <p className="text-sm text-slate-400 bg-slate-50 rounded-2xl p-6 text-center">No subject changes recorded.</p>
-              ) : (
-                subjectHistory.map(h => (
-                  <div key={h.id} className="bg-slate-50 rounded-2xl p-4 flex items-center gap-4">
-                    <div className="flex-1">
-                      <p className="text-sm text-slate-600">
-                        <span className="font-semibold text-slate-800">{(h.old_subject as any)?.name || '—'}</span>
-                        <span className="mx-2 text-slate-400">→</span>
-                        <span className="font-semibold text-emerald-700">{(h.new_subject as any)?.name || '—'}</span>
-                      </p>
-                    </div>
-                    <p className="text-xs text-slate-400">{new Date(h.changed_at).toLocaleDateString()}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
+    <div>
+      <div className={`w-full bg-slate-100 rounded-full ${h} overflow-hidden`}>
+        <div className={`${h} rounded-full transition-all`} style={{ width: `${pct}%`, background: color }} />
       </div>
+      <p className="text-[11px] text-slate-400 mt-0.5">
+        {used.toLocaleString()} / {total.toLocaleString()} tokens ({pct}%)
+      </p>
     </div>
   );
 };
 
-// ─── Main Component ────────────────────────────────────────────────────────────
+const StatCard = ({ label, value, sub, icon: Icon, color }: { label: string; value: number; sub?: string; icon: any; color: string }) => (
+  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
+    <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: color + '18' }}>
+      <Icon size={22} style={{ color }} />
+    </div>
+    <div>
+      <p className="text-2xl font-extrabold text-slate-900 leading-none">{value}</p>
+      <p className="text-sm text-slate-500 font-medium mt-0.5">{label}</p>
+      {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+    </div>
+  </div>
+);
 
-// Helper: call Supabase RPC directly (SECURITY DEFINER functions bypass RLS)
-const adminRpc = async (fnName: string) => {
-  const { data, error } = await supabase.rpc(fnName);
-  if (error) throw new Error(`RPC ${fnName}: ${error.message}`);
-  return data || [];
-};
+// ─── Edit Modal ───────────────────────────────────────────────────────────────
 
-// ─── Inline Edit Modal ────────────────────────────────────────────────────────
-
-const InlineEditModal = ({ user, plans, onClose, onSave }: {
-  user: UserRow; plans: Plan[]; onClose: () => void; onSave: () => void;
+const EditUserModal = ({ user, plans, onClose, onSaved }: {
+  user: UserRow; plans: Plan[]; onClose: () => void; onSaved: () => void;
 }) => {
   const [plan, setPlan] = useState(user.subscription?.plan_id || 'trial');
   const [status, setStatus] = useState(user.profile?.account_status || 'active');
-  const [specialty, setSpecialty] = useState(user.profile?.specialty || '');
+  const [role, setRole] = useState(user.profile?.role || 'student');
   const [tokenLimit, setTokenLimit] = useState(user.token_limit);
-  const [overrideReason, setOverrideReason] = useState('');
+  const [tokenReason, setTokenReason] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [activeSection, setActiveSection] = useState<'plan' | 'status' | 'role' | 'tokens' | 'password'>('plan');
 
-  const hasChanges = plan !== (user.subscription?.plan_id || 'trial') ||
-    status !== (user.profile?.account_status || 'active') ||
-    specialty !== (user.profile?.specialty || '') ||
-    tokenLimit !== user.token_limit;
+  const showToast = (msg: string, ok: boolean) => {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  };
 
-  const handleSave = async () => {
+  const saveField = async (field: string, body: any) => {
     setSaving(true);
     try {
-      // Plan change
-      if (plan !== (user.subscription?.plan_id || 'trial')) {
-        await supabase.from('subscriptions').upsert({ user_id: user.id, plan_id: plan, status: 'active', is_trial: plan === 'trial' });
-        await supabase.from('admin_audit_logs').insert({ action_type: 'plan_change', performed_by: 'Super Admin', target_user_id: user.id, target_user_email: user.email, details: { old_plan: user.subscription?.plan_id, new_plan: plan } });
-      }
-      // Status change
-      if (status !== (user.profile?.account_status || 'active')) {
-        await supabase.from('user_profiles').update({ account_status: status }).eq('user_id', user.id);
-        await supabase.from('admin_audit_logs').insert({ action_type: 'status_change', performed_by: 'Super Admin', target_user_id: user.id, target_user_email: user.email, details: { old_status: user.profile?.account_status, new_status: status } });
-      }
-      // Specialty change
-      if (specialty !== (user.profile?.specialty || '')) {
-        await supabase.from('user_profiles').update({ specialty }).eq('user_id', user.id);
-        await supabase.from('admin_audit_logs').insert({ action_type: 'profile_update', performed_by: 'Super Admin', target_user_id: user.id, target_user_email: user.email, details: { field: 'specialty', old: user.profile?.specialty, new: specialty } });
-      }
-      // Token limit override
-      if (tokenLimit !== user.token_limit) {
-        await supabase.from('user_token_overrides').upsert({ user_id: user.id, token_limit: tokenLimit, override_reason: overrideReason || 'Admin adjustment', overridden_by: 'Super Admin', is_active: true });
-        await supabase.from('admin_audit_logs').insert({ action_type: 'token_override', performed_by: 'Super Admin', target_user_id: user.id, target_user_email: user.email, details: { old_limit: user.token_limit, new_limit: tokenLimit, reason: overrideReason } });
-      }
-      setToast('Changes saved successfully!');
-      setTimeout(() => { onSave(); }, 800);
-    } catch (err: any) {
-      console.error('Save error:', err);
-      setToast('Error saving changes');
+      await adminFetch(`/api/admin/${field}`, { method: 'POST', body: JSON.stringify(body) });
+      showToast('Saved successfully!', true);
+      onSaved();
+    } catch (e: any) {
+      showToast(e.message || 'Failed to save', false);
     } finally {
       setSaving(false);
     }
   };
 
-  const SPECIALTIES = [
-    'Anatomy', 'Physiology', 'Biochemistry', 'Pathology', 'Pharmacology',
-    'Microbiology', 'Forensic Medicine', 'Community Medicine', 'ENT',
-    'Ophthalmology', 'Medicine', 'Surgery', 'Obstetrics & Gynecology',
-    'Pediatrics', 'Orthopedics', 'Radiology', 'Anesthesiology',
-    'Dermatology', 'Psychiatry', 'Dental', 'Nursing', 'Physiotherapy', 'Other'
-  ];
-
   return (
-    <div className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-100">
@@ -467,110 +224,160 @@ const InlineEditModal = ({ user, plans, onClose, onSave }: {
 
         {/* Toast */}
         {toast && (
-          <div className={`mx-5 mt-4 px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 ${toast.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
-            {toast.includes('Error') ? <XCircle size={15} /> : <CheckCircle size={15} />}
-            {toast}
+          <div className={`mx-5 mt-3 px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 ${toast.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+            {toast.ok ? <CheckCircle size={15} /> : <XCircle size={15} />} {toast.msg}
           </div>
         )}
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {/* Plan */}
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Subscription Plan</label>
-            <div className="grid grid-cols-5 gap-1.5">
-              {plans.map(p => {
-                const c = PLAN_COLORS[p.id] || PLAN_COLORS.trial;
-                return (
-                  <button key={p.id} onClick={() => setPlan(p.id)}
-                    className={`p-2.5 rounded-xl border-2 text-center transition-all ${plan === p.id ? 'shadow-md' : 'opacity-70 hover:opacity-100'}`}
-                    style={{ borderColor: plan === p.id ? c.text : '#e2e8f0', background: plan === p.id ? c.bg : 'white' }}>
-                    <p className="text-xs font-bold capitalize" style={{ color: c.text }}>{p.id}</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">{p.price_monthly === 0 ? 'Free' : `₹${p.price_monthly}`}</p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Account Status</label>
-            <div className="grid grid-cols-4 gap-1.5">
-              {(['active', 'suspended', 'blocked', 'pending'] as const).map(s => {
-                const c = STATUS_COLORS[s];
-                return (
-                  <button key={s} onClick={() => setStatus(s)}
-                    className={`p-2.5 rounded-xl border-2 text-center transition-all capitalize text-xs font-bold ${status === s ? 'shadow-md' : 'opacity-70 hover:opacity-100'}`}
-                    style={{ borderColor: status === s ? c.text : '#e2e8f0', background: status === s ? c.bg : 'white', color: c.text }}>
-                    {s === 'active' && <UserCheck size={13} className="inline mr-1" />}
-                    {s === 'suspended' && <AlertTriangle size={13} className="inline mr-1" />}
-                    {s === 'blocked' && <UserX size={13} className="inline mr-1" />}
-                    {s === 'pending' && <Clock size={13} className="inline mr-1" />}
-                    {s}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Specialty */}
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Specialty</label>
-            <select value={specialty} onChange={e => setSpecialty(e.target.value)}
-              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white">
-              <option value="">— Select Specialty —</option>
-              {SPECIALTIES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-
-          {/* Token Limit */}
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Token Limit</label>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setTokenLimit(Math.max(0, tokenLimit - 10000))}
-                className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 text-lg font-bold">−</button>
-              <input type="number" value={tokenLimit} onChange={e => setTokenLimit(Number(e.target.value))}
-                className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 text-center focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
-              <button onClick={() => setTokenLimit(tokenLimit + 10000)}
-                className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 text-lg font-bold">+</button>
-            </div>
-            <div className="flex gap-2 mt-2">
-              {[50000, 100000, 200000, 500000, 1000000].map(v => (
-                <button key={v} onClick={() => setTokenLimit(v)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${tokenLimit === v ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100'}`}>
-                  {v >= 1000000 ? `${v/1000000}M` : `${v/1000}K`}
-                </button>
-              ))}
-            </div>
-            <div className="mt-2">
-              <p className="text-[11px] text-slate-400 mb-1">Current usage: <span className="font-bold text-slate-600">{user.token_used.toLocaleString()} / {user.token_limit.toLocaleString()}</span></p>
-              <TokenMeter used={user.token_used} total={tokenLimit} size="sm" />
-            </div>
-          </div>
-
-          {/* Override Reason (only show if token limit changed) */}
-          {tokenLimit !== user.token_limit && (
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Override Reason (optional)</label>
-              <input value={overrideReason} onChange={e => setOverrideReason(e.target.value)} placeholder="e.g. Bonus tokens for workshop participation"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
-            </div>
-          )}
+        {/* Section nav pills */}
+        <div className="px-5 pt-4 flex gap-1.5 overflow-x-auto">
+          {(['plan', 'status', 'role', 'tokens', 'password'] as const).map(s => (
+            <button key={s} onClick={() => setActiveSection(s)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${activeSection === s ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+              {s === 'password' ? '🔑 Password' : s === 'plan' ? '💳 Plan' : s === 'status' ? '🔵 Status' : s === 'role' ? '🎭 Role' : '🪙 Tokens'}
+            </button>
+          ))}
         </div>
 
-        {/* Footer */}
-        <div className="p-5 border-t border-slate-100 flex items-center justify-between">
-          <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-100 transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={saving || !hasChanges}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 disabled:opacity-40 transition-colors shadow-sm">
-            <Save size={15} /> {saving ? 'Saving…' : 'Save Changes'}
-          </button>
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+
+          {/* Plan */}
+          {activeSection === 'plan' && (
+            <div className="space-y-4">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Subscription Plan</label>
+              <div className="grid grid-cols-3 gap-2">
+                {plans.length === 0 ? (
+                  <p className="col-span-3 text-sm text-slate-400 text-center py-4">Loading plans…</p>
+                ) : plans.map(p => {
+                  const c = PLAN_COLORS[p.id] || PLAN_COLORS.trial;
+                  return (
+                    <button key={p.id} onClick={() => setPlan(p.id)}
+                      className={`p-3 rounded-xl border-2 text-left transition-all ${plan === p.id ? 'shadow-md' : 'opacity-70 hover:opacity-100'}`}
+                      style={{ borderColor: plan === p.id ? c.text : '#e2e8f0', background: plan === p.id ? c.bg : 'white' }}>
+                      <p className="text-sm font-bold capitalize" style={{ color: c.text }}>{p.id}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{p.price_monthly === 0 ? 'Free' : `₹${p.price_monthly}/mo`}</p>
+                    </button>
+                  );
+                })}
+              </div>
+              <button onClick={() => saveField('update-plan', { userId: user.id, planId: plan, userEmail: user.email })}
+                disabled={saving} className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                {saving ? 'Saving…' : 'Save Plan Change'}
+              </button>
+            </div>
+          )}
+
+          {/* Status */}
+          {activeSection === 'status' && (
+            <div className="space-y-4">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Account Status</label>
+              <div className="grid grid-cols-2 gap-2">
+                {(['active', 'suspended', 'blocked', 'pending'] as const).map(s => {
+                  const c = STATUS_COLORS[s];
+                  return (
+                    <button key={s} onClick={() => setStatus(s)}
+                      className={`p-3 rounded-xl border-2 text-sm font-bold capitalize transition-all flex items-center gap-2 ${status === s ? 'shadow-md' : 'opacity-70 hover:opacity-100'}`}
+                      style={{ borderColor: status === s ? c.text : '#e2e8f0', background: status === s ? c.bg : 'white', color: c.text }}>
+                      {s === 'active' && <UserCheck size={15} />}
+                      {s === 'suspended' && <AlertTriangle size={15} />}
+                      {s === 'blocked' && <UserX size={15} />}
+                      {s === 'pending' && <Clock size={15} />}
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+              <button onClick={() => saveField('update-status', { userId: user.id, status, userEmail: user.email })}
+                disabled={saving} className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                {saving ? 'Saving…' : 'Save Status Change'}
+              </button>
+            </div>
+          )}
+
+          {/* Role */}
+          {activeSection === 'role' && (
+            <div className="space-y-4">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">User Role</label>
+              <div className="grid grid-cols-2 gap-2">
+                {ROLES.map(r => (
+                  <button key={r} onClick={() => setRole(r)}
+                    className={`p-3 rounded-xl border-2 text-sm font-semibold text-left transition-all ${role === r ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}>
+                    {r.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => saveField('update-role', { userId: user.id, role, userEmail: user.email })}
+                disabled={saving} className="w-full py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                {saving ? 'Saving…' : 'Save Role Change'}
+              </button>
+            </div>
+          )}
+
+          {/* Tokens */}
+          {activeSection === 'tokens' && (
+            <div className="space-y-4">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Token Limit Override</label>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setTokenLimit(Math.max(0, tokenLimit - 10000))}
+                  className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 text-lg font-bold">−</button>
+                <input type="number" value={tokenLimit} onChange={e => setTokenLimit(Number(e.target.value))}
+                  className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 text-center focus:outline-none focus:border-blue-400" />
+                <button onClick={() => setTokenLimit(tokenLimit + 10000)}
+                  className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 text-lg font-bold">+</button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[10000, 50000, 100000, 200000, 500000, 1000000].map(v => (
+                  <button key={v} onClick={() => setTokenLimit(v)}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${tokenLimit === v ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100'}`}>
+                    {v >= 1000000 ? `${v / 1000000}M` : `${v / 1000}K`}
+                  </button>
+                ))}
+              </div>
+              <div className="bg-slate-50 rounded-xl p-3">
+                <p className="text-xs text-slate-500 mb-1">Current usage:</p>
+                <TokenMeter used={user.token_used} total={tokenLimit} />
+              </div>
+              <input value={tokenReason} onChange={e => setTokenReason(e.target.value)}
+                placeholder="Reason for override (optional)…"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-400" />
+              <button onClick={() => saveField('override-tokens', { userId: user.id, tokenLimit, reason: tokenReason, userEmail: user.email })}
+                disabled={saving} className="w-full py-2.5 rounded-xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 disabled:opacity-50 transition-colors">
+                {saving ? 'Saving…' : 'Apply Token Override'}
+              </button>
+            </div>
+          )}
+
+          {/* Password */}
+          {activeSection === 'password' && (
+            <div className="space-y-4">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Reset Password</label>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 flex items-start gap-2">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                This will immediately change the user's password. They will need to use the new password to log in.
+              </div>
+              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                placeholder="Enter new password (min 8 characters)…"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-50" />
+              <button
+                onClick={() => {
+                  if (newPassword.length < 8) { showToast('Password must be at least 8 characters', false); return; }
+                  if (!window.confirm(`Are you sure you want to reset the password for ${user.email}?`)) return;
+                  saveField('reset-password', { userId: user.id, newPassword });
+                }}
+                disabled={saving || newPassword.length < 8}
+                className="w-full py-2.5 rounded-xl bg-red-600 text-white font-bold text-sm hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+                <Key size={15} /> {saving ? 'Resetting…' : 'Reset Password'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
+// ─── Main Component ────────────────────────────────────────────────────────────
 
 export const UserManagementSystem: React.FC = () => {
   const [activeTab, setActiveTab] = useState('users');
@@ -580,10 +387,10 @@ export const UserManagementSystem: React.FC = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [filterPlan, setFilterPlan] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [savingPolicies, setSavingPolicies] = useState(false);
   const [editedPolicies, setEditedPolicies] = useState<Record<string, number>>({});
@@ -596,34 +403,27 @@ export const UserManagementSystem: React.FC = () => {
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const [profilesRes, subsRes, overridesRes, usageRes, policiesRes] = await Promise.all([
-        adminRpc('admin_get_all_users'),
-        adminRpc('admin_get_all_subscriptions'),
-        adminRpc('admin_get_all_token_overrides'),
-        adminRpc('admin_get_token_usage_summary'),
-        adminRpc('admin_get_token_policies'),
+      const [profiles, subs, overrides, usage, policies] = await Promise.all([
+        adminFetch('/api/admin/all-users').catch(() => []),
+        adminFetch('/api/admin/all-subscriptions').catch(() => []),
+        adminFetch('/api/admin/all-token-overrides').catch(() => []),
+        adminFetch('/api/admin/token-usage-summary').catch(() => []),
+        adminFetch('/api/admin/all-token-policies').catch(() => []),
       ]);
 
-      const profiles = profilesRes || [];
-      const subs = subsRes || [];
-      const tokenOverrides = overridesRes || [];
-      const tokenUsage = usageRes || [];
-      const policies = policiesRes || [];
-
       const usageByUser: Record<string, number> = {};
-      tokenUsage.forEach((t: any) => {
-        usageByUser[t.user_id] = Number(t.total_used) || 0;
-      });
+      (usage || []).forEach((t: any) => { usageByUser[t.user_id] = Number(t.total_used) || 0; });
 
       const policyByPlan: Record<string, number> = {};
-      policies.forEach((p: any) => { policyByPlan[p.plan_id] = p.monthly_tokens || p.trial_tokens; });
+      (policies || []).forEach((p: any) => { policyByPlan[p.plan_id] = p.plan_id === 'trial' ? (p.trial_tokens || 1000) : (p.monthly_tokens || 1000); });
 
       const overrideByUser: Record<string, number> = {};
-      tokenOverrides.forEach((o: any) => { overrideByUser[o.user_id] = o.token_limit; });
+      (overrides || []).forEach((o: any) => { overrideByUser[o.user_id] = o.token_limit; });
 
-      const rows: UserRow[] = profiles.map((p: any) => {
-        const sub = subs.find((s: any) => s.user_id === p.user_id) || null;
+      const rows: UserRow[] = (profiles || []).map((p: any) => {
+        const sub = (subs || []).find((s: any) => s.user_id === p.user_id) || null;
         const planLimit = policyByPlan[sub?.plan_id || 'trial'] || 1000;
         const tokenLimit = overrideByUser[p.user_id] ?? planLimit;
         return {
@@ -638,7 +438,8 @@ export const UserManagementSystem: React.FC = () => {
       });
       setUsers(rows);
     } catch (err: any) {
-      console.error("Failed to fetch users:", err);
+      setError(err.message || 'Failed to load users');
+      console.error('Failed to fetch users:', err);
     } finally {
       setLoading(false);
     }
@@ -646,41 +447,36 @@ export const UserManagementSystem: React.FC = () => {
 
   const fetchPlans = useCallback(async () => {
     try {
-      const data = await adminRpc('admin_get_all_plans');
+      const data = await adminFetch('/api/admin/all-plans');
       setPlans(data || []);
-    } catch (err) {
-      console.error("Failed to fetch plans:", err);
-    }
+      const edited: Record<string, number> = {};
+      (data || []).forEach((p: any) => { edited[p.id] = p.id === 'trial' ? (p.trial_tokens || 1000) : (p.price_monthly || 0); });
+      setEditedPolicies(edited);
+    } catch (err) { console.error('Failed to fetch plans:', err); }
   }, []);
 
   const fetchTokenPolicies = useCallback(async () => {
     try {
-      const data = await adminRpc('admin_get_token_policies');
+      const data = await adminFetch('/api/admin/all-token-policies');
       setTokenPolicies(data || []);
       const edited: Record<string, number> = {};
       (data || []).forEach((p: any) => { edited[p.plan_id] = p.plan_id === 'trial' ? p.trial_tokens : p.monthly_tokens; });
       setEditedPolicies(edited);
-    } catch (err) {
-      console.error("Failed to fetch token policies:", err);
-    }
+    } catch (err) { console.error('Failed to fetch token policies:', err); }
   }, []);
 
   const fetchAuditLogs = useCallback(async () => {
     try {
-      const data = await adminRpc('admin_get_audit_logs');
+      const data = await adminFetch('/api/admin/audit-logs');
       setAuditLogs(data || []);
-    } catch (err) {
-      console.error("Failed to fetch audit logs:", err);
-    }
+    } catch (err) { console.error('Failed to fetch audit logs:', err); }
   }, []);
 
   const fetchSubscriptions = useCallback(async () => {
     try {
-      const data = await adminRpc('admin_get_all_subscriptions');
+      const data = await adminFetch('/api/admin/all-subscriptions');
       setSubscriptions(data || []);
-    } catch (err) {
-      console.error("Failed to fetch subscriptions:", err);
-    }
+    } catch (err) { console.error('Failed to fetch subscriptions:', err); }
   }, []);
 
   useEffect(() => {
@@ -696,19 +492,20 @@ export const UserManagementSystem: React.FC = () => {
 
   const saveTokenPolicies = async () => {
     setSavingPolicies(true);
-    for (const plan of plans) {
-      const tokens = editedPolicies[plan.id] || 0;
-      const update = plan.id === 'trial'
-        ? { trial_tokens: tokens }
-        : { monthly_tokens: tokens };
-      await supabase.from('token_policies').update(update).eq('plan_id', plan.id);
+    try {
+      await adminFetch('/api/admin/save-token-policies', {
+        method: 'POST',
+        body: JSON.stringify({ policies: editedPolicies }),
+      });
+      fetchTokenPolicies();
+      alert('Token policies saved successfully!');
+    } catch (err: any) {
+      alert('Failed to save: ' + err.message);
+    } finally {
+      setSavingPolicies(false);
     }
-    await supabase.from('admin_audit_logs').insert({ action_type: 'token_policy_update', performed_by: 'Super Admin', target_user_id: null, details: editedPolicies });
-    setSavingPolicies(false);
-    fetchTokenPolicies();
   };
 
-  // Filtered users
   const filteredUsers = users.filter(u => {
     const q = search.toLowerCase();
     const matchSearch = !q ||
@@ -722,61 +519,77 @@ export const UserManagementSystem: React.FC = () => {
   });
 
   const ACTION_LABELS: Record<string, string> = {
-    plan_change: 'Plan Changed',
-    token_override: 'Token Override',
-    status_change: 'Status Changed',
-    token_policy_update: 'Token Policy Updated',
-    trial_extend: 'Trial Extended',
-    subject_change: 'Subject Changed',
+    plan_change: '💳 Plan Changed',
+    token_override: '🪙 Token Override',
+    status_change: '🔵 Status Changed',
+    role_change: '🎭 Role Changed',
+    token_policy_update: '📋 Policy Updated',
+    password_reset: '🔑 Password Reset',
+    trial_extend: '⏳ Trial Extended',
   };
 
   return (
     <div className="w-full max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-slate-800 mb-2">User Management</h1>
-        <p className="text-slate-500 text-lg">Manage healthcare professional users, subscriptions, and token allocations.</p>
+        <h1 className="text-3xl font-extrabold text-slate-900 mb-1 tracking-tight">User Management</h1>
+        <p className="text-slate-500">Manage all users — plans, roles, tokens, and passwords.</p>
       </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <StatCard label="Total Users" value={totalUsers} icon={Users} color="#10b981" />
-        <StatCard label="Active Users" value={activeUsers} sub={`${totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0}% of total`} icon={UserCheck} color="#3b82f6" />
+        <StatCard label="Active Users" value={activeUsers}
+          sub={`${totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0}% of total`}
+          icon={UserCheck} color="#3b82f6" />
         <StatCard label="On Free Trial" value={trialUsers} icon={Clock} color="#f59e0b" />
         <StatCard label="Premium Users" value={premiumUsers} icon={Shield} color="#8b5cf6" />
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-slate-100 p-1 rounded-2xl w-fit">
+      <div className="flex gap-1 mb-6 bg-slate-100 p-1 rounded-2xl w-fit overflow-x-auto">
         {TABS.map(tab => {
           const Icon = tab.icon;
           return (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === tab.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
               <Icon size={16} /> {tab.label}
             </button>
           );
         })}
       </div>
 
+      {/* Error Banner */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl px-5 py-4 flex items-center gap-3 text-red-700 text-sm font-medium">
+          <XCircle size={18} className="shrink-0" />
+          <div>
+            <p className="font-bold">Failed to load data</p>
+            <p className="text-red-500 text-xs mt-0.5">{error}</p>
+            <p className="text-red-400 text-xs">Check: Are you logged in as Super Admin? Is the backend running?</p>
+          </div>
+          <button onClick={fetchUsers} className="ml-auto px-3 py-1.5 bg-red-100 hover:bg-red-200 rounded-lg text-xs font-bold transition-colors">Retry</button>
+        </div>
+      )}
+
       {/* ── USERS TAB ─────────────────────────────────────────── */}
       {activeTab === 'users' && (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
           {/* Search & Filters */}
-          <div className="p-6 border-b border-slate-100 flex flex-wrap gap-3 items-center">
+          <div className="p-5 border-b border-slate-100 flex flex-wrap gap-3 items-center">
             <div className="relative flex-1 min-w-[200px]">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search by name, email, specialty, user ID…"
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100" />
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50" />
             </div>
             <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)}
-              className="border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-emerald-400 bg-white">
+              className="border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-blue-400 bg-white">
               <option value="all">All Plans</option>
-              {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {plans.map(p => <option key={p.id} value={p.id}>{p.name || p.id}</option>)}
             </select>
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-              className="border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-emerald-400 bg-white">
+              className="border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-blue-400 bg-white">
               <option value="all">All Statuses</option>
               <option value="active">Active</option>
               <option value="suspended">Suspended</option>
@@ -789,65 +602,73 @@ export const UserManagementSystem: React.FC = () => {
 
           {/* Table */}
           {loading ? (
-            <div className="flex justify-center items-center py-20">
-              <RefreshCw size={28} className="animate-spin text-emerald-400" />
+            <div className="flex flex-col justify-center items-center py-24 gap-3">
+              <RefreshCw size={32} className="animate-spin text-blue-400" />
+              <p className="text-slate-400 text-sm font-medium">Loading users from the database…</p>
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="text-center py-20 text-slate-400">
-              <Users size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium">No users found</p>
-              <p className="text-sm mt-1">Try adjusting your search or filters</p>
+            <div className="text-center py-24 text-slate-400">
+              <Users size={48} className="mx-auto mb-3 opacity-20" />
+              <p className="font-semibold text-lg">No users found</p>
+              <p className="text-sm mt-1 max-w-xs mx-auto">
+                {users.length === 0
+                  ? 'No users loaded yet. Check that you are authenticated as Super Admin and the backend is running.'
+                  : 'Try adjusting your search or filters'}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50">
-                    <th className="text-left px-6 py-3">User</th>
-                    <th className="text-left px-4 py-3">Plan</th>
-                    <th className="text-left px-4 py-3">Status</th>
-                    <th className="text-left px-4 py-3">Specialty</th>
-                    <th className="text-left px-4 py-3 min-w-[160px]">Token Usage</th>
-                    <th className="text-left px-4 py-3">Joined</th>
-                    <th className="px-4 py-3"></th>
+                  <tr className="text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/80">
+                    <th className="text-left px-6 py-3.5">User</th>
+                    <th className="text-left px-4 py-3.5">Plan</th>
+                    <th className="text-left px-4 py-3.5">Status</th>
+                    <th className="text-left px-4 py-3.5">Role</th>
+                    <th className="text-left px-4 py-3.5">Specialty</th>
+                    <th className="text-left px-4 py-3.5 min-w-[180px]">Token Usage</th>
+                    <th className="text-left px-4 py-3.5">Joined</th>
+                    <th className="px-4 py-3.5 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {filteredUsers.map(user => (
-                    <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <tr key={user.id} className="hover:bg-slate-50/60 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
                             {(user.profile?.full_name || user.email || 'U')[0].toUpperCase()}
                           </div>
-                          <div>
-                            <p className="text-sm font-semibold text-slate-800 leading-tight">{user.profile?.full_name || 'Unnamed'}</p>
-                            <p className="text-xs text-slate-400">{user.email}</p>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 leading-tight truncate max-w-[140px]">
+                              {user.profile?.full_name || 'Unnamed'}
+                            </p>
+                            <p className="text-xs text-slate-400 truncate max-w-[140px]">{user.email}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-4"><PlanBadge planId={user.subscription?.plan_id || 'trial'} /></td>
                       <td className="px-4 py-4">
-                        <Badge text={user.profile?.account_status || 'active'} style={STATUS_COLORS[user.profile?.account_status || 'active'] || STATUS_COLORS.active} />
-                      </td>
-                      <td className="px-4 py-4 text-sm text-slate-600">{user.profile?.specialty || '—'}</td>
-                      <td className="px-4 py-4 min-w-[160px]">
-                        <TokenMeter used={user.token_used} total={user.token_limit} size="sm" />
-                      </td>
-                      <td className="px-4 py-4 text-xs text-slate-400">
-                        {user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}
+                        <Badge text={user.profile?.account_status || 'active'}
+                          style={STATUS_COLORS[user.profile?.account_status || 'active'] || STATUS_COLORS.active} />
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => setEditingUser(user)} title="Edit user"
-                            className="p-2 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors">
-                            <Edit3 size={15} />
-                          </button>
-                          <button onClick={() => setSelectedUser(user)} title="View details"
-                            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors">
-                            <Eye size={15} />
-                          </button>
-                        </div>
+                        <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded-lg capitalize">
+                          {(user.profile?.role || 'student').replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-sm text-slate-600 max-w-[120px] truncate">{user.profile?.specialty || '—'}</td>
+                      <td className="px-4 py-4 min-w-[180px]">
+                        <TokenMeter used={user.token_used} total={user.token_limit} size="sm" />
+                      </td>
+                      <td className="px-4 py-4 text-xs text-slate-400 whitespace-nowrap">
+                        {user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <button onClick={() => setEditingUser(user)} title="Edit user"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-bold transition-colors">
+                          <Edit3 size={13} /> Edit
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -857,8 +678,11 @@ export const UserManagementSystem: React.FC = () => {
           )}
 
           {/* Footer count */}
-          <div className="px-6 py-3 border-t border-slate-50 text-xs text-slate-400">
-            Showing {filteredUsers.length} of {users.length} users
+          <div className="px-6 py-3 border-t border-slate-50 text-xs text-slate-400 flex items-center justify-between">
+            <span>Showing <strong className="text-slate-600">{filteredUsers.length}</strong> of <strong className="text-slate-600">{users.length}</strong> users</span>
+            {users.length === 0 && !loading && (
+              <span className="text-amber-500 font-medium">⚠️ 0 users loaded — check admin auth & backend connectivity</span>
+            )}
           </div>
         </div>
       )}
@@ -868,13 +692,21 @@ export const UserManagementSystem: React.FC = () => {
         <div className="space-y-6">
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
             <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800">Token policies set the <strong>default monthly token allocation</strong> for each plan. You can also override tokens for individual users from the Users tab.</p>
+            <p className="text-sm text-amber-800">
+              Token policies set the <strong>default monthly token allocation</strong> for each plan.
+              You can also override tokens for individual users from the Users tab.
+            </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            {plans.map(plan => {
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {plans.length === 0 ? (
+              <div className="col-span-3 bg-white rounded-3xl p-12 text-center text-slate-400 border border-slate-100">
+                <Coins size={40} className="mx-auto mb-3 opacity-30" />
+                <p>No plans loaded. Check backend connectivity.</p>
+              </div>
+            ) : plans.map(plan => {
               const policy = tokenPolicies.find(p => p.plan_id === plan.id);
-              const current = editedPolicies[plan.id] ?? (plan.id === 'trial' ? policy?.trial_tokens : policy?.monthly_tokens) ?? 0;
+              const current = editedPolicies[plan.id] ?? (plan.id === 'trial' ? (policy?.trial_tokens ?? 0) : (policy?.monthly_tokens ?? 0));
               const c = PLAN_COLORS[plan.id] || PLAN_COLORS.trial;
               return (
                 <div key={plan.id} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
@@ -882,11 +714,9 @@ export const UserManagementSystem: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <PlanBadge planId={plan.id} />
-                        {plan.is_trial && (
-                          <span className="text-xs text-slate-400">15-day trial</span>
-                        )}
+                        {plan.is_trial && <span className="text-xs text-slate-400">15-day trial</span>}
                       </div>
-                      <p className="text-xs text-slate-400">{plan.description}</p>
+                      <p className="text-xs text-slate-400">{plan.description || plan.name}</p>
                     </div>
                     <span className="text-lg font-bold text-slate-700">
                       {plan.price_monthly === 0 ? 'Free' : `₹${plan.price_monthly}/mo`}
@@ -898,18 +728,21 @@ export const UserManagementSystem: React.FC = () => {
                       {plan.id === 'trial' ? 'Trial Token Allocation' : 'Monthly Token Allocation'}
                     </label>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => setEditedPolicies(p => ({ ...p, [plan.id]: Math.max(0, (p[plan.id] ?? current) - 500) }))}
+                      <button onClick={() => setEditedPolicies(p => ({ ...p, [plan.id]: Math.max(0, (p[plan.id] ?? current) - 1000) }))}
                         className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50">
                         <Minus size={14} />
                       </button>
-                      <input type="number" value={current} onChange={e => setEditedPolicies(p => ({ ...p, [plan.id]: Number(e.target.value) }))}
+                      <input type="number" value={current}
+                        onChange={e => setEditedPolicies(p => ({ ...p, [plan.id]: Number(e.target.value) }))}
                         className="flex-1 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-800 text-center focus:outline-none focus:border-emerald-400" />
-                      <button onClick={() => setEditedPolicies(p => ({ ...p, [plan.id]: (p[plan.id] ?? current) + 500 }))}
+                      <button onClick={() => setEditedPolicies(p => ({ ...p, [plan.id]: (p[plan.id] ?? current) + 1000 }))}
                         className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50">
                         <Plus size={14} />
                       </button>
                     </div>
-                    <p className="text-xs text-slate-400">Current: {policy?.monthly_tokens || policy?.trial_tokens || 0} tokens</p>
+                    <p className="text-xs text-slate-400">
+                      Saved: {policy?.monthly_tokens || policy?.trial_tokens || '—'} tokens
+                    </p>
                   </div>
                 </div>
               );
@@ -926,8 +759,8 @@ export const UserManagementSystem: React.FC = () => {
       {/* ── SUBSCRIPTIONS TAB ─────────────────────────────────── */}
       {activeTab === 'subscriptions' && (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-            <h2 className="text-lg font-bold text-slate-800">All Subscriptions</h2>
+          <div className="p-5 border-b border-slate-100 flex justify-between items-center">
+            <h2 className="text-lg font-bold text-slate-800">All Subscriptions ({subscriptions.length})</h2>
             <button onClick={fetchSubscriptions} className="p-2 border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50">
               <RefreshCw size={16} />
             </button>
@@ -936,20 +769,22 @@ export const UserManagementSystem: React.FC = () => {
             <table className="w-full">
               <thead>
                 <tr className="text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50">
-                  <th className="text-left px-6 py-3">User ID</th>
-                  <th className="text-left px-4 py-3">Plan</th>
-                  <th className="text-left px-4 py-3">Status</th>
-                  <th className="text-left px-4 py-3">Trial</th>
-                  <th className="text-left px-4 py-3">Start Date</th>
-                  <th className="text-left px-4 py-3">End / Expiry</th>
+                  <th className="text-left px-6 py-3.5">User ID</th>
+                  <th className="text-left px-4 py-3.5">Plan</th>
+                  <th className="text-left px-4 py-3.5">Status</th>
+                  <th className="text-left px-4 py-3.5">Trial</th>
+                  <th className="text-left px-4 py-3.5">Start Date</th>
+                  <th className="text-left px-4 py-3.5">End / Expiry</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {subscriptions.map(sub => (
                   <tr key={sub.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-3 text-xs text-slate-500 font-mono">{sub.user_id?.substring(0, 8)}…</td>
+                    <td className="px-6 py-3 text-xs text-slate-500 font-mono">{sub.user_id?.substring(0, 12)}…</td>
                     <td className="px-4 py-3"><PlanBadge planId={sub.plan_id} /></td>
-                    <td className="px-4 py-3"><Badge text={sub.status} style={sub.status === 'active' ? STATUS_COLORS.active : STATUS_COLORS.suspended} /></td>
+                    <td className="px-4 py-3">
+                      <Badge text={sub.status} style={sub.status === 'active' ? STATUS_COLORS.active : STATUS_COLORS.suspended} />
+                    </td>
                     <td className="px-4 py-3">
                       {sub.is_trial ? (
                         <span className="text-xs font-bold text-amber-600 flex items-center gap-1">
@@ -973,8 +808,8 @@ export const UserManagementSystem: React.FC = () => {
       {/* ── AUDIT LOGS TAB ────────────────────────────────────── */}
       {activeTab === 'audit' && (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-            <h2 className="text-lg font-bold text-slate-800">Audit Logs</h2>
+          <div className="p-5 border-b border-slate-100 flex justify-between items-center">
+            <h2 className="text-lg font-bold text-slate-800">Audit Logs ({auditLogs.length})</h2>
             <button onClick={fetchAuditLogs} className="p-2 border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50">
               <RefreshCw size={16} />
             </button>
@@ -983,11 +818,11 @@ export const UserManagementSystem: React.FC = () => {
             <table className="w-full">
               <thead>
                 <tr className="text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50">
-                  <th className="text-left px-6 py-3">Action</th>
-                  <th className="text-left px-4 py-3">Target User</th>
-                  <th className="text-left px-4 py-3">Performed By</th>
-                  <th className="text-left px-4 py-3">Details</th>
-                  <th className="text-left px-4 py-3">Date</th>
+                  <th className="text-left px-6 py-3.5">Action</th>
+                  <th className="text-left px-4 py-3.5">Target User</th>
+                  <th className="text-left px-4 py-3.5">Performed By</th>
+                  <th className="text-left px-4 py-3.5">Details</th>
+                  <th className="text-left px-4 py-3.5">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -998,12 +833,12 @@ export const UserManagementSystem: React.FC = () => {
                         {ACTION_LABELS[log.action_type] || log.action_type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">{log.target_user_email || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-slate-600">{log.target_user_email || '—'}</td>
                     <td className="px-4 py-3 text-xs font-semibold text-slate-700">{log.performed_by}</td>
                     <td className="px-4 py-3 text-xs text-slate-400 max-w-[200px] truncate">
                       {log.details ? JSON.stringify(log.details) : '—'}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-400">{new Date(log.created_at).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{new Date(log.created_at).toLocaleString()}</td>
                   </tr>
                 ))}
                 {auditLogs.length === 0 && (
@@ -1015,23 +850,13 @@ export const UserManagementSystem: React.FC = () => {
         </div>
       )}
 
-      {/* User Detail Modal */}
-      {selectedUser && (
-        <UserDetailModal
-          user={selectedUser}
-          plans={plans}
-          onClose={() => setSelectedUser(null)}
-          onUpdate={() => { setSelectedUser(null); fetchUsers(); }}
-        />
-      )}
-
-      {/* Inline Edit Modal */}
+      {/* Edit Modal */}
       {editingUser && (
-        <InlineEditModal
+        <EditUserModal
           user={editingUser}
           plans={plans}
           onClose={() => setEditingUser(null)}
-          onSave={() => { setEditingUser(null); fetchUsers(); }}
+          onSaved={() => { fetchUsers(); }}
         />
       )}
     </div>

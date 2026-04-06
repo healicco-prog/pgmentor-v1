@@ -400,6 +400,11 @@ async function startServer() {
     res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx/proxy buffering
     res.flushHeaders();
 
+    // Send padding to bypass proxy buffering (Netlify, Cloud Run, etc.)
+    // Proxies often buffer until ~4KB is reached. SSE comments start with a colon.
+    const padding = ':' + ' '.repeat(2048) + '\n\n';
+    res.write(padding);
+
     const primaryModel = selectAIModel(userRole);
     const fallbackModel = selectFallbackModel();
     console.log(`🤖 AI stream request — model: ${primaryModel} (role: ${userRole || 'public'})`);
@@ -410,7 +415,8 @@ async function startServer() {
     let keepAliveCount = 0;
     const keepAlive = setInterval(() => {
       keepAliveCount++;
-      res.write(`event: ping\ndata: {"elapsed":${keepAliveCount * 5}}\n\n`);
+      // Includes padding to ensure Netlify proxy flushes the payload
+      res.write(`event: ping\ndata: {"elapsed":${keepAliveCount * 5}}\n:${' '.repeat(2048)}\n\n`);
     }, 5000);
 
     let aiResponse: any;
@@ -829,9 +835,124 @@ async function startServer() {
     }
   });
 
+  // Admin: reset password for a user
+  app.post("/api/admin/reset-password", requireAdmin, async (req, res) => {
+    try {
+      const { userId, newPassword } = req.body;
+      if (!userId || !newPassword) return res.status(400).json({ error: 'userId and newPassword required' });
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword });
+      if (error) throw error;
+      await supabaseAdmin.from('admin_audit_logs').insert({
+        action_type: 'password_reset', performed_by: 'Super Admin',
+        target_user_id: userId, details: { method: 'admin_reset' }
+      });
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("❌ admin reset-password error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Admin: update user role
+  app.post("/api/admin/update-role", requireAdmin, async (req, res) => {
+    try {
+      const { userId, role, userEmail } = req.body;
+      if (!userId || !role) return res.status(400).json({ error: 'userId and role required' });
+      const { error } = await supabaseAdmin.from('user_profiles').update({ role }).eq('user_id', userId);
+      if (error) throw error;
+      await supabaseAdmin.from('admin_audit_logs').insert({
+        action_type: 'role_change', performed_by: 'Super Admin',
+        target_user_id: userId, target_user_email: userEmail, details: { new_role: role }
+      });
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("❌ admin update-role error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Admin: update plan for user
+  app.post("/api/admin/update-plan", requireAdmin, async (req, res) => {
+    try {
+      const { userId, planId, userEmail } = req.body;
+      if (!userId || !planId) return res.status(400).json({ error: 'userId and planId required' });
+      const { error } = await supabaseAdmin.from('subscriptions').upsert({
+        user_id: userId, plan_id: planId, status: 'active', is_trial: planId === 'trial'
+      });
+      if (error) throw error;
+      await supabaseAdmin.from('admin_audit_logs').insert({
+        action_type: 'plan_change', performed_by: 'Super Admin',
+        target_user_id: userId, target_user_email: userEmail, details: { new_plan: planId }
+      });
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("❌ admin update-plan error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Admin: update account status
+  app.post("/api/admin/update-status", requireAdmin, async (req, res) => {
+    try {
+      const { userId, status, userEmail } = req.body;
+      if (!userId || !status) return res.status(400).json({ error: 'userId and status required' });
+      const { error } = await supabaseAdmin.from('user_profiles').update({ account_status: status }).eq('user_id', userId);
+      if (error) throw error;
+      await supabaseAdmin.from('admin_audit_logs').insert({
+        action_type: 'status_change', performed_by: 'Super Admin',
+        target_user_id: userId, target_user_email: userEmail, details: { new_status: status }
+      });
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("❌ admin update-status error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Admin: override token limit
+  app.post("/api/admin/override-tokens", requireAdmin, async (req, res) => {
+    try {
+      const { userId, tokenLimit, reason, userEmail } = req.body;
+      if (!userId || tokenLimit === undefined) return res.status(400).json({ error: 'userId and tokenLimit required' });
+      const { error } = await supabaseAdmin.from('user_token_overrides').upsert({
+        user_id: userId, token_limit: tokenLimit,
+        override_reason: reason || 'Admin adjustment', overridden_by: 'Super Admin', is_active: true
+      });
+      if (error) throw error;
+      await supabaseAdmin.from('admin_audit_logs').insert({
+        action_type: 'token_override', performed_by: 'Super Admin',
+        target_user_id: userId, target_user_email: userEmail, details: { new_limit: tokenLimit, reason }
+      });
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("❌ admin override-tokens error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Admin: save token policies
+  app.post("/api/admin/save-token-policies", requireAdmin, async (req, res) => {
+    try {
+      const { policies } = req.body;
+      for (const [planId, tokens] of Object.entries(policies as Record<string, number>)) {
+        const update = planId === 'trial' ? { trial_tokens: tokens } : { monthly_tokens: tokens };
+        await supabaseAdmin.from('token_policies').update(update).eq('plan_id', planId);
+      }
+      await supabaseAdmin.from('admin_audit_logs').insert({
+        action_type: 'token_policy_update', performed_by: 'Super Admin',
+        target_user_id: null, details: policies
+      });
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("❌ admin save-token-policies error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // ═══════════════════════════════════════════════════════════════════════════
   // USER PROFILE & COURSE SELECTION
   // ═══════════════════════════════════════════════════════════════════════════
+
 
   // Get user profile (for dashboard course display)
   app.get("/api/user/profile/:userId", async (req, res) => {

@@ -107,19 +107,19 @@ if (geminiApiKey) {
 // ═══════════════════════════════════════════════════════════════════════════
 // AI MODEL SELECTION
 // Primary: gemini-2.5-flash (stable GA, June 2025 — fast, cheap, 1M tokens)
-// Primary: gemini-2.0-flash (fast, non-thinking, stable GA — best for production)
-// Fallback: gemini-1.5-flash (proven reliable, fast execution)
-// NOTE: gemini-2.5-flash is a "thinking" model that takes 60-120+s for complex tasks
-//       and frequently times out. gemini-2.5-flash-lite hits 503 "high demand" errors.
-//       Both are UNSUITABLE for production use. Use gemini-2.0-flash instead.
-// These are confirmed working via Gemini API key auth (April 2026).
+// Primary: gemini-1.5-flash (fast, confirmed working via Gemini API key, April 2026)
+// Fallback: gemini-1.5-flash-8b (ultra-fast, cheap, fully supported)
+// NOTE: gemini-2.0-flash is deprecated and "no longer available to new users".
+//       gemini-2.5-flash is a "thinking" model — times out on complex prompts.
+//       gemini-2.5-flash-lite hits 503 "high demand" errors.
+// gemini-1.5-flash is the SAFEST stable choice via Gemini API key auth.
 // ═══════════════════════════════════════════════════════════════════════════
 function selectAIModel(userRole?: string): string {
-  return 'gemini-2.0-flash';
+  return 'gemini-1.5-flash';
 }
 
 function selectFallbackModel(): string {
-  return 'gemini-1.5-flash';
+  return 'gemini-1.5-flash-8b';
 }
 
 // Wrap a promise with a timeout — rejects after ms milliseconds

@@ -1,27 +1,15 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // AI Service — Routes all AI requests through the backend
-// In production: calls Cloud Run backend DIRECTLY (bypasses Netlify 26s proxy timeout)
-// In development: calls /api/ai/* (same origin, proxied by Vite/Express dev server)
-// SECURITY: Gemini API key stays server-side only
+// All calls use relative /api/ai/* paths:
+//   - In production: Netlify proxy forwards to Cloud Run and injects X-API-Key
+//   - In development: Vite/Express dev server handles directly
+// SECURITY: No secrets are exposed in the frontend bundle
 // ═══════════════════════════════════════════════════════════════════════════
 
-// In production (Netlify), use direct Cloud Run URL to avoid 26-second proxy timeout.
-// VITE_BACKEND_URL and VITE_BACKEND_API_KEY are set in Netlify environment variables.
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
-const BACKEND_API_KEY = import.meta.env.VITE_BACKEND_API_KEY || '';
-
-function getAIBaseUrl(): string {
-  // If VITE_BACKEND_URL is set (production), call Cloud Run directly
-  if (BACKEND_URL) return `${BACKEND_URL}/api/ai`;
-  // Otherwise (development), use relative path (same-origin proxy)
-  return '/api/ai';
-}
+const AI_BASE_URL = '/api/ai';
 
 function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  // In production, include the API key for Cloud Run authentication
-  if (BACKEND_API_KEY) headers['X-API-Key'] = BACKEND_API_KEY;
-  return headers;
+  return { 'Content-Type': 'application/json' };
 }
 
 /**
@@ -36,8 +24,7 @@ export const generateMedicalContent = async (
   userId?: string
 ) => {
   try {
-    const baseUrl = getAIBaseUrl();
-    const response = await fetch(`${baseUrl}/generate`, {
+    const response = await fetch(`${AI_BASE_URL}/generate`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ prompt, systemInstruction, responseMimeType, useSearch, userRole, userId }),
@@ -92,8 +79,7 @@ export const PGMentorMentorChat = async (message: string) => {
  */
 export const extractContactFromImage = async (base64Image: string, userId?: string) => {
   try {
-    const baseUrl = getAIBaseUrl();
-    const response = await fetch(`${baseUrl}/extract-contact`, {
+    const response = await fetch(`${AI_BASE_URL}/extract-contact`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ image: base64Image, userId }),
@@ -114,8 +100,7 @@ export const extractContactFromImage = async (base64Image: string, userId?: stri
  */
 export const analyzePrescriptionImage = async (base64Image: string, userId?: string) => {
   try {
-    const baseUrl = getAIBaseUrl();
-    const response = await fetch(`${baseUrl}/analyze-prescription`, {
+    const response = await fetch(`${AI_BASE_URL}/analyze-prescription`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ image: base64Image, userId }),
@@ -136,8 +121,7 @@ export const analyzePrescriptionImage = async (base64Image: string, userId?: str
  */
 export const extractPaperTextFromImage = async (base64Image: string, userId?: string) => {
   try {
-    const baseUrl = getAIBaseUrl();
-    const response = await fetch(`${baseUrl}/extract-paper`, {
+    const response = await fetch(`${AI_BASE_URL}/extract-paper`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ image: base64Image, userId }),

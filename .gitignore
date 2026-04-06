@@ -5,13 +5,17 @@ coverage/
 .DS_Store
 *.log
 .env
-.env.local
+.env.*
+!.env.example
 .env.cloudrun
 .env.cloudrun.yaml
 env.yaml
 cloudrun-env.yaml
 backend_env.json
-!.env.example
+service-account.json
+*.pem
+*.key
+.next
 .testsprite/
 
 # Local Netlify folder

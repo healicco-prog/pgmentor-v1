@@ -87,47 +87,35 @@ function validateEmail(email: string): boolean {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GEMINI AI CLIENT — Vertex AI with service account ADC (production)
-// Production (Cloud Run): Uses service account pgmentor-backend-sa via ADC
-// Local dev: Uses `gcloud auth application-default login` for ADC
-// SECURITY: No API key exposed. All AI calls stay server-side only.
+// GEMINI AI CLIENT — Gemini API with API Key (production + local)
+// Uses generativelanguage.googleapis.com (Gemini API) — NOT Vertex AI.
+// Vertex AI publisher models are inaccessible for this project (404 on all models).
+// SECURITY: API key is server-side only, never exposed to the frontend.
 // ═══════════════════════════════════════════════════════════════════════════
-const gcpProject = process.env.GOOGLE_CLOUD_PROJECT;
-const gcpLocation = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
-const geminiApiKey = process.env.GEMINI_API_KEY; // Only for local dev fallback
+const geminiApiKey = process.env.GEMINI_API_KEY;
 
 let genAI: InstanceType<typeof GoogleGenAI> | null = null;
 
-if (gcpProject) {
-  // ✅ PRIMARY PATH: Vertex AI with Application Default Credentials
-  // On Cloud Run: ADC uses the attached service account (pgmentor-backend-sa)
-  // Locally: ADC uses credentials from `gcloud auth application-default login`
-  genAI = new GoogleGenAI({
-    vertexai: true,
-    project: gcpProject,
-    location: gcpLocation
-  });
-  console.log(`✅ Vertex AI client initialized via ADC (project: ${gcpProject}, location: ${gcpLocation})`);
-} else if (geminiApiKey) {
-  // ⚠️ FALLBACK: Direct API key (local dev only — never use in production)
+if (geminiApiKey) {
+  // ✅ PRIMARY PATH: Gemini API with API key
   genAI = new GoogleGenAI({ apiKey: geminiApiKey });
-  console.log("⚠️ Gemini AI client initialized with API key (local dev fallback).");
+  console.log("✅ Gemini AI client initialized with API key.");
 } else {
-  console.warn("⚠️ No GOOGLE_CLOUD_PROJECT or GEMINI_API_KEY set. AI features will be disabled.");
+  console.warn("⚠️ No GEMINI_API_KEY set. AI features will be disabled.");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // AI MODEL SELECTION
-// Primary: gemini-1.5-flash (GA, stable, confirmed working on Vertex AI us-central1)
-// Fallback: gemini-1.5-flash (same model — most reliable for this project)
-// NOTE: gemini-2.0-flash-001 and gemini-2.5-flash return 404 on this project.
+// Primary: gemini-2.5-flash (stable GA, June 2025 — fast, cheap, 1M tokens)
+// Fallback: gemini-2.5-flash-lite (stable GA, July 2025 — even faster/cheaper)
+// These are confirmed working via Gemini API key auth (tested April 2026).
 // ═══════════════════════════════════════════════════════════════════════════
 function selectAIModel(userRole?: string): string {
-  return 'gemini-1.5-flash';
+  return 'gemini-2.5-flash';
 }
 
 function selectFallbackModel(): string {
-  return 'gemini-1.5-flash';
+  return 'gemini-2.5-flash-lite';
 }
 
 // Wrap a promise with a timeout — rejects after ms milliseconds

@@ -118,14 +118,17 @@ if (gcpProject) {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // AI MODEL SELECTION
-// Primary: gemini-2.5-flash | Fallback: gemini-2.0-flash (faster, for timeouts)
+// Primary: gemini-2.0-flash-001 (GA, stable on Vertex AI us-central1)
+// Fallback: gemini-2.0-flash-lite-001 (faster, lower latency — for timeouts)
+// NOTE: gemini-2.5-flash is preview-only and returns 404 on Vertex AI.
+// Confirmed valid model IDs are listed in models.txt.
 // ═══════════════════════════════════════════════════════════════════════════
 function selectAIModel(userRole?: string): string {
-  return 'gemini-2.5-flash';
+  return 'gemini-2.0-flash-001';
 }
 
 function selectFallbackModel(): string {
-  return 'gemini-2.0-flash';
+  return 'gemini-2.0-flash-lite-001';
 }
 
 // Wrap a promise with a timeout — rejects after ms milliseconds

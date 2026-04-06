@@ -286,14 +286,16 @@ async function startServer() {
     const config: any = { systemInstruction, temperature: 0.7, responseMimeType: responseMimeType || "text/plain" };
     if (useSearch) config.tools = [{ googleSearch: {} }];
 
-    // Try primary model with 22s timeout, then fallback model with 20s timeout
-    // This ensures we respond before Netlify's 26s proxy timeout
+    // Try primary model with 120s timeout, then fallback model with 90s timeout
+    // Frontend calls Cloud Run directly (not via Netlify proxy), so no 26s limit applies.
+    // gemini-2.5-flash is a "thinking" model — complex tasks like protocol generation
+    // can take 30-60s due to its reasoning step before output.
     let response: any;
     let usedModel = primaryModel;
     try {
       response = await withTimeout(
         retryWithBackoff(() => genAI!.models.generateContent({ model: primaryModel, contents: prompt, config }), 1),
-        22000,
+        120000,
         `${primaryModel} primary`
       );
     } catch (primaryError: any) {
@@ -305,7 +307,7 @@ async function startServer() {
           usedModel = fallbackModel;
           response = await withTimeout(
             retryWithBackoff(() => genAI!.models.generateContent({ model: fallbackModel, contents: prompt, config }), 1),
-            20000,
+            90000,
             `${fallbackModel} fallback`
           );
           console.log(`✅ Fallback model ${fallbackModel} succeeded`);

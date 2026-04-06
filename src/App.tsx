@@ -2905,7 +2905,7 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
       await fetch('/api/state/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: 'default', contacts: newContacts, personal_card: personalCard })
+        body: JSON.stringify({ user_id: localStorage.getItem('PGMentor_user_id') || 'default', contacts: newContacts, personal_card: personalCard })
       });
     } catch (e) {
       console.error("Failed to save contacts to db", e);
@@ -2918,7 +2918,7 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
       await fetch('/api/state/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: 'default', contacts, personal_card: card })
+        body: JSON.stringify({ user_id: localStorage.getItem('PGMentor_user_id') || 'default', contacts, personal_card: card })
       });
     } catch (e) {
       console.error("Failed to save personal card to db", e);
@@ -4408,7 +4408,7 @@ Return the response in JSON format with the following schema:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id,
-          user_id: 'default',
+          user_id: localStorage.getItem('PGMentor_user_id') || 'default',
           subject: mcqSubject,
           topic: mcqTopic,
           mcqs: mcqGeneratedList,
@@ -4515,7 +4515,7 @@ Return the response in JSON format with the following schema:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id,
-          user_id: 'default',
+          user_id: localStorage.getItem('PGMentor_user_id') || 'default',
           subject: simSubject,
           paper: simPaper,
           topics: simTopics,
@@ -4631,7 +4631,7 @@ Return the response in JSON format with the following schema:
       endpoint = '/api/seminar-builder';
       newItem = {
         id: Date.now().toString(),
-        user_id: 'default',
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
         discipline: seminarDiscipline,
         topic: seminarTopic,
         criteria: seminarCriteria,
@@ -4650,7 +4650,7 @@ Return the response in JSON format with the following schema:
       endpoint = '/api/journal-club';
       newItem = {
         id: Date.now().toString(),
-        user_id: 'default',
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
         discipline: jcDiscipline,
         topic: jcTopic,
         criteria: jcCriteria,
@@ -4668,7 +4668,7 @@ Return the response in JSON format with the following schema:
       endpoint = '/api/question-paper';
       newItem = {
         id: Date.now().toString(),
-        user_id: 'default',
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
         paper_number: paperNumber,
         topic: input,
         content: output,
@@ -4684,7 +4684,7 @@ Return the response in JSON format with the following schema:
       endpoint = '/api/essay-generator';
       newItem = {
         id: Date.now().toString(),
-        user_id: 'default',
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
         title: customTitle,
         topic: input,
         course: essayCourse,
@@ -4700,7 +4700,7 @@ Return the response in JSON format with the following schema:
       endpoint = '/api/protocol-generator';
       newItem = {
         id: Date.now().toString(),
-        user_id: 'default',
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
         topic: input,
         course: protocolCourse,
         content: output,
@@ -4715,7 +4715,7 @@ Return the response in JSON format with the following schema:
       endpoint = '/api/manuscript-generator';
       newItem = {
         id: Date.now().toString(),
-        user_id: 'default',
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
         topic: input,
         course: manuscriptCourse,
         content: output,
@@ -4744,7 +4744,7 @@ Return the response in JSON format with the following schema:
       contentToSave = compiledContent;
       newItem = {
         id: Date.now().toString(),
-        user_id: 'default',
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
         study_title: statStudyTitle,
         course: statCourse,
         methods: JSON.stringify(selectedMethods),
@@ -4761,7 +4761,7 @@ Return the response in JSON format with the following schema:
       endpoint = '/api/reflection-generator';
       newItem = {
         id: Date.now().toString(),
-        user_id: 'default',
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
         subject: refSubject,
         topic: refTopic || input,
         content: output,
@@ -4776,7 +4776,7 @@ Return the response in JSON format with the following schema:
       endpoint = '/api/ai-exam-simulator';
       newItem = {
         id: Date.now().toString(),
-        user_id: 'default',
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
         subject: simSubject,
         paper: simPaper,
         topics: simTopics,
@@ -4795,7 +4795,7 @@ Return the response in JSON format with the following schema:
       endpoint = '/api/ai-exam-prep';
       newItem = {
         id: Date.now().toString(),
-        user_id: 'default',
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
         course_id: selectedCourseName,
         analytics: prepAnalytics || null,
         content: output,
@@ -4810,7 +4810,7 @@ Return the response in JSON format with the following schema:
       endpoint = '/api/knowledge-analyser-essay';
       newItem = {
         id: Date.now().toString(),
-        user_id: 'default',
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
         subject: analyzerSubject,
         topic: analyzerTopic,
         questions: analyzerQuestions || null,
@@ -4837,7 +4837,7 @@ Return the response in JSON format with the following schema:
       endpoint = '/api/clinical-decision-support';
       newItem = {
         id: Date.now().toString(),
-        user_id: 'default',
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
         patient_data: input,
         recommendations: output,
         date: new Date().toISOString(),
@@ -4852,7 +4852,7 @@ Return the response in JSON format with the following schema:
       endpoint = '/api/scientific-session-search';
       newItem = {
         id: Date.now().toString(),
-        user_id: 'default',
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
         subject: searchSubject,
         topic: searchTopic,
         region: searchRegion,
@@ -5785,7 +5785,7 @@ Return the response in JSON format with the following schema:
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({
                                     id: Date.now().toString(),
-                                    user_id: 'default',
+                                    user_id: localStorage.getItem('PGMentor_user_id') || 'default',
                                     paper_number: paperNumber || 'N/A',
                                     topic: input || 'Reference Paper',
                                     content: 'Model Reference Paper (Not Generated)',
@@ -6802,7 +6802,7 @@ Return the response in JSON format with the following schema:
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     id,
-                    user_id: 'default',
+                    user_id: localStorage.getItem('PGMentor_user_id') || 'default',
                     patient_data: data.patient_data,
                     recommendations: data.recommendations,
                     date: new Date().toISOString(),
@@ -6824,7 +6824,7 @@ Return the response in JSON format with the following schema:
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       id,
-                      user_id: 'default',
+                      user_id: localStorage.getItem('PGMentor_user_id') || 'default',
                       full_name: resumeData?.personal?.fullName || '',
                       professional_title: resumeData?.personal?.title || '',
                       email: resumeData?.personal?.email || '',
@@ -6863,7 +6863,7 @@ Return the response in JSON format with the following schema:
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       id,
-                      user_id: 'default',
+                      user_id: localStorage.getItem('PGMentor_user_id') || 'default',
                       topic: data.topic,
                       style: data.style,
                       depth: data.depth,
@@ -6887,7 +6887,7 @@ Return the response in JSON format with the following schema:
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       id,
-                      user_id: 'default',
+                      user_id: localStorage.getItem('PGMentor_user_id') || 'default',
                       query: data.query,
                       drug_name: data.drug_name,
                       condition: data.condition,
@@ -6985,7 +6985,7 @@ Return the response in JSON format with the following schema:
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     id,
-                    user_id: 'default',
+                    user_id: localStorage.getItem('PGMentor_user_id') || 'default',
                     prescription_data: JSON.stringify(analysisResult),
                     analysis: JSON.stringify(analysisResult),
                     date: new Date().toISOString()
@@ -7491,12 +7491,12 @@ Return the response in JSON format with the following schema:
             <button 
               onClick={handleGenerate}
               disabled={isLoading || (featureId === 'ai-exam-prep' && !prepCourseId) || (featureId === 'journal-club' && !jcJournalLink.trim() && scanImages.length === 0)}
-              className={`w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 ${(featureId === 'prescription-analyser' || featureId === 'contacts-management' || featureId === 'search-topic' || featureId === 'knowledge-library' || featureId === 'essay-library' || featureId === 'mcq-library' || featureId === 'flash-cards' || featureId === 'thesis-notes' || featureId === 'clinical-decision-support' || (featureId === 'ai-exam-simulator' && (simExamActive || simUploadPhase || isEvaluatingSim || simEvaluationResult)) || (featureId === 'answer-analyser' && analyzerSelectedQuestion) || (featureId === 'mcqs-analyser' && mcqGeneratedList.length > 0)) ? 'hidden' : ''}`}
+              className={`w-full font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg cursor-not-allowed disabled:cursor-not-allowed ${isLoading ? 'bg-slate-700 text-white shadow-slate-700/20' : 'bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:opacity-60 text-white shadow-blue-600/20'} ${(featureId === 'prescription-analyser' || featureId === 'contacts-management' || featureId === 'search-topic' || featureId === 'knowledge-library' || featureId === 'essay-library' || featureId === 'mcq-library' || featureId === 'flash-cards' || featureId === 'thesis-notes' || featureId === 'clinical-decision-support' || (featureId === 'ai-exam-simulator' && (simExamActive || simUploadPhase || isEvaluatingSim || simEvaluationResult)) || (featureId === 'answer-analyser' && analyzerSelectedQuestion) || (featureId === 'mcqs-analyser' && mcqGeneratedList.length > 0)) ? 'hidden' : ''}`}
             >
               {isLoading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Generating...
+                  <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  <span className="text-white font-bold">Generating...</span>
                 </>
               ) : (
                 <>
@@ -7515,7 +7515,7 @@ Return the response in JSON format with the following schema:
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         id,
-                        user_id: 'default',
+                        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
                         entry_date: digitalDiaryDate || new Date().toISOString(),
                         content: output || input,
                         action_items: input,
@@ -16803,7 +16803,7 @@ Return ONLY the JSON object, no extra text.`;
             const saveRes = await fetch('/api/state/curriculum', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ user_id: 'default', data: savedCurriculum })
+              body: JSON.stringify({ user_id: localStorage.getItem('PGMentor_user_id') || 'default', data: savedCurriculum })
             });
             if (saveRes.ok) {
               console.log(`💾 [Iterative] Saved to DB after topic "${topicName}" (${successCount + 1}/${selectedTopics.length})`);
@@ -18500,7 +18500,7 @@ Return ONLY the JSON object, no extra text.`;
                             await fetch('/api/state/curriculum', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ user_id: 'default', data: updatedCurriculum })
+                              body: JSON.stringify({ user_id: localStorage.getItem('PGMentor_user_id') || 'default', data: updatedCurriculum })
                             });
                           } catch (e) { console.error('Save failed:', e); }
                           setEditingNoteId(null);
@@ -18849,7 +18849,7 @@ export default function App() {
         await fetch('/api/state/curriculum', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: 'default', data: curriculum })
+          body: JSON.stringify({ user_id: localStorage.getItem('PGMentor_user_id') || 'default', data: curriculum })
         });
       } catch (e) {
         console.error("Failed to save curriculum state", e);

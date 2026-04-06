@@ -107,15 +107,19 @@ if (geminiApiKey) {
 // ═══════════════════════════════════════════════════════════════════════════
 // AI MODEL SELECTION
 // Primary: gemini-2.5-flash (stable GA, June 2025 — fast, cheap, 1M tokens)
-// Fallback: gemini-2.5-flash-lite (stable GA, July 2025 — even faster/cheaper)
-// These are confirmed working via Gemini API key auth (tested April 2026).
+// Primary: gemini-2.0-flash (fast, non-thinking, stable GA — best for production)
+// Fallback: gemini-1.5-flash (proven reliable, fast execution)
+// NOTE: gemini-2.5-flash is a "thinking" model that takes 60-120+s for complex tasks
+//       and frequently times out. gemini-2.5-flash-lite hits 503 "high demand" errors.
+//       Both are UNSUITABLE for production use. Use gemini-2.0-flash instead.
+// These are confirmed working via Gemini API key auth (April 2026).
 // ═══════════════════════════════════════════════════════════════════════════
 function selectAIModel(userRole?: string): string {
-  return 'gemini-2.5-flash';
+  return 'gemini-2.0-flash';
 }
 
 function selectFallbackModel(): string {
-  return 'gemini-2.5-flash-lite';
+  return 'gemini-1.5-flash';
 }
 
 // Wrap a promise with a timeout — rejects after ms milliseconds
@@ -286,28 +290,28 @@ async function startServer() {
     const config: any = { systemInstruction, temperature: 0.7, responseMimeType: responseMimeType || "text/plain" };
     if (useSearch) config.tools = [{ googleSearch: {} }];
 
-    // Try primary model with 120s timeout, then fallback model with 90s timeout
-    // Frontend calls Cloud Run directly (not via Netlify proxy), so no 26s limit applies.
-    // gemini-2.5-flash is a "thinking" model — complex tasks like protocol generation
-    // can take 30-60s due to its reasoning step before output.
+    // Try primary model with 60s timeout, then fallback model with 45s timeout
+    // gemini-2.0-flash is a non-thinking model — typically responds in 5-15s.
+    // 60s timeout is generous but prevents hanging on network issues.
     let response: any;
     let usedModel = primaryModel;
     try {
       response = await withTimeout(
         retryWithBackoff(() => genAI!.models.generateContent({ model: primaryModel, contents: prompt, config }), 1),
-        120000,
+        60000,
         `${primaryModel} primary`
       );
     } catch (primaryError: any) {
       const isTimeout = primaryError.message?.includes('Timeout');
       const is429 = primaryError.message?.includes('429') || primaryError.message?.includes('RESOURCE_EXHAUSTED');
-      console.warn(`⚠️ Primary model ${primaryModel} failed (${primaryError.message?.slice(0, 80)}). ${isTimeout || is429 ? 'Trying fallback...' : 'Not retrying.'}`);
-      if (isTimeout || is429) {
+      const is503 = primaryError.message?.includes('503') || primaryError.message?.includes('UNAVAILABLE');
+      console.warn(`⚠️ Primary model ${primaryModel} failed (${primaryError.message?.slice(0, 80)}). ${isTimeout || is429 || is503 ? 'Trying fallback...' : 'Not retrying.'}`);
+      if (isTimeout || is429 || is503) {
         try {
           usedModel = fallbackModel;
           response = await withTimeout(
             retryWithBackoff(() => genAI!.models.generateContent({ model: fallbackModel, contents: prompt, config }), 1),
-            90000,
+            45000,
             `${fallbackModel} fallback`
           );
           console.log(`✅ Fallback model ${fallbackModel} succeeded`);

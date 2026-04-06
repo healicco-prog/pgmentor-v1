@@ -5,7 +5,6 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { GoogleGenAI } from "@google/genai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -87,39 +86,96 @@ function validateEmail(email: string): boolean {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GEMINI AI CLIENT — Gemini API with API Key (production + local)
-// Uses generativelanguage.googleapis.com (Gemini API) — NOT Vertex AI.
-// Vertex AI publisher models are inaccessible for this project (404 on all models).
+// GEMINI AI CLIENT — Direct REST API via fetch() — NOT @google/genai SDK
+// The SDK v1.x routes to Vertex AI even with apiKey set, causing 404 errors.
+// Direct REST calls to generativelanguage.googleapis.com are confirmed working.
 // SECURITY: API key is server-side only, never exposed to the frontend.
 // ═══════════════════════════════════════════════════════════════════════════
 const geminiApiKey = process.env.GEMINI_API_KEY;
 
-let genAI: InstanceType<typeof GoogleGenAI> | null = null;
-
 if (geminiApiKey) {
-  // ✅ PRIMARY PATH: Gemini API with API key
-  genAI = new GoogleGenAI({ apiKey: geminiApiKey });
-  console.log("✅ Gemini AI client initialized with API key.");
+  console.log("✅ Gemini API key loaded — using direct REST API (generativelanguage.googleapis.com).");
 } else {
   console.warn("⚠️ No GEMINI_API_KEY set. AI features will be disabled.");
 }
 
+// Use a sentinel so existing guards (if (!genAI)) still work
+const genAI = geminiApiKey ? true : null;
+
 // ═══════════════════════════════════════════════════════════════════════════
-// AI MODEL SELECTION
-// Primary: gemini-2.5-flash (stable GA, June 2025 — fast, cheap, 1M tokens)
-// Primary: gemini-1.5-flash (fast, confirmed working via Gemini API key, April 2026)
-// Fallback: gemini-1.5-flash-8b (ultra-fast, cheap, fully supported)
-// NOTE: gemini-2.0-flash is deprecated and "no longer available to new users".
-//       gemini-2.5-flash is a "thinking" model — times out on complex prompts.
-//       gemini-2.5-flash-lite hits 503 "high demand" errors.
-// gemini-1.5-flash is the SAFEST stable choice via Gemini API key auth.
+// AI MODEL SELECTION — Verified April 2026 with this API key
+// gemini-2.5-flash ✔ ONLY confirmed working model (all others return NOT_FOUND)
+// gemini-2.0-flash, gemini-1.5-flash, gemini-2.5-flash-8b — NOT available to new users
 // ═══════════════════════════════════════════════════════════════════════════
-function selectAIModel(userRole?: string): string {
-  return 'gemini-1.5-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash';
+
+function selectAIModel(_userRole?: string): string {
+  return GEMINI_MODEL;
 }
 
 function selectFallbackModel(): string {
-  return 'gemini-1.5-flash-8b';
+  // Same model — retry handles transient 429/503 errors
+  return GEMINI_MODEL;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GEMINI REST HELPER — wraps fetch to generativelanguage.googleapis.com
+// Returns { text, usageMetadata } matching the old SDK response shape.
+// ═══════════════════════════════════════════════════════════════════════════
+interface GeminiContent {
+  parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }>;
+  role?: string;
+}
+
+async function geminiGenerate(opts: {
+  model: string;
+  contents: string | GeminiContent | GeminiContent[];
+  systemInstruction?: string;
+  responseMimeType?: string;
+  temperature?: number;
+  tools?: any[];
+}): Promise<{ text: string; usageMetadata?: any }> {
+  if (!geminiApiKey) throw new Error('GEMINI_API_KEY not configured');
+
+  const model = opts.model;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+
+  // Normalise contents to the REST API shape
+  let contents: any[];
+  if (typeof opts.contents === 'string') {
+    contents = [{ parts: [{ text: opts.contents }] }];
+  } else if (Array.isArray(opts.contents)) {
+    contents = opts.contents;
+  } else {
+    contents = [opts.contents];
+  }
+
+  const body: any = { contents };
+  const genConfig: any = {};
+  if (opts.responseMimeType) genConfig.responseMimeType = opts.responseMimeType;
+  if (opts.temperature !== undefined) genConfig.temperature = opts.temperature;
+  // Disable thinking mode — makes gemini-2.5-flash respond like a fast non-thinking model (5-15s)
+  genConfig.thinkingConfig = { thinkingBudget: 0 };
+  if (Object.keys(genConfig).length) body.generationConfig = genConfig;
+  if (opts.systemInstruction) body.systemInstruction = { parts: [{ text: opts.systemInstruction }] };
+  if (opts.tools) body.tools = opts.tools;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  const json = await res.json() as any;
+
+  if (!res.ok || json.error) {
+    const errMsg = json.error?.message || JSON.stringify(json);
+    const status = json.error?.status || res.status;
+    throw new Error(`${status}: ${errMsg}`);
+  }
+
+  const text = json.candidates?.[0]?.content?.parts?.map((p: any) => p.text || '').join('') ?? '';
+  return { text, usageMetadata: json.usageMetadata };
 }
 
 // Wrap a promise with a timeout — rejects after ms milliseconds
@@ -287,18 +343,14 @@ async function startServer() {
     const fallbackModel = selectFallbackModel();
     console.log(`🤖 AI generate request — model: ${primaryModel} (role: ${userRole || 'public'})`);
 
-    const config: any = { systemInstruction, temperature: 0.7, responseMimeType: responseMimeType || "text/plain" };
-    if (useSearch) config.tools = [{ googleSearch: {} }];
+    const tools = useSearch ? [{ googleSearch: {} }] : undefined;
 
-    // Try primary model with 60s timeout, then fallback model with 45s timeout
-    // gemini-2.0-flash is a non-thinking model — typically responds in 5-15s.
-    // 60s timeout is generous but prevents hanging on network issues.
     let response: any;
     let usedModel = primaryModel;
     try {
       response = await withTimeout(
-        retryWithBackoff(() => genAI!.models.generateContent({ model: primaryModel, contents: prompt, config }), 1),
-        60000,
+        retryWithBackoff(() => geminiGenerate({ model: primaryModel, contents: prompt, systemInstruction, responseMimeType: responseMimeType || 'text/plain', temperature: 0.7, tools }), 1),
+        120000,
         `${primaryModel} primary`
       );
     } catch (primaryError: any) {
@@ -310,7 +362,7 @@ async function startServer() {
         try {
           usedModel = fallbackModel;
           response = await withTimeout(
-            retryWithBackoff(() => genAI!.models.generateContent({ model: fallbackModel, contents: prompt, config }), 1),
+            retryWithBackoff(() => geminiGenerate({ model: fallbackModel, contents: prompt, systemInstruction, responseMimeType: responseMimeType || 'text/plain', temperature: 0.7, tools }), 1),
             45000,
             `${fallbackModel} fallback`
           );
@@ -320,16 +372,91 @@ async function startServer() {
           return res.status(500).json({ error: `AI generation failed: ${fallbackError.message}` });
         }
       } else {
-        console.error(`❌ AI generate error (model: ${primaryModel}):`, primaryError.message, primaryError.stack?.slice(0, 500));
+        console.error(`❌ AI generate error (model: ${primaryModel}):`, primaryError.message);
         return res.status(500).json({ error: `AI generation failed: ${primaryError.message}` });
       }
     }
 
-    // Track token usage: PGMentor tokens = 2x Gemini tokens
-    const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
+    const geminiTokens = response.usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
     if (userId) logTokenUsage(userId, geminiTokens, 'ai/generate');
     console.log(`✅ AI generate success — model: ${usedModel}, tokens: ${geminiTokens}`);
     res.json({ text: response.text, tokensUsed: geminiTokens * PGMENTOR_TOKEN_MULTIPLIER });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STREAMING AI ENDPOINT — SSE keep-alive to prevent Netlify 26s proxy timeout
+  // Sends a ping every 5s while Gemini processes, then sends the full result.
+  // Used for long-running generation (protocols, manuscripts, etc.)
+  // ═══════════════════════════════════════════════════════════════════════════
+  app.post("/api/ai/generate-stream", async (req, res) => {
+    if (!genAI) return res.status(503).json({ error: "AI service not configured" });
+    const { prompt, systemInstruction, responseMimeType, useSearch, userRole, userId } = req.body;
+    if (!prompt) return res.status(400).json({ error: "prompt is required" });
+
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx/proxy buffering
+    res.flushHeaders();
+
+    const primaryModel = selectAIModel(userRole);
+    const fallbackModel = selectFallbackModel();
+    console.log(`🤖 AI stream request — model: ${primaryModel} (role: ${userRole || 'public'})`);
+
+    const tools = useSearch ? [{ googleSearch: {} }] : undefined;
+
+    // Send keep-alive pings every 5 seconds to prevent proxy timeout
+    let keepAliveCount = 0;
+    const keepAlive = setInterval(() => {
+      keepAliveCount++;
+      res.write(`event: ping\ndata: {"elapsed":${keepAliveCount * 5}}\n\n`);
+    }, 5000);
+
+    let aiResponse: any;
+    let usedModel = primaryModel;
+    try {
+      try {
+        aiResponse = await withTimeout(
+          retryWithBackoff(() => geminiGenerate({ model: primaryModel, contents: prompt, systemInstruction, responseMimeType: responseMimeType || 'text/plain', temperature: 0.7, tools }), 1),
+          180000,
+          `${primaryModel} stream-primary`
+        );
+      } catch (primaryError: any) {
+        const isTimeout = primaryError.message?.includes('Timeout');
+        const is429 = primaryError.message?.includes('429') || primaryError.message?.includes('RESOURCE_EXHAUSTED');
+        const is503 = primaryError.message?.includes('503') || primaryError.message?.includes('UNAVAILABLE');
+        console.warn(`⚠️ Stream primary model ${primaryModel} failed (${primaryError.message?.slice(0, 80)})`);
+        if (isTimeout || is429 || is503) {
+          usedModel = fallbackModel;
+          aiResponse = await withTimeout(
+            retryWithBackoff(() => geminiGenerate({ model: fallbackModel, contents: prompt, systemInstruction, responseMimeType: responseMimeType || 'text/plain', temperature: 0.7, tools }), 1),
+            60000,
+            `${fallbackModel} stream-fallback`
+          );
+          console.log(`✅ Stream fallback model ${fallbackModel} succeeded`);
+        } else {
+          throw primaryError;
+        }
+      }
+
+      clearInterval(keepAlive);
+
+      const geminiTokens = aiResponse.usageMetadata?.totalTokenCount || Math.ceil((aiResponse.text?.length || 0) / 4);
+      if (userId) logTokenUsage(userId, geminiTokens, 'ai/generate-stream');
+      console.log(`✅ AI stream success — model: ${usedModel}, tokens: ${geminiTokens}`);
+
+      // Send the final result as an SSE event
+      const resultPayload = JSON.stringify({ text: aiResponse.text, tokensUsed: geminiTokens * PGMENTOR_TOKEN_MULTIPLIER });
+      res.write(`event: result\ndata: ${resultPayload}\n\n`);
+      res.write(`event: done\ndata: {}\n\n`);
+      res.end();
+    } catch (error: any) {
+      clearInterval(keepAlive);
+      console.error(`❌ AI stream error:`, error.message);
+      res.write(`event: error\ndata: ${JSON.stringify({ error: error.message || 'AI generation failed' })}\n\n`);
+      res.end();
+    }
   });
 
   app.post("/api/ai/extract-contact", async (req, res) => {
@@ -340,10 +467,9 @@ async function startServer() {
     try {
       const systemInstruction = `You are an OCR specialist. Extract contact information from the provided visiting card image. Return JSON with: name, designation, organization, email, phone, website, address. If a field is not found, leave it as an empty string.`;
       const mimeType = image.startsWith('data:') ? image.substring(image.indexOf(':') + 1, image.indexOf(';')) : 'image/jpeg';
-      const prompt = { parts: [{ text: "Extract contact info from this visiting card." }, { inlineData: { mimeType: mimeType, data: image.split(',')[1] || image } }] };
-      const response = await retryWithBackoff(() => genAI!.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } }));
-      // Track token usage: PGMentor tokens = 2x Gemini tokens
-      const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
+      const contents: GeminiContent[] = [{ parts: [{ text: "Extract contact info from this visiting card." }, { inlineData: { mimeType, data: image.split(',')[1] || image } }] }];
+      const response = await retryWithBackoff(() => geminiGenerate({ model: selectAIModel(req.body.userRole), contents, systemInstruction, responseMimeType: 'application/json' }));
+      const geminiTokens = response.usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
       if (userId) logTokenUsage(userId, geminiTokens, 'ai/extract-contact');
       res.json(JSON.parse(response.text || '{}'));
     } catch (error: any) {
@@ -360,10 +486,9 @@ async function startServer() {
     try {
       const systemInstruction = `You are an expert AI healthcare systems evaluator. Analyze the provided medical prescription based on WHO Good Prescription Guidelines. Return a structured JSON report with exactly these keys: overall_score, quality_level, scores (patient_information, prescriber_details, clinical_documentation, drug_information, rational_drug_use, safety_compliance), what_was_done_right (array of strings), what_went_wrong (array of strings), how_to_correct (array of strings).`;
       const mimeType = image.startsWith('data:') ? image.substring(image.indexOf(':') + 1, image.indexOf(';')) : 'image/jpeg';
-      const prompt = { parts: [{ text: "Analyze this prescription and generate the evaluation JSON report." }, { inlineData: { mimeType: mimeType, data: image.split(',')[1] || image } }] };
-      const response = await retryWithBackoff(() => genAI!.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "application/json" } }));
-      // Track token usage: PGMentor tokens = 2x Gemini tokens
-      const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
+      const contents: GeminiContent[] = [{ parts: [{ text: "Analyze this prescription and generate the evaluation JSON report." }, { inlineData: { mimeType, data: image.split(',')[1] || image } }] }];
+      const response = await retryWithBackoff(() => geminiGenerate({ model: selectAIModel(req.body.userRole), contents, systemInstruction, responseMimeType: 'application/json' }));
+      const geminiTokens = response.usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
       if (userId) logTokenUsage(userId, geminiTokens, 'ai/analyze-prescription');
       res.json(JSON.parse(response.text || '{}'));
     } catch (error: any) {
@@ -380,10 +505,9 @@ async function startServer() {
     try {
       const systemInstruction = `You are an expert AI extraction tool. Accurately transcribe the uploaded medical question paper. Maintain exact formatting, structure, question numbers. Return as plain text in Markdown.`;
       const mimeType = image.startsWith('data:') ? image.substring(image.indexOf(':') + 1, image.indexOf(';')) : 'image/jpeg';
-      const prompt = { parts: [{ text: "Extract and format the question paper text exactly as shown." }, { inlineData: { mimeType: mimeType, data: image.split(',')[1] || image } }] };
-      const response = await retryWithBackoff(() => genAI!.models.generateContent({ model: selectAIModel(req.body.userRole), contents: [prompt], config: { systemInstruction, responseMimeType: "text/plain" } }));
-      // Track token usage: PGMentor tokens = 2x Gemini tokens
-      const geminiTokens = (response as any).usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
+      const contents: GeminiContent[] = [{ parts: [{ text: "Extract and format the question paper text exactly as shown." }, { inlineData: { mimeType, data: image.split(',')[1] || image } }] }];
+      const response = await retryWithBackoff(() => geminiGenerate({ model: selectAIModel(req.body.userRole), contents, systemInstruction, responseMimeType: 'text/plain' }));
+      const geminiTokens = response.usageMetadata?.totalTokenCount || Math.ceil((response.text?.length || 0) / 4);
       if (userId) logTokenUsage(userId, geminiTokens, 'ai/extract-paper');
       res.json({ text: response.text, tokensUsed: geminiTokens * PGMENTOR_TOKEN_MULTIPLIER });
     } catch (error: any) {

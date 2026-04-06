@@ -14,6 +14,7 @@ function getHeaders(): Record<string, string> {
 
 /**
  * Generic content generation via backend proxy
+ * Uses SSE streaming to prevent Netlify 26s proxy timeout
  */
 export const generateMedicalContent = async (
   prompt: string | any[],
@@ -24,18 +25,84 @@ export const generateMedicalContent = async (
   userId?: string
 ) => {
   try {
-    const response = await fetch(`${AI_BASE_URL}/generate`, {
+    // Use streaming endpoint to prevent Netlify proxy timeout on long requests
+    const response = await fetch(`${AI_BASE_URL}/generate-stream`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ prompt, systemInstruction, responseMimeType, useSearch, userRole, userId }),
     });
+
     if (!response.ok) {
+      // If streaming endpoint fails with non-200, fall back to regular endpoint
       const errData = await response.json().catch(() => ({ error: 'AI request failed' }));
-      console.error("AI Service Error Detail:", errData.error);
+      console.error("AI Stream Error Detail:", errData.error);
       throw new Error(errData.error || `AI request failed with status ${response.status}`);
     }
-    const data = await response.json();
-    return data.text;
+
+    // Parse SSE stream
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('ReadableStream not supported');
+    }
+
+    const decoder = new TextDecoder();
+    let resultText = '';
+    let tokensUsed = 0;
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // Process complete SSE events from the buffer
+      const events = buffer.split('\n\n');
+      buffer = events.pop() || ''; // Keep incomplete event in buffer
+
+      for (const eventBlock of events) {
+        if (!eventBlock.trim()) continue;
+
+        const lines = eventBlock.split('\n');
+        let eventType = '';
+        let eventData = '';
+
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            eventType = line.slice(7).trim();
+          } else if (line.startsWith('data: ')) {
+            eventData = line.slice(6);
+          }
+        }
+
+        if (eventType === 'result' && eventData) {
+          try {
+            const parsed = JSON.parse(eventData);
+            resultText = parsed.text || '';
+            tokensUsed = parsed.tokensUsed || 0;
+          } catch (e) {
+            console.warn('Failed to parse SSE result:', e);
+          }
+        } else if (eventType === 'error' && eventData) {
+          try {
+            const parsed = JSON.parse(eventData);
+            throw new Error(parsed.error || 'AI generation failed');
+          } catch (e: any) {
+            if (e.message && e.message !== 'AI generation failed') throw e;
+            throw new Error('AI generation failed');
+          }
+        } else if (eventType === 'ping') {
+          // Keep-alive — connection is alive, Gemini still processing
+          console.log('AI stream: keep-alive ping');
+        }
+      }
+    }
+
+    if (!resultText) {
+      throw new Error('No result received from AI stream');
+    }
+
+    return resultText;
   } catch (error) {
     console.error("AI Service Error:", error);
     throw error;

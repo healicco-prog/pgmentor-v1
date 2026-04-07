@@ -15,7 +15,7 @@ interface UserProfile {
 }
 interface Subscription { id: number; user_id: string; plan_id: string; status: string; is_trial: boolean; trial_end_date: string; start_date: string; end_date: string; }
 interface TokenPolicy { plan_id: string; monthly_tokens: number; trial_tokens: number; }
-interface UserRow { id: string; email: string; created_at: string; profile: UserProfile | null; subscription: Subscription | null; token_used: number; token_limit: number; }
+interface UserRow { id: string; email: string; created_at: string; profile: UserProfile | null; subscription: Subscription | null; token_used: number; token_limit: number; email_confirmed: boolean; }
 interface AuditLog { id: number; action_type: string; performed_by: string; target_user_email: string; details: any; created_at: string; }
 
 // ─── API ──────────────────────────────────────────────────────────────────────
@@ -298,6 +298,8 @@ const EditUserModal = ({ user, plans, onClose, onSaved }: { user: UserRow; plans
 // ─── Main Component ───────────────────────────────────────────────────────────
 export const UserManagementSystem: React.FC = () => {
   const [activeTab, setActiveTab] = useState('users');
+  const [confirmingAll, setConfirmingAll] = useState(false);
+  const [confirmAllResult, setConfirmAllResult] = useState<string | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [tokenPolicies, setTokenPolicies] = useState<TokenPolicy[]>([]);
@@ -336,7 +338,8 @@ export const UserManagementSystem: React.FC = () => {
       const rows: UserRow[] = (profiles || []).map((p: any) => {
         const sub = (subs || []).find((s: any) => s.user_id === p.user_id) || null;
         const planLimit = policyByPlan[sub?.plan_id || 'trial'] || 100000;
-        return { id: p.user_id, email: p.email || p.user_id, created_at: p.created_at, profile: p, subscription: sub, token_used: usageByUser[p.user_id] || 0, token_limit: overrideByUser[p.user_id] ?? planLimit };
+        // email_confirmed comes from backend (merged from auth.users)
+        return { id: p.user_id, email: p.email || p.user_id, created_at: p.created_at, profile: p, subscription: sub, token_used: usageByUser[p.user_id] || 0, token_limit: overrideByUser[p.user_id] ?? planLimit, email_confirmed: p.email_confirmed !== false };
       });
       setUsers(rows);
     } catch (err: any) { setError(err.message); }
@@ -371,6 +374,19 @@ export const UserManagementSystem: React.FC = () => {
     if (activeTab === 'audit') fetchAuditLogs();
     if (activeTab === 'subscriptions') fetchSubscriptions();
   }, [activeTab, fetchUsers, fetchAuditLogs, fetchSubscriptions]);
+
+  const confirmAllEmails = async () => {
+    setConfirmingAll(true);
+    setConfirmAllResult(null);
+    try {
+      const r = await adminFetch('/api/admin/confirm-all-emails', { method: 'POST', body: '{}' });
+      setConfirmAllResult(`✅ Confirmed ${r.confirmed} users${r.failed > 0 ? `, ${r.failed} failed` : ''}`);
+      setTimeout(() => setConfirmAllResult(null), 5000);
+      fetchUsers();
+    } catch (e: any) {
+      setConfirmAllResult('❌ Failed: ' + e.message);
+    } finally { setConfirmingAll(false); }
+  };
 
   const saveTokenPolicies = async () => {
     setSavingPolicies(true);
@@ -467,7 +483,16 @@ export const UserManagementSystem: React.FC = () => {
             <button onClick={fetchUsers} className="p-2 border border-gray-200 rounded-lg bg-white text-gray-500 hover:bg-gray-50 transition-all">
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             </button>
+            <button onClick={confirmAllEmails} disabled={confirmingAll}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-all disabled:opacity-60 whitespace-nowrap">
+              {confirmingAll ? <><RefreshCw size={12} className="animate-spin" /> Confirming…</> : <><CheckCircle size={12} /> Confirm All Emails</>}
+            </button>
           </div>
+          {confirmAllResult && (
+            <div className={`mx-5 mt-0 mb-2 px-3 py-2 rounded-lg text-xs font-semibold ${confirmAllResult.startsWith('✅') ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+              {confirmAllResult}
+            </div>
+          )}
 
           {/* Table */}
           {loading ? (
@@ -506,7 +531,14 @@ export const UserManagementSystem: React.FC = () => {
                             <p className="font-semibold text-gray-800 text-xs leading-tight truncate max-w-[130px]">
                               {user.profile?.full_name || 'Unnamed'}
                             </p>
-                            <p className="text-[11px] text-gray-400 truncate max-w-[130px]">{user.email}</p>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <p className="text-[11px] text-gray-400 truncate max-w-[120px]">{user.email}</p>
+                              {!user.email_confirmed && (
+                                <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-200">
+                                  Unverified
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>

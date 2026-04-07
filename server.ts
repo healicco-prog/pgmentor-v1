@@ -783,23 +783,70 @@ async function startServer() {
         .order('created_at', { ascending: false });
       if (error) throw error;
 
-      // 2. Get auth users to get emails
+      // 2. Get auth users to get emails and confirmation status
       const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
       const emailMap: Record<string, string> = {};
+      const confirmedMap: Record<string, boolean> = {};
       if (!authErr && authData?.users) {
-        authData.users.forEach((u: any) => { emailMap[u.id] = u.email || ''; });
+        authData.users.forEach((u: any) => {
+          emailMap[u.id] = u.email || '';
+          confirmedMap[u.id] = !!u.email_confirmed_at;
+        });
       }
 
-      // 3. Merge email into each profile
+      // 3. Merge email + confirmation status into each profile
       const enriched = (profiles || []).map((p: any) => ({
         ...p,
         email: emailMap[p.user_id] || p.email || p.user_id,
+        email_confirmed: confirmedMap[p.user_id] ?? true,
       }));
 
       res.json(enriched);
     } catch (error: any) {
       console.error("❌ admin all-users error:", error.message);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: confirm ALL unconfirmed email addresses in one shot
+  app.post("/api/admin/confirm-all-emails", requireAdmin, async (req, res) => {
+    try {
+      const { data: authData, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+      if (listErr) throw listErr;
+
+      const unconfirmed = (authData?.users || []).filter((u: any) => !u.email_confirmed_at);
+      console.log(`📧 Confirming ${unconfirmed.length} unconfirmed users…`);
+
+      const results: any[] = [];
+      for (const u of unconfirmed) {
+        const { error } = await supabaseAdmin.auth.admin.updateUserById(u.id, {
+          email_confirm: true,
+        } as any);
+        results.push({ id: u.id, email: u.email, ok: !error, error: error?.message });
+        if (error) console.warn(`  ⚠ ${u.email}: ${error.message}`);
+        else console.log(`  ✅ ${u.email} confirmed`);
+      }
+
+      res.json({ confirmed: results.filter(r => r.ok).length, failed: results.filter(r => !r.ok).length, results });
+    } catch (err: any) {
+      console.error("❌ confirm-all-emails error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Admin: confirm a single user's email
+  app.post("/api/admin/confirm-email", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ error: 'userId required' });
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        email_confirm: true,
+      } as any);
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("❌ confirm-email error:", err.message);
+      res.status(500).json({ error: err.message });
     }
   });
 

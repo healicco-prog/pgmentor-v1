@@ -74,21 +74,14 @@ interface AuditLog {
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
 
-const adminFetch = async (path: string, options?: RequestInit) => {
-  // Get the auth token from localStorage (the user session)
-  const session = localStorage.getItem('supabase.auth.token') ||
-    localStorage.getItem('sb-yrelfdwkjtaidtoulwrj-auth-token');
-  let token = '';
-  try {
-    const parsed = JSON.parse(session || '{}');
-    token = parsed?.access_token || parsed?.currentSession?.access_token || '';
-  } catch {}
+const ADMIN_SECRET = 'PGMentor-SuperAdmin-SecretKey-2026';
 
+const adminFetch = async (path: string, options?: RequestInit) => {
   const res = await fetch(path, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'Authorization': `Secret ${ADMIN_SECRET}`,
       ...(options?.headers || {}),
     },
   });

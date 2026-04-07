@@ -729,18 +729,29 @@ async function startServer() {
   const requireAdmin = async (req: any, res: any, next: any) => {
     try {
       const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      if (!authHeader) {
         console.warn("⚠️ Admin auth: No Authorization header");
         return res.status(401).json({ error: 'Authentication required' });
       }
+
+      // Path 1: Control Panel secret key (for hardcoded CP login)
+      const ADMIN_SECRET = process.env.ADMIN_API_SECRET || 'PGMentor-SuperAdmin-SecretKey-2026';
+      if (authHeader === `Secret ${ADMIN_SECRET}`) {
+        console.log(`✅ Admin auth: via CP secret key`);
+        (req as any).adminUser = { email: 'control-panel', role: 'super_admin' };
+        return next();
+      }
+
+      // Path 2: Supabase JWT Bearer token
+      if (!authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
       const token = authHeader.split(' ')[1];
-      // Verify the token with Supabase Auth
       const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
       if (error || !user) {
         console.warn("⚠️ Admin auth: Invalid token -", error?.message);
         return res.status(401).json({ error: 'Invalid or expired token' });
       }
-      // Check if user has admin role in users table
       const { data: profile, error: profileError } = await supabaseAdmin
         .from('users')
         .select('role')
@@ -765,29 +776,53 @@ async function startServer() {
 
   app.get("/api/admin/all-users", requireAdmin, async (req, res) => {
     try {
-      const { data, error } = await supabase.rpc('admin_get_all_users');
+      // 1. Get profiles from user_profiles table
+      const { data: profiles, error } = await supabaseAdmin
+        .from('user_profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
       if (error) throw error;
-      res.json(data || []);
+
+      // 2. Get auth users to get emails
+      const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+      const emailMap: Record<string, string> = {};
+      if (!authErr && authData?.users) {
+        authData.users.forEach((u: any) => { emailMap[u.id] = u.email || ''; });
+      }
+
+      // 3. Merge email into each profile
+      const enriched = (profiles || []).map((p: any) => ({
+        ...p,
+        email: emailMap[p.user_id] || p.email || p.user_id,
+      }));
+
+      res.json(enriched);
     } catch (error: any) {
-      console.error("❌ admin_get_all_users error:", error.message);
+      console.error("❌ admin all-users error:", error.message);
       res.status(500).json({ error: error.message });
     }
   });
 
   app.get("/api/admin/all-subscriptions", requireAdmin, async (req, res) => {
     try {
-      const { data, error } = await supabase.rpc('admin_get_all_subscriptions');
+      const { data, error } = await supabaseAdmin
+        .from('subscriptions')
+        .select('*')
+        .order('created_at', { ascending: false });
       if (error) throw error;
       res.json(data || []);
     } catch (error: any) {
-      console.error("❌ admin_get_all_subscriptions error:", error.message);
+      console.error("❌ admin all-subscriptions error:", error.message);
       res.status(500).json({ error: error.message });
     }
   });
 
   app.get("/api/admin/all-token-overrides", requireAdmin, async (req, res) => {
     try {
-      const { data, error } = await supabase.rpc('admin_get_all_token_overrides');
+      const { data, error } = await supabaseAdmin
+        .from('user_token_overrides')
+        .select('*')
+        .eq('is_active', true);
       if (error) throw error;
       res.json(data || []);
     } catch (error: any) {
@@ -797,9 +832,18 @@ async function startServer() {
 
   app.get("/api/admin/token-usage-summary", requireAdmin, async (req, res) => {
     try {
-      const { data, error } = await supabase.rpc('admin_get_token_usage_summary');
+      // Aggregate token usage per user from token_usage_logs
+      const { data, error } = await supabaseAdmin
+        .from('token_usage_logs')
+        .select('user_id, tokens_used');
       if (error) throw error;
-      res.json(data || []);
+      // Aggregate client-side
+      const summary: Record<string, number> = {};
+      (data || []).forEach((row: any) => {
+        summary[row.user_id] = (summary[row.user_id] || 0) + (Number(row.tokens_used) || 0);
+      });
+      const result = Object.entries(summary).map(([user_id, total_used]) => ({ user_id, total_used }));
+      res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -807,7 +851,9 @@ async function startServer() {
 
   app.get("/api/admin/all-token-policies", requireAdmin, async (req, res) => {
     try {
-      const { data, error } = await supabase.rpc('admin_get_token_policies');
+      const { data, error } = await supabaseAdmin
+        .from('token_policies')
+        .select('*');
       if (error) throw error;
       res.json(data || []);
     } catch (error: any) {
@@ -817,7 +863,10 @@ async function startServer() {
 
   app.get("/api/admin/all-plans", requireAdmin, async (req, res) => {
     try {
-      const { data, error } = await supabase.rpc('admin_get_all_plans');
+      const { data, error } = await supabaseAdmin
+        .from('plans')
+        .select('*')
+        .order('price_monthly', { ascending: true });
       if (error) throw error;
       res.json(data || []);
     } catch (error: any) {
@@ -827,7 +876,11 @@ async function startServer() {
 
   app.get("/api/admin/audit-logs", requireAdmin, async (req, res) => {
     try {
-      const { data, error } = await supabase.rpc('admin_get_audit_logs');
+      const { data, error } = await supabaseAdmin
+        .from('admin_audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200);
       if (error) throw error;
       res.json(data || []);
     } catch (error: any) {

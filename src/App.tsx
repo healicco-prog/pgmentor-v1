@@ -17099,7 +17099,7 @@ Return ONLY the JSON object, no extra text.`;
         </div>
 
         {/* Scrollable Main Area */}
-        <div className="flex-1 overflow-auto p-6 md:p-12">
+        <div className="flex-1 overflow-auto p-6 md:p-10 bg-gray-50">
           {['lms-notes', 'essay-questions', 'mcq-questions', 'flash-cards'].includes(activeTab) && (
             <div className="w-full max-w-5xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="text-center mb-12">

@@ -37,31 +37,31 @@ const STYLES = [
 ];
 
 const COLOR_MAP: Record<string, string> = {
-  blue: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  indigo: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
-  violet: 'bg-violet-500/15 text-violet-400 border-violet-500/30',
-  purple: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-  emerald: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  teal: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
-  red: 'bg-red-500/15 text-red-400 border-red-500/30',
-  pink: 'bg-pink-500/15 text-pink-400 border-pink-500/30',
-  orange: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-  amber: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  cyan: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+  blue: 'bg-blue-500/15 text-blue-700 border-blue-500/30',
+  indigo: 'bg-indigo-500/15 text-indigo-700 border-indigo-500/30',
+  violet: 'bg-violet-500/15 text-violet-700 border-violet-500/30',
+  purple: 'bg-purple-500/15 text-purple-700 border-purple-500/30',
+  emerald: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30',
+  teal: 'bg-teal-500/15 text-teal-700 border-teal-500/30',
+  red: 'bg-red-500/15 text-red-700 border-red-500/30',
+  pink: 'bg-pink-500/15 text-pink-700 border-pink-500/30',
+  orange: 'bg-orange-500/15 text-orange-700 border-orange-500/30',
+  amber: 'bg-amber-500/15 text-amber-700 border-amber-500/30',
+  cyan: 'bg-cyan-500/15 text-cyan-700 border-cyan-500/30',
 };
 
 const SELECTED_MAP: Record<string, string> = {
-  blue: 'bg-blue-600/30 text-blue-300 border-blue-400/50 ring-2 ring-blue-500/30',
-  indigo: 'bg-indigo-600/30 text-indigo-300 border-indigo-400/50 ring-2 ring-indigo-500/30',
-  violet: 'bg-violet-600/30 text-violet-300 border-violet-400/50 ring-2 ring-violet-500/30',
-  purple: 'bg-purple-600/30 text-purple-300 border-purple-400/50 ring-2 ring-purple-500/30',
-  emerald: 'bg-emerald-600/30 text-emerald-300 border-emerald-400/50 ring-2 ring-emerald-500/30',
-  teal: 'bg-teal-600/30 text-teal-300 border-teal-400/50 ring-2 ring-teal-500/30',
-  red: 'bg-red-600/30 text-red-300 border-red-400/50 ring-2 ring-red-500/30',
-  pink: 'bg-pink-600/30 text-pink-300 border-pink-400/50 ring-2 ring-pink-500/30',
-  orange: 'bg-orange-600/30 text-orange-300 border-orange-400/50 ring-2 ring-orange-500/30',
-  amber: 'bg-amber-600/30 text-amber-300 border-amber-400/50 ring-2 ring-amber-500/30',
-  cyan: 'bg-cyan-600/30 text-cyan-300 border-cyan-400/50 ring-2 ring-cyan-500/30',
+  blue: 'bg-blue-600/30 text-blue-800 border-blue-400/50 ring-2 ring-blue-500/30',
+  indigo: 'bg-indigo-600/30 text-indigo-800 border-indigo-400/50 ring-2 ring-indigo-500/30',
+  violet: 'bg-violet-600/30 text-violet-800 border-violet-400/50 ring-2 ring-violet-500/30',
+  purple: 'bg-purple-600/30 text-purple-800 border-purple-400/50 ring-2 ring-purple-500/30',
+  emerald: 'bg-emerald-600/30 text-emerald-800 border-emerald-400/50 ring-2 ring-emerald-500/30',
+  teal: 'bg-teal-600/30 text-teal-800 border-teal-400/50 ring-2 ring-teal-500/30',
+  red: 'bg-red-600/30 text-red-800 border-red-400/50 ring-2 ring-red-500/30',
+  pink: 'bg-pink-600/30 text-pink-800 border-pink-400/50 ring-2 ring-pink-500/30',
+  orange: 'bg-orange-600/30 text-orange-800 border-orange-400/50 ring-2 ring-orange-500/30',
+  amber: 'bg-amber-600/30 text-amber-800 border-amber-400/50 ring-2 ring-amber-500/30',
+  cyan: 'bg-cyan-600/30 text-cyan-800 border-cyan-400/50 ring-2 ring-cyan-500/30',
 };
 
 // ─── System Instruction Builder ──────────────────────────────────────────────
@@ -248,7 +248,7 @@ const DrugTreatmentAssistant = ({ onSave }: { onSave?: (data: any) => Promise<vo
         {/* Query / Free text */}
         <div className="space-y-2">
           <label className="text-white font-semibold text-sm flex items-center gap-2">
-            <FlaskConical size={16} className="text-emerald-400" /> Your Query
+            <FlaskConical size={16} className="text-emerald-700" /> Your Query
           </label>
           <textarea
             value={query}
@@ -263,7 +263,7 @@ const DrugTreatmentAssistant = ({ onSave }: { onSave?: (data: any) => Promise<vo
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-slate-300 text-sm font-medium flex items-center gap-2">
-              <Pill size={14} className="text-emerald-400" /> Drug Name / Class <span className="text-slate-500 text-xs">(optional)</span>
+              <Pill size={14} className="text-emerald-700" /> Drug Name / Class <span className="text-slate-500 text-xs">(optional)</span>
             </label>
             <input
               value={drugName}
@@ -274,7 +274,7 @@ const DrugTreatmentAssistant = ({ onSave }: { onSave?: (data: any) => Promise<vo
           </div>
           <div className="space-y-1.5">
             <label className="text-slate-300 text-sm font-medium flex items-center gap-2">
-              <Stethoscope size={14} className="text-emerald-400" /> Condition <span className="text-slate-500 text-xs">(optional)</span>
+              <Stethoscope size={14} className="text-emerald-700" /> Condition <span className="text-slate-500 text-xs">(optional)</span>
             </label>
             <input
               value={condition}
@@ -288,7 +288,7 @@ const DrugTreatmentAssistant = ({ onSave }: { onSave?: (data: any) => Promise<vo
         {/* Patient Context */}
         <div className="space-y-1.5">
           <label className="text-slate-300 text-sm font-medium flex items-center gap-2">
-            <HeartPulse size={14} className="text-emerald-400" /> Patient Context <span className="text-slate-500 text-xs">(optional — age, weight, renal/liver status, pregnancy)</span>
+            <HeartPulse size={14} className="text-emerald-700" /> Patient Context <span className="text-slate-500 text-xs">(optional — age, weight, renal/liver status, pregnancy)</span>
           </label>
           <input
             value={patientContext}
@@ -326,7 +326,7 @@ const DrugTreatmentAssistant = ({ onSave }: { onSave?: (data: any) => Promise<vo
             <label className="text-white font-semibold text-sm">Explanation Style</label>
             <button
               onClick={() => setShowStyles(!showStyles)}
-              className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+              className="text-xs text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition-colors"
             >
               {showStyles ? 'Hide Styles' : 'Show Styles'}
               <ChevronDown size={12} className={`transition-transform ${showStyles ? 'rotate-180' : ''}`} />
@@ -381,7 +381,7 @@ const DrugTreatmentAssistant = ({ onSave }: { onSave?: (data: any) => Promise<vo
           <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-white/5 bg-slate-800/30">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-                <Pill size={16} className="text-emerald-400" />
+                <Pill size={16} className="text-emerald-700" />
               </div>
               <div>
                 <p className="text-white text-sm font-semibold">Drug & Treatment Analysis</p>
@@ -393,7 +393,7 @@ const DrugTreatmentAssistant = ({ onSave }: { onSave?: (data: any) => Promise<vo
             <div className="flex gap-2">
               <button onClick={handleCopy}
                 className="text-slate-400 hover:text-white text-xs flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-lg transition-colors">
-                {copied ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+                {copied ? <Check size={12} className="text-green-700" /> : <Copy size={12} />}
                 {copied ? 'Copied!' : 'Copy'}
               </button>
               <button onClick={handleDownloadPDF}
@@ -402,7 +402,7 @@ const DrugTreatmentAssistant = ({ onSave }: { onSave?: (data: any) => Promise<vo
               </button>
               {onSave && (
                 <button onClick={handleSave}
-                  className="text-slate-400 hover:text-emerald-400 text-xs flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-lg transition-colors">
+                  className="text-slate-400 hover:text-emerald-700 text-xs flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-lg transition-colors">
                   <Save size={12} /> Save
                 </button>
               )}
@@ -415,8 +415,8 @@ const DrugTreatmentAssistant = ({ onSave }: { onSave?: (data: any) => Promise<vo
 
           {/* Safety Banner */}
           <div className="mx-6 mt-4 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 flex items-start gap-3">
-            <ShieldAlert size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
-            <p className="text-amber-300 text-xs leading-relaxed">
+            <ShieldAlert size={16} className="text-amber-700 flex-shrink-0 mt-0.5" />
+            <p className="text-amber-800 text-xs leading-relaxed">
               <strong>Educational Tool Only</strong> — This is an AI-generated educational resource, not a replacement for clinical judgment. All drug information should be verified and used under supervision of a qualified clinician.
             </p>
           </div>
@@ -425,12 +425,12 @@ const DrugTreatmentAssistant = ({ onSave }: { onSave?: (data: any) => Promise<vo
           <div ref={outputRef} className="px-6 py-6 prose prose-invert prose-sm max-w-none
             prose-headings:text-white prose-headings:font-bold
             prose-h1:text-xl prose-h1:border-b prose-h1:border-white/10 prose-h1:pb-2 prose-h1:mb-4
-            prose-h2:text-lg prose-h2:text-emerald-400 prose-h2:mt-6 prose-h2:mb-3
-            prose-h3:text-base prose-h3:text-blue-400 prose-h3:mt-4 prose-h3:mb-2
+            prose-h2:text-lg prose-h2:text-emerald-700 prose-h2:mt-6 prose-h2:mb-3
+            prose-h3:text-base prose-h3:text-blue-700 prose-h3:mt-4 prose-h3:mb-2
             prose-p:text-slate-300 prose-p:leading-relaxed
             prose-li:text-slate-300
             prose-strong:text-white
-            prose-code:text-emerald-300 prose-code:bg-emerald-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+            prose-code:text-emerald-800 prose-code:bg-emerald-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
             prose-table:border-collapse
             prose-th:bg-slate-800 prose-th:text-white prose-th:px-4 prose-th:py-2 prose-th:text-left prose-th:border prose-th:border-white/10
             prose-td:px-4 prose-td:py-2 prose-td:border prose-td:border-white/10 prose-td:text-slate-300
@@ -459,7 +459,7 @@ const DrugTreatmentAssistant = ({ onSave }: { onSave?: (data: any) => Promise<vo
                 }}
                 className="bg-slate-800/40 border border-white/5 rounded-xl p-4 text-left hover:border-emerald-500/30 transition-all group"
               >
-                <p className="text-white text-sm font-medium truncate group-hover:text-emerald-400 transition-colors">{item.query}</p>
+                <p className="text-white text-sm font-medium truncate group-hover:text-emerald-700 transition-colors">{item.query}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <span className="text-xs bg-white/5 text-slate-400 px-2 py-0.5 rounded-md">{MODES.find(m => m.id === item.mode)?.label}</span>
                   <span className="text-xs bg-white/5 text-slate-400 px-2 py-0.5 rounded-md">{STYLES.find(s => s.id === item.style)?.label}</span>

@@ -374,16 +374,16 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
         return (
           <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <InputField label="Full Name" value={resumeData.personal.fullName} onChange={(v: string) => updatePersonal('fullName', v)} placeholder="Dr. John Doe" icon={<User size={14} className="text-blue-400" />} />
-              <InputField label="Professional Title" value={resumeData.personal.title} onChange={(v: string) => updatePersonal('title', v)} placeholder="Associate Professor of Medicine" icon={<Briefcase size={14} className="text-blue-400" />} />
+              <InputField label="Full Name" value={resumeData.personal.fullName} onChange={(v: string) => updatePersonal('fullName', v)} placeholder="Dr. John Doe" icon={<User size={14} className="text-blue-700" />} />
+              <InputField label="Professional Title" value={resumeData.personal.title} onChange={(v: string) => updatePersonal('title', v)} placeholder="Associate Professor of Medicine" icon={<Briefcase size={14} className="text-blue-700" />} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <InputField label="Email" value={resumeData.personal.email} onChange={(v: string) => updatePersonal('email', v)} placeholder="doctor@hospital.com" type="email" icon={<Mail size={14} className="text-blue-400" />} />
-              <InputField label="Phone" value={resumeData.personal.phone} onChange={(v: string) => updatePersonal('phone', v)} placeholder="+91 98765 43210" icon={<Phone size={14} className="text-blue-400" />} />
+              <InputField label="Email" value={resumeData.personal.email} onChange={(v: string) => updatePersonal('email', v)} placeholder="doctor@hospital.com" type="email" icon={<Mail size={14} className="text-blue-700" />} />
+              <InputField label="Phone" value={resumeData.personal.phone} onChange={(v: string) => updatePersonal('phone', v)} placeholder="+91 98765 43210" icon={<Phone size={14} className="text-blue-700" />} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <InputField label="Location" value={resumeData.personal.location} onChange={(v: string) => updatePersonal('location', v)} placeholder="City, State, Country" icon={<MapPin size={14} className="text-blue-400" />} />
-              <InputField label="LinkedIn URL" value={resumeData.personal.linkedin} onChange={(v: string) => updatePersonal('linkedin', v)} placeholder="linkedin.com/in/username" icon={<Linkedin size={14} className="text-blue-400" />} />
+              <InputField label="Location" value={resumeData.personal.location} onChange={(v: string) => updatePersonal('location', v)} placeholder="City, State, Country" icon={<MapPin size={14} className="text-blue-700" />} />
+              <InputField label="LinkedIn URL" value={resumeData.personal.linkedin} onChange={(v: string) => updatePersonal('linkedin', v)} placeholder="linkedin.com/in/username" icon={<Linkedin size={14} className="text-blue-700" />} />
             </div>
             
             <div className="space-y-2">
@@ -408,7 +408,7 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
             
             {aiSuggestion && (
               <div className="bg-violet-900/20 border border-violet-500/30 rounded-xl p-4 space-y-3">
-                <p className="text-violet-300 text-sm flex items-center gap-2"><Sparkles size={14} /> AI Suggestion</p>
+                <p className="text-violet-800 text-sm flex items-center gap-2"><Sparkles size={14} /> AI Suggestion</p>
                 <p className="text-slate-300 text-sm leading-relaxed">{aiSuggestion}</p>
                 <button
                   onClick={() => { updatePersonal('summary', aiSuggestion); setAiSuggestion(''); }}
@@ -428,9 +428,9 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
             {resumeData.education.map((edu, idx) => (
               <div key={edu.id} className="bg-slate-800/40 border border-white/5 rounded-2xl p-5 space-y-4 relative group">
                 <div className="flex items-center justify-between">
-                  <span className="text-blue-400 text-xs font-bold uppercase tracking-wider">Education #{idx + 1}</span>
+                  <span className="text-blue-700 text-xs font-bold uppercase tracking-wider">Education #{idx + 1}</span>
                   {resumeData.education.length > 1 && (
-                    <button onClick={() => removeItem('education', edu.id)} className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity p-1">
+                    <button onClick={() => removeItem('education', edu.id)} className="text-red-700 hover:text-red-800 opacity-0 group-hover:opacity-100 transition-opacity p-1">
                       <Trash2 size={14} />
                     </button>
                   )}
@@ -444,7 +444,7 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
                   <div className="flex items-center justify-between">
                     <label className="text-slate-300 text-sm font-medium">Details / Thesis / Achievements</label>
                     <button onClick={() => aiEnhanceDescription('education', edu.id)} disabled={isGenerating}
-                      className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 transition-colors disabled:opacity-50">
+                      className="flex items-center gap-1 text-xs text-violet-700 hover:text-violet-800 transition-colors disabled:opacity-50">
                       <Sparkles size={11} /> Enhance
                     </button>
                   </div>
@@ -459,7 +459,7 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
               </div>
             ))}
             <button onClick={() => addItem('education', { degree: '', institution: '', year: '', details: '' })}
-              className="w-full border-2 border-dashed border-white/10 hover:border-blue-500/40 rounded-xl py-3 text-slate-400 hover:text-blue-400 text-sm font-medium flex items-center justify-center gap-2 transition-all">
+              className="w-full border-2 border-dashed border-white/10 hover:border-blue-500/40 rounded-xl py-3 text-slate-400 hover:text-blue-700 text-sm font-medium flex items-center justify-center gap-2 transition-all">
               <Plus size={16} /> Add Education
             </button>
           </div>
@@ -472,9 +472,9 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
             {resumeData.experience.map((exp, idx) => (
               <div key={exp.id} className="bg-slate-800/40 border border-white/5 rounded-2xl p-5 space-y-4 relative group">
                 <div className="flex items-center justify-between">
-                  <span className="text-emerald-400 text-xs font-bold uppercase tracking-wider">Experience #{idx + 1}</span>
+                  <span className="text-emerald-700 text-xs font-bold uppercase tracking-wider">Experience #{idx + 1}</span>
                   {resumeData.experience.length > 1 && (
-                    <button onClick={() => removeItem('experience', exp.id)} className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity p-1">
+                    <button onClick={() => removeItem('experience', exp.id)} className="text-red-700 hover:text-red-800 opacity-0 group-hover:opacity-100 transition-opacity p-1">
                       <Trash2 size={14} />
                     </button>
                   )}
@@ -488,7 +488,7 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
                   <div className="flex items-center justify-between">
                     <label className="text-slate-300 text-sm font-medium">Key Responsibilities & Achievements</label>
                     <button onClick={() => aiEnhanceDescription('experience', exp.id)} disabled={isGenerating}
-                      className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 transition-colors disabled:opacity-50">
+                      className="flex items-center gap-1 text-xs text-violet-700 hover:text-violet-800 transition-colors disabled:opacity-50">
                       <Sparkles size={11} /> Enhance
                     </button>
                   </div>
@@ -503,7 +503,7 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
               </div>
             ))}
             <button onClick={() => addItem('experience', { role: '', organization: '', duration: '', description: '' })}
-              className="w-full border-2 border-dashed border-white/10 hover:border-emerald-500/40 rounded-xl py-3 text-slate-400 hover:text-emerald-400 text-sm font-medium flex items-center justify-center gap-2 transition-all">
+              className="w-full border-2 border-dashed border-white/10 hover:border-emerald-500/40 rounded-xl py-3 text-slate-400 hover:text-emerald-700 text-sm font-medium flex items-center justify-center gap-2 transition-all">
               <Plus size={16} /> Add Experience
             </button>
           </div>
@@ -515,7 +515,7 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Skills */}
             <div className="space-y-4">
-              <h3 className="text-white font-bold flex items-center gap-2"><Stethoscope size={18} className="text-blue-400" /> Skills & Competencies</h3>
+              <h3 className="text-white font-bold flex items-center gap-2"><Stethoscope size={18} className="text-blue-700" /> Skills & Competencies</h3>
               <div className="flex gap-2">
                 <input value={newSkill} onChange={(e) => setNewSkill(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && newSkill.trim()) { setResumeData(p => ({ ...p, skills: [...p.skills, newSkill.trim()] })); setNewSkill(''); } }}
@@ -526,9 +526,9 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
               </div>
               <div className="flex flex-wrap gap-2">
                 {resumeData.skills.map((skill, i) => (
-                  <span key={i} className="bg-blue-500/15 text-blue-300 text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-blue-500/20">
+                  <span key={i} className="bg-blue-500/15 text-blue-800 text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-blue-500/20">
                     {skill}
-                    <button onClick={() => setResumeData(p => ({ ...p, skills: p.skills.filter((_, idx) => idx !== i) }))} className="text-blue-400 hover:text-red-400 transition-colors">
+                    <button onClick={() => setResumeData(p => ({ ...p, skills: p.skills.filter((_, idx) => idx !== i) }))} className="text-blue-700 hover:text-red-700 transition-colors">
                       <Trash2 size={10} />
                     </button>
                   </span>
@@ -538,7 +538,7 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
 
             {/* Certifications */}
             <div className="space-y-4">
-              <h3 className="text-white font-bold flex items-center gap-2"><Award size={18} className="text-amber-400" /> Certifications & Licenses</h3>
+              <h3 className="text-white font-bold flex items-center gap-2"><Award size={18} className="text-amber-700" /> Certifications & Licenses</h3>
               {resumeData.certifications.map((cert, idx) => (
                 <div key={cert.id} className="bg-slate-800/40 border border-white/5 rounded-xl p-4 space-y-3 relative group">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -547,21 +547,21 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
                     <InputField label="Year" value={cert.year} onChange={(v: string) => updateItem('certifications', cert.id, 'year', v)} placeholder="2024" />
                   </div>
                   {resumeData.certifications.length > 1 && (
-                    <button onClick={() => removeItem('certifications', cert.id)} className="absolute top-3 right-3 text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => removeItem('certifications', cert.id)} className="absolute top-3 right-3 text-red-700 hover:text-red-800 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Trash2 size={14} />
                     </button>
                   )}
                 </div>
               ))}
               <button onClick={() => addItem('certifications', { name: '', body: '', year: '' })}
-                className="w-full border border-dashed border-white/10 hover:border-amber-500/40 rounded-xl py-2.5 text-slate-400 hover:text-amber-400 text-sm font-medium flex items-center justify-center gap-2 transition-all">
+                className="w-full border border-dashed border-white/10 hover:border-amber-500/40 rounded-xl py-2.5 text-slate-400 hover:text-amber-700 text-sm font-medium flex items-center justify-center gap-2 transition-all">
                 <Plus size={14} /> Add Certification
               </button>
             </div>
 
             {/* Awards */}
             <div className="space-y-4">
-              <h3 className="text-white font-bold flex items-center gap-2"><Heart size={18} className="text-rose-400" /> Awards & Honors</h3>
+              <h3 className="text-white font-bold flex items-center gap-2"><Heart size={18} className="text-rose-700" /> Awards & Honors</h3>
               <div className="flex gap-2">
                 <input value={newAward} onChange={(e) => setNewAward(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && newAward.trim()) { setResumeData(p => ({ ...p, awards: [...p.awards, newAward.trim()] })); setNewAward(''); } }}
@@ -574,7 +574,7 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
                 {resumeData.awards.map((a, i) => (
                   <li key={i} className="flex items-center justify-between bg-slate-800/30 px-4 py-2 rounded-lg text-sm text-slate-300 group">
                     <span>• {a}</span>
-                    <button onClick={() => setResumeData(p => ({ ...p, awards: p.awards.filter((_, idx) => idx !== i) }))} className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12} /></button>
+                    <button onClick={() => setResumeData(p => ({ ...p, awards: p.awards.filter((_, idx) => idx !== i) }))} className="text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12} /></button>
                   </li>
                 ))}
               </ul>
@@ -582,7 +582,7 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
 
             {/* Memberships */}
             <div className="space-y-4">
-              <h3 className="text-white font-bold flex items-center gap-2"><Globe size={18} className="text-cyan-400" /> Professional Memberships</h3>
+              <h3 className="text-white font-bold flex items-center gap-2"><Globe size={18} className="text-cyan-700" /> Professional Memberships</h3>
               <div className="flex gap-2">
                 <input value={newMembership} onChange={(e) => setNewMembership(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && newMembership.trim()) { setResumeData(p => ({ ...p, memberships: [...p.memberships, newMembership.trim()] })); setNewMembership(''); } }}
@@ -595,7 +595,7 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
                 {resumeData.memberships.map((m, i) => (
                   <li key={i} className="flex items-center justify-between bg-slate-800/30 px-4 py-2 rounded-lg text-sm text-slate-300 group">
                     <span>• {m}</span>
-                    <button onClick={() => setResumeData(p => ({ ...p, memberships: p.memberships.filter((_, idx) => idx !== i) }))} className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12} /></button>
+                    <button onClick={() => setResumeData(p => ({ ...p, memberships: p.memberships.filter((_, idx) => idx !== i) }))} className="text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12} /></button>
                   </li>
                 ))}
               </ul>
@@ -609,13 +609,13 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Publications */}
             <div className="space-y-4">
-              <h3 className="text-white font-bold flex items-center gap-2"><BookOpen size={18} className="text-indigo-400" /> Publications</h3>
+              <h3 className="text-white font-bold flex items-center gap-2"><BookOpen size={18} className="text-indigo-700" /> Publications</h3>
               {resumeData.publications.map((pub, idx) => (
                 <div key={pub.id} className="bg-slate-800/40 border border-white/5 rounded-xl p-4 relative group">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-indigo-400 text-xs font-bold">#{idx + 1}</span>
+                    <span className="text-indigo-700 text-xs font-bold">#{idx + 1}</span>
                     {resumeData.publications.length > 1 && (
-                      <button onClick={() => removeItem('publications', pub.id)} className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => removeItem('publications', pub.id)} className="text-red-700 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Trash2 size={14} />
                       </button>
                     )}
@@ -630,14 +630,14 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
                 </div>
               ))}
               <button onClick={() => addItem('publications', { citation: '' })}
-                className="w-full border border-dashed border-white/10 hover:border-indigo-500/40 rounded-xl py-2.5 text-slate-400 hover:text-indigo-400 text-sm font-medium flex items-center justify-center gap-2 transition-all">
+                className="w-full border border-dashed border-white/10 hover:border-indigo-500/40 rounded-xl py-2.5 text-slate-400 hover:text-indigo-700 text-sm font-medium flex items-center justify-center gap-2 transition-all">
                 <Plus size={14} /> Add Publication
               </button>
             </div>
 
             {/* Conferences */}
             <div className="space-y-4">
-              <h3 className="text-white font-bold flex items-center gap-2"><FlaskConical size={18} className="text-orange-400" /> Conferences & Presentations</h3>
+              <h3 className="text-white font-bold flex items-center gap-2"><FlaskConical size={18} className="text-orange-700" /> Conferences & Presentations</h3>
               <div className="flex gap-2">
                 <input value={newConference} onChange={(e) => setNewConference(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && newConference.trim()) { setResumeData(p => ({ ...p, conferences: [...p.conferences, newConference.trim()] })); setNewConference(''); } }}
@@ -650,7 +650,7 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
                 {resumeData.conferences.map((c, i) => (
                   <li key={i} className="flex items-center justify-between bg-slate-800/30 px-4 py-2 rounded-lg text-sm text-slate-300 group">
                     <span>• {c}</span>
-                    <button onClick={() => setResumeData(p => ({ ...p, conferences: p.conferences.filter((_, idx) => idx !== i) }))} className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12} /></button>
+                    <button onClick={() => setResumeData(p => ({ ...p, conferences: p.conferences.filter((_, idx) => idx !== i) }))} className="text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12} /></button>
                   </li>
                 ))}
               </ul>
@@ -739,7 +739,7 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
           <p className="text-slate-400 mt-2 text-sm">Build an impressive academic CV tailored for medical professionals</p>
         </div>
         {isGenerating && (
-          <div className="flex items-center gap-2 bg-violet-500/10 text-violet-400 text-xs px-4 py-2 rounded-full border border-violet-500/20">
+          <div className="flex items-center gap-2 bg-violet-500/10 text-violet-700 text-xs px-4 py-2 rounded-full border border-violet-500/20">
             <div className="w-2 h-2 bg-violet-400 rounded-full animate-pulse" />
             AI is processing...
           </div>
@@ -755,7 +755,7 @@ const ProfessionalResumeBuilder = ({ onSave }: { onSave?: (data: any) => Promise
               onClick={() => setActiveStep(idx)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                 activeStep === idx
-                  ? 'bg-blue-600/15 text-blue-400 border border-blue-500/30'
+                  ? 'bg-blue-600/15 text-blue-700 border border-blue-500/30'
                   : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
               }`}
             >

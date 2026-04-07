@@ -362,7 +362,7 @@ const LearningManagementDashboard = ({
             </div>
           ) : (
             <div className="text-center py-8">
-              <Sparkles size={36} className="text-emerald-400 mx-auto mb-3" />
+              <Sparkles size={36} className="text-emerald-700 mx-auto mb-3" />
               <p className="text-emerald-600 text-sm font-semibold">All topics covered! Great work! 🎉</p>
             </div>
           )}

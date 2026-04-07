@@ -37,39 +37,39 @@ const DEPTHS = [
 ];
 
 const COLOR_MAP: Record<string, string> = {
-  blue: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  indigo: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
-  violet: 'bg-violet-500/15 text-violet-400 border-violet-500/30',
-  purple: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-  emerald: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  rose: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
-  amber: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  orange: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-  cyan: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
-  teal: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
-  red: 'bg-red-500/15 text-red-400 border-red-500/30',
-  sky: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
-  green: 'bg-green-500/15 text-green-400 border-green-500/30',
-  fuchsia: 'bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/30',
-  lime: 'bg-lime-500/15 text-lime-400 border-lime-500/30',
+  blue: 'bg-blue-500/15 text-blue-700 border-blue-500/30',
+  indigo: 'bg-indigo-500/15 text-indigo-700 border-indigo-500/30',
+  violet: 'bg-violet-500/15 text-violet-700 border-violet-500/30',
+  purple: 'bg-purple-500/15 text-purple-700 border-purple-500/30',
+  emerald: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30',
+  rose: 'bg-rose-500/15 text-rose-700 border-rose-500/30',
+  amber: 'bg-amber-500/15 text-amber-700 border-amber-500/30',
+  orange: 'bg-orange-500/15 text-orange-700 border-orange-500/30',
+  cyan: 'bg-cyan-500/15 text-cyan-700 border-cyan-500/30',
+  teal: 'bg-teal-500/15 text-teal-700 border-teal-500/30',
+  red: 'bg-red-500/15 text-red-700 border-red-500/30',
+  sky: 'bg-sky-500/15 text-sky-700 border-sky-500/30',
+  green: 'bg-green-500/15 text-green-700 border-green-500/30',
+  fuchsia: 'bg-fuchsia-500/15 text-fuchsia-700 border-fuchsia-500/30',
+  lime: 'bg-lime-500/15 text-lime-700 border-lime-500/30',
 };
 
 const SELECTED_COLOR_MAP: Record<string, string> = {
-  blue: 'bg-blue-600/30 text-blue-300 border-blue-400/50 ring-2 ring-blue-500/30',
-  indigo: 'bg-indigo-600/30 text-indigo-300 border-indigo-400/50 ring-2 ring-indigo-500/30',
-  violet: 'bg-violet-600/30 text-violet-300 border-violet-400/50 ring-2 ring-violet-500/30',
-  purple: 'bg-purple-600/30 text-purple-300 border-purple-400/50 ring-2 ring-purple-500/30',
-  emerald: 'bg-emerald-600/30 text-emerald-300 border-emerald-400/50 ring-2 ring-emerald-500/30',
-  rose: 'bg-rose-600/30 text-rose-300 border-rose-400/50 ring-2 ring-rose-500/30',
-  amber: 'bg-amber-600/30 text-amber-300 border-amber-400/50 ring-2 ring-amber-500/30',
-  orange: 'bg-orange-600/30 text-orange-300 border-orange-400/50 ring-2 ring-orange-500/30',
-  cyan: 'bg-cyan-600/30 text-cyan-300 border-cyan-400/50 ring-2 ring-cyan-500/30',
-  teal: 'bg-teal-600/30 text-teal-300 border-teal-400/50 ring-2 ring-teal-500/30',
-  red: 'bg-red-600/30 text-red-300 border-red-400/50 ring-2 ring-red-500/30',
-  sky: 'bg-sky-600/30 text-sky-300 border-sky-400/50 ring-2 ring-sky-500/30',
-  green: 'bg-green-600/30 text-green-300 border-green-400/50 ring-2 ring-green-500/30',
-  fuchsia: 'bg-fuchsia-600/30 text-fuchsia-300 border-fuchsia-400/50 ring-2 ring-fuchsia-500/30',
-  lime: 'bg-lime-600/30 text-lime-300 border-lime-400/50 ring-2 ring-lime-500/30',
+  blue: 'bg-blue-600/30 text-blue-800 border-blue-400/50 ring-2 ring-blue-500/30',
+  indigo: 'bg-indigo-600/30 text-indigo-800 border-indigo-400/50 ring-2 ring-indigo-500/30',
+  violet: 'bg-violet-600/30 text-violet-800 border-violet-400/50 ring-2 ring-violet-500/30',
+  purple: 'bg-purple-600/30 text-purple-800 border-purple-400/50 ring-2 ring-purple-500/30',
+  emerald: 'bg-emerald-600/30 text-emerald-800 border-emerald-400/50 ring-2 ring-emerald-500/30',
+  rose: 'bg-rose-600/30 text-rose-800 border-rose-400/50 ring-2 ring-rose-500/30',
+  amber: 'bg-amber-600/30 text-amber-800 border-amber-400/50 ring-2 ring-amber-500/30',
+  orange: 'bg-orange-600/30 text-orange-800 border-orange-400/50 ring-2 ring-orange-500/30',
+  cyan: 'bg-cyan-600/30 text-cyan-800 border-cyan-400/50 ring-2 ring-cyan-500/30',
+  teal: 'bg-teal-600/30 text-teal-800 border-teal-400/50 ring-2 ring-teal-500/30',
+  red: 'bg-red-600/30 text-red-800 border-red-400/50 ring-2 ring-red-500/30',
+  sky: 'bg-sky-600/30 text-sky-800 border-sky-400/50 ring-2 ring-sky-500/30',
+  green: 'bg-green-600/30 text-green-800 border-green-400/50 ring-2 ring-green-500/30',
+  fuchsia: 'bg-fuchsia-600/30 text-fuchsia-800 border-fuchsia-400/50 ring-2 ring-fuchsia-500/30',
+  lime: 'bg-lime-600/30 text-lime-800 border-lime-400/50 ring-2 ring-lime-500/30',
 };
 
 // ─── System Instruction Builder ──────────────────────────────────────────────
@@ -233,7 +233,7 @@ const DoubtSolver = ({ onSave }: { onSave?: (data: any) => Promise<void> }) => {
       <div className="bg-slate-900/60 border border-white/5 rounded-2xl p-6 space-y-5">
         <div className="space-y-2">
           <label className="text-white font-semibold text-sm flex items-center gap-2">
-            <HelpCircle size={16} className="text-amber-400" /> Your Doubt / Topic
+            <HelpCircle size={16} className="text-amber-700" /> Your Doubt / Topic
           </label>
           <textarea
             value={topic}
@@ -277,7 +277,7 @@ const DoubtSolver = ({ onSave }: { onSave?: (data: any) => Promise<void> }) => {
             <label className="text-white font-semibold text-sm">Explanation Style</label>
             <button
               onClick={() => setShowAllStyles(!showAllStyles)}
-              className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors"
+              className="text-xs text-amber-700 hover:text-amber-800 flex items-center gap-1 transition-colors"
             >
               {showAllStyles ? 'Show Less' : `Show All (${STYLES.length})`}
               <ChevronDown size={12} className={`transition-transform ${showAllStyles ? 'rotate-180' : ''}`} />
@@ -334,7 +334,7 @@ const DoubtSolver = ({ onSave }: { onSave?: (data: any) => Promise<void> }) => {
           <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-white/5 bg-slate-800/30">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center">
-                <Sparkles size={16} className="text-amber-400" />
+                <Sparkles size={16} className="text-amber-700" />
               </div>
               <div>
                 <p className="text-white text-sm font-semibold">AI Explanation</p>
@@ -346,7 +346,7 @@ const DoubtSolver = ({ onSave }: { onSave?: (data: any) => Promise<void> }) => {
             <div className="flex gap-2">
               <button onClick={handleCopy}
                 className="text-slate-400 hover:text-white text-xs flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-lg transition-colors">
-                {copied ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+                {copied ? <Check size={12} className="text-green-700" /> : <Copy size={12} />}
                 {copied ? 'Copied!' : 'Copy'}
               </button>
               <button onClick={handleDownloadPDF}
@@ -355,7 +355,7 @@ const DoubtSolver = ({ onSave }: { onSave?: (data: any) => Promise<void> }) => {
               </button>
               {onSave && (
                 <button onClick={handleSave}
-                  className="text-slate-400 hover:text-emerald-400 text-xs flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-lg transition-colors">
+                  className="text-slate-400 hover:text-emerald-700 text-xs flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-lg transition-colors">
                   <Save size={12} /> Save
                 </button>
               )}
@@ -370,12 +370,12 @@ const DoubtSolver = ({ onSave }: { onSave?: (data: any) => Promise<void> }) => {
           <div ref={outputRef} className="px-6 py-6 prose prose-invert prose-sm max-w-none
             prose-headings:text-white prose-headings:font-bold
             prose-h1:text-xl prose-h1:border-b prose-h1:border-white/10 prose-h1:pb-2 prose-h1:mb-4
-            prose-h2:text-lg prose-h2:text-amber-400 prose-h2:mt-6 prose-h2:mb-3
-            prose-h3:text-base prose-h3:text-blue-400 prose-h3:mt-4 prose-h3:mb-2
+            prose-h2:text-lg prose-h2:text-amber-700 prose-h2:mt-6 prose-h2:mb-3
+            prose-h3:text-base prose-h3:text-blue-700 prose-h3:mt-4 prose-h3:mb-2
             prose-p:text-slate-300 prose-p:leading-relaxed
             prose-li:text-slate-300
             prose-strong:text-white
-            prose-code:text-amber-300 prose-code:bg-amber-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+            prose-code:text-amber-800 prose-code:bg-amber-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
             prose-table:border-collapse
             prose-th:bg-slate-800 prose-th:text-white prose-th:px-4 prose-th:py-2 prose-th:text-left prose-th:border prose-th:border-white/10
             prose-td:px-4 prose-td:py-2 prose-td:border prose-td:border-white/10 prose-td:text-slate-300
@@ -404,7 +404,7 @@ const DoubtSolver = ({ onSave }: { onSave?: (data: any) => Promise<void> }) => {
                 }}
                 className="bg-slate-800/40 border border-white/5 rounded-xl p-4 text-left hover:border-amber-500/30 transition-all group"
               >
-                <p className="text-white text-sm font-medium truncate group-hover:text-amber-400 transition-colors">{item.topic}</p>
+                <p className="text-white text-sm font-medium truncate group-hover:text-amber-700 transition-colors">{item.topic}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <span className="text-xs bg-white/5 text-slate-400 px-2 py-0.5 rounded-md">{STYLES.find(s => s.id === item.style)?.label}</span>
                   <span className="text-xs bg-white/5 text-slate-400 px-2 py-0.5 rounded-md">{DEPTHS.find(d => d.id === item.depth)?.label}</span>

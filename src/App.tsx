@@ -387,7 +387,7 @@ const BlogPage = ({ onNavigate, blogPosts }: { onNavigate: (page: string) => voi
           {/* Back Button */}
           <button 
             onClick={() => setSelectedPost(null)}
-            className="flex items-center gap-2 text-blue-400 hover:text-blue-300 font-semibold mb-8 transition-colors group"
+            className="flex items-center gap-2 text-blue-700 hover:text-blue-800 font-semibold mb-8 transition-colors group"
           >
             <ChevronRight size={18} className="rotate-180 group-hover:-translate-x-1 transition-transform" /> Back to Articles
           </button>
@@ -433,7 +433,7 @@ const BlogPage = ({ onNavigate, blogPosts }: { onNavigate: (page: string) => voi
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
               WhatsApp
             </button>
-            <button onClick={() => copyLink(selectedPost)} className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors text-sm font-bold border ${copied ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'}`}>
+            <button onClick={() => copyLink(selectedPost)} className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors text-sm font-bold border ${copied ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'}`}>
               {copied ? '✓ Copied!' : '🔗 Copy Link'}
             </button>
           </div>
@@ -449,7 +449,7 @@ const BlogPage = ({ onNavigate, blogPosts }: { onNavigate: (page: string) => voi
           {selectedPost.hashtags && (
             <div className="flex flex-wrap gap-2 mb-10 pb-8 border-b border-white/10">
               {selectedPost.hashtags.split(/\s+/).filter(Boolean).map((tag: string, i: number) => (
-                <span key={i} className="px-3 py-1.5 bg-blue-500/10 text-blue-400 rounded-full text-sm font-semibold border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-default">
+                <span key={i} className="px-3 py-1.5 bg-blue-500/10 text-blue-700 rounded-full text-sm font-semibold border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-default">
                   {tag.startsWith('#') ? tag : `#${tag}`}
                 </span>
               ))}
@@ -471,7 +471,7 @@ const BlogPage = ({ onNavigate, blogPosts }: { onNavigate: (page: string) => voi
             </div>
             <div className="flex items-center justify-center gap-2 text-slate-500 text-xs">
               <span>🔬</span>
-              <span>Powered by <strong className="text-blue-400">PGMentor</strong> — AI-Powered Medical Education Platform</span>
+              <span>Powered by <strong className="text-blue-700">PGMentor</strong> — AI-Powered Medical Education Platform</span>
             </div>
           </div>
         </div>
@@ -511,13 +511,13 @@ const BlogPage = ({ onNavigate, blogPosts }: { onNavigate: (page: string) => voi
               </div>
               <div className="p-6 space-y-4">
                 <span className="text-blue-500 text-xs font-bold uppercase tracking-wider">{post.category}</span>
-                <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors leading-tight">{post.title}</h3>
+                <h3 className="text-xl font-bold text-white group-hover:text-blue-700 transition-colors leading-tight">{post.title}</h3>
                 <p className="text-slate-400 text-sm line-clamp-3">{post.excerpt}</p>
                 {/* Hashtags */}
                 {post.hashtags && (
                   <div className="flex flex-wrap gap-1.5">
                     {post.hashtags.split(/\s+/).filter(Boolean).slice(0, 3).map((tag: string, ti: number) => (
-                      <span key={ti} className="text-[11px] text-blue-400/70 font-medium">{tag.startsWith('#') ? tag : `#${tag}`}</span>
+                      <span key={ti} className="text-[11px] text-blue-700/70 font-medium">{tag.startsWith('#') ? tag : `#${tag}`}</span>
                     ))}
                     {post.hashtags.split(/\s+/).filter(Boolean).length > 3 && (
                       <span className="text-[11px] text-slate-500">+{post.hashtags.split(/\s+/).filter(Boolean).length - 3} more</span>
@@ -526,7 +526,7 @@ const BlogPage = ({ onNavigate, blogPosts }: { onNavigate: (page: string) => voi
                 )}
                 <div className="flex justify-between items-center pt-4 border-t border-white/5">
                   <p className="text-slate-500 text-xs">{post.date} • {post.views} views</p>
-                  <span className="text-blue-400 text-xs font-semibold flex items-center gap-1 group-hover:gap-2 transition-all">Read More <ChevronRight size={14} /></span>
+                  <span className="text-blue-700 text-xs font-semibold flex items-center gap-1 group-hover:gap-2 transition-all">Read More <ChevronRight size={14} /></span>
                 </div>
               </div>
             </div>
@@ -1725,37 +1725,37 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
-          <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 mb-4"><Library size={20} /></div>
+          <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-700 mb-4"><Library size={20} /></div>
           <div className="text-3xl font-bold text-[#1e3a6e]">0</div>
           <div className="text-sm text-[#6b7e99] font-medium mt-1">Topics Researched</div>
         </div>
         <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
-          <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400 mb-4"><PenTool size={20} /></div>
+          <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-700 mb-4"><PenTool size={20} /></div>
           <div className="text-3xl font-bold text-[#1e3a6e]">0</div>
           <div className="text-sm text-[#6b7e99] font-medium mt-1">Documents Drafted</div>
         </div>
         <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
-          <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400 mb-4"><GraduationCap size={20} /></div>
+          <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-700 mb-4"><GraduationCap size={20} /></div>
           <div className="text-3xl font-bold text-[#1e3a6e]">—</div>
           <div className="text-sm text-[#6b7e99] font-medium mt-1">Avg. Exam Score</div>
         </div>
         <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
-          <div className="w-10 h-10 bg-rose-500/10 rounded-xl flex items-center justify-center text-rose-400 mb-4"><Activity size={20} /></div>
+          <div className="w-10 h-10 bg-rose-500/10 rounded-xl flex items-center justify-center text-rose-700 mb-4"><Activity size={20} /></div>
           <div className="text-3xl font-bold text-[#1e3a6e]">0</div>
           <div className="text-sm text-[#6b7e99] font-medium mt-1">Cases Simulated</div>
         </div>
         <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
-          <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-400 mb-4"><Stethoscope size={20} /></div>
+          <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-700 mb-4"><Stethoscope size={20} /></div>
           <div className="text-3xl font-bold text-[#1e3a6e]">0</div>
           <div className="text-sm text-[#6b7e99] font-medium mt-1">Decisions Supported</div>
         </div>
         <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
-          <div className="w-10 h-10 bg-pink-500/10 rounded-xl flex items-center justify-center text-pink-400 mb-4"><Brain size={20} /></div>
+          <div className="w-10 h-10 bg-pink-500/10 rounded-xl flex items-center justify-center text-pink-700 mb-4"><Brain size={20} /></div>
           <div className="text-3xl font-bold text-[#1e3a6e]">0</div>
           <div className="text-sm text-[#6b7e99] font-medium mt-1">Mentor Queries</div>
         </div>
         <div className="bg-white border border-[#dfe6f0] rounded-2xl p-6 hover:shadow-md transition-all shadow-sm">
-          <div className="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400 mb-4"><Users size={20} /></div>
+          <div className="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-700 mb-4"><Users size={20} /></div>
           <div className="text-3xl font-bold text-[#1e3a6e]">0</div>
           <div className="text-sm text-[#6b7e99] font-medium mt-1">Contacts Managed</div>
         </div>
@@ -1844,9 +1844,9 @@ const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPl
               <div className="mx-2 mb-3 px-3 py-2.5 rounded-xl bg-[#c9a84c]/20 border border-[#c9a84c]/40">
                 <div className="flex items-center gap-2">
                   <span className="text-[#c9a84c] text-xs">{daysLeft <= 3 ? '⚠️' : '🎉'}</span>
-                  <span className={`text-[11px] font-bold uppercase tracking-wider ${daysLeft <= 3 ? 'text-amber-300' : 'text-[#c9a84c]'}`}>Trial Active</span>
+                  <span className={`text-[11px] font-bold uppercase tracking-wider ${daysLeft <= 3 ? 'text-amber-800' : 'text-[#c9a84c]'}`}>Trial Active</span>
                 </div>
-                <p className={`text-[10px] mt-1 ${daysLeft <= 3 ? 'text-amber-300/80' : 'text-[#93c4f9]'}`}>
+                <p className={`text-[10px] mt-1 ${daysLeft <= 3 ? 'text-amber-800/80' : 'text-[#93c4f9]'}`}>
                   {daysLeft === 0 ? 'Trial expires today' : daysLeft === 1 ? '1 day left of trial' : `${daysLeft} days left of trial`}
                 </p>
               </div>
@@ -1936,7 +1936,7 @@ const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPl
                 await _supabase.auth.signOut();
                 onNavigate('__logout');
               }}
-              className="w-full text-left px-4 py-3 rounded-xl transition-all font-medium flex items-center gap-3 text-red-300 hover:bg-red-500/10 hover:text-red-200 border border-transparent"
+              className="w-full text-left px-4 py-3 rounded-xl transition-all font-medium flex items-center gap-3 text-red-800 hover:bg-red-500/10 hover:text-red-200 border border-transparent"
             >
               <LogOut size={18} />
               <span className="text-sm leading-snug">Logout</span>
@@ -2030,7 +2030,7 @@ const FeaturesPage = ({ onNavigate }: { onNavigate: (page: string) => void }) =>
                   {getIcon(feature.icon)}
                 </div>
                 {feature.category !== 'Knowledge & Learning Resources' && (
-                  <div className="px-2 py-1 rounded bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase tracking-wider">
+                  <div className="px-2 py-1 rounded bg-blue-500/10 text-blue-700 text-[10px] font-bold uppercase tracking-wider">
                     AI Powered
                   </div>
                 )}
@@ -2140,9 +2140,9 @@ const FlashcardViewer = ({ output }: { output: string }) => {
              <div className="absolute w-full h-full rounded-2xl p-5 flex flex-col items-center text-center bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-600/50 [backface-visibility:hidden] shadow-lg group-hover:border-blue-500/60 group-hover:shadow-blue-900/20 group-hover:shadow-xl transition-all duration-300">
                 <div className="flex items-center gap-2 mb-3 shrink-0">
                   <div className="w-6 h-6 rounded-md bg-blue-600/30 flex items-center justify-center">
-                    <span className="text-blue-400 text-[10px] font-bold">{index + 1}</span>
+                    <span className="text-blue-700 text-[10px] font-bold">{index + 1}</span>
                   </div>
-                  <span className="text-blue-400 text-[10px] font-bold uppercase tracking-widest">Question</span>
+                  <span className="text-blue-700 text-[10px] font-bold uppercase tracking-widest">Question</span>
                 </div>
                 <div className="flex-1 overflow-y-auto w-full flex items-center justify-center [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <p className={`text-slate-100 ${card.front.length > 400 ? 'text-[11px] leading-snug' : card.front.length > 250 ? 'text-[12px] leading-snug' : card.front.length > 150 ? 'text-[13px] leading-normal' : 'text-[15px] leading-relaxed'} font-medium`}>{card.front}</p>
@@ -2157,16 +2157,16 @@ const FlashcardViewer = ({ output }: { output: string }) => {
              <div className="absolute w-full h-full rounded-2xl p-5 flex flex-col items-center bg-gradient-to-br from-blue-900/80 via-slate-900 to-slate-900 border border-blue-500/30 shadow-lg shadow-blue-900/10 [backface-visibility:hidden] [transform:rotateY(180deg)]">
                 <div className="flex items-center gap-2 mb-3 shrink-0">
                   <div className="w-6 h-6 rounded-md bg-emerald-600/30 flex items-center justify-center">
-                    <span className="text-emerald-400 text-[10px] font-bold">{index + 1}</span>
+                    <span className="text-emerald-700 text-[10px] font-bold">{index + 1}</span>
                   </div>
-                  <span className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest">Answer</span>
+                  <span className="text-emerald-700 text-[10px] font-bold uppercase tracking-widest">Answer</span>
                 </div>
                 <div className="flex-1 overflow-y-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <div className={`text-slate-200 text-left w-full ${card.back.length > 600 ? 'text-[10px] leading-snug space-y-0.5' : card.back.length > 400 ? 'text-[11px] leading-snug space-y-0.5' : card.back.length > 250 ? 'text-[12px] leading-normal space-y-1' : 'text-[13px] leading-relaxed space-y-1'}`}>
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{card.back}</ReactMarkdown>
                   </div>
                 </div>
-                <span className="text-blue-300/60 text-[10px] mt-3 uppercase tracking-wider font-semibold shrink-0 flex items-center gap-1.5">
+                <span className="text-blue-800/60 text-[10px] mt-3 uppercase tracking-wider font-semibold shrink-0 flex items-center gap-1.5">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                   Tap to flip back
                 </span>
@@ -2287,13 +2287,13 @@ const MarkdownBody = ({ content }: { content: string }) => {
       prose-headings:text-slate-50 prose-headings:font-bold prose-headings:tracking-tight
       prose-h1:text-3xl prose-h1:mb-3 prose-h1:mt-4 prose-h1:text-transparent prose-h1:bg-clip-text prose-h1:bg-gradient-to-r prose-h1:from-blue-400 prose-h1:to-emerald-400
       prose-p:text-slate-300 prose-p:mb-[0.75em] prose-p:mt-[0.75em] prose-p:leading-[1.85]
-      prose-a:text-blue-400 prose-a:no-underline hover:prose-a:text-blue-300 hover:prose-a:underline
+      prose-a:text-blue-700 prose-a:no-underline hover:prose-a:text-blue-800 hover:prose-a:underline
       prose-strong:text-slate-100 prose-strong:font-bold
       prose-ul:my-2 prose-ul:list-disc prose-ul:pl-6 
       prose-ol:my-2 prose-ol:list-decimal prose-ol:pl-6
       prose-li:my-1 prose-li:text-slate-300 prose-li:marker:text-blue-500
       prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:py-1 prose-blockquote:my-2 prose-blockquote:bg-slate-800/50 prose-blockquote:rounded-r-lg prose-blockquote:italic
-      prose-code:text-emerald-300 prose-code:bg-slate-900 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-sm prose-code:font-mono prose-code:border prose-code:border-slate-700
+      prose-code:text-emerald-800 prose-code:bg-slate-900 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-sm prose-code:font-mono prose-code:border prose-code:border-slate-700
       prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-700 prose-pre:rounded-xl prose-pre:p-4 prose-pre:my-2 prose-pre:shadow-inner">
       {segments.map((seg, idx) => {
         if (seg.type === 'youtube_search' && seg.query) {
@@ -2305,7 +2305,7 @@ const MarkdownBody = ({ content }: { content: string }) => {
             remarkPlugins={[remarkGfm]}
             components={{
               a: ({ href, children }: any) => (
-                <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">
+                <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:text-blue-800 underline">
                   {children}
                 </a>
               )
@@ -2487,7 +2487,7 @@ const InteractiveQuestionBlock = ({ q }: { q: string }) => {
 
       {selectedOption && (
         <div className="mt-5 pt-4 border-t border-slate-700/50 animate-in fade-in slide-in-from-top-4 duration-500">
-           <div className={`text-lg font-bold mb-4 flex items-center gap-3 ${selectedOption === correctAnswer ? 'text-emerald-400' : 'text-red-400'}`}>
+           <div className={`text-lg font-bold mb-4 flex items-center gap-3 ${selectedOption === correctAnswer ? 'text-emerald-700' : 'text-red-700'}`}>
               {selectedOption === correctAnswer ? (
                 <><CheckCircle size={28} /> Absolutely Correct!</>
               ) : (
@@ -2500,7 +2500,7 @@ const InteractiveQuestionBlock = ({ q }: { q: string }) => {
            {explanation && (
              <div className="bg-slate-900/50 border border-blue-500/30 rounded-2xl p-5 shadow-inner relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-                <h4 className="text-blue-400 font-bold mb-3 uppercase tracking-widest text-xs flex items-center gap-2">
+                <h4 className="text-blue-700 font-bold mb-3 uppercase tracking-widest text-xs flex items-center gap-2">
                   <Lightbulb size={16} /> Explanation
                 </h4>
                 <div className="text-[15px]">
@@ -4958,7 +4958,7 @@ Return the response in JSON format with the following schema:
                   onClick={() => {
                     document.getElementById('saved-library-section')?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="hidden sm:flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors text-sm font-medium"
+                  className="hidden sm:flex items-center gap-2 text-emerald-700 hover:text-emerald-800 transition-colors text-sm font-medium"
                 >
                   <Save size={18} /> View Saved Papers
                 </button>
@@ -4976,13 +4976,13 @@ Return the response in JSON format with the following schema:
                     {lockedCourseName && (
                       <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/40 to-purple-900/30 border border-blue-500/30 rounded-xl px-4 py-3 mb-4">
                         <span className="text-lg">🔒</span>
-                        <div className="flex-1"><span className="text-sm font-semibold text-blue-300">Locked to: </span><span className="text-sm font-bold text-white">{lockedCourseName}</span></div>
-                        <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">Change in Dashboard</button>
+                        <div className="flex-1"><span className="text-sm font-semibold text-blue-800">Locked to: </span><span className="text-sm font-bold text-white">{lockedCourseName}</span></div>
+                        <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors">Change in Dashboard</button>
                       </div>
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="block text-slate-300 font-medium">Select Subject / Course {lockedCourseName && <span className="text-xs text-blue-400 ml-1">(locked)</span>}</label>
+                        <label className="block text-slate-300 font-medium">Select Subject / Course {lockedCourseName && <span className="text-xs text-blue-700 ml-1">(locked)</span>}</label>
                         <div className="relative">
                           <select
                             value={analyzerSubject}
@@ -4993,7 +4993,7 @@ Return the response in JSON format with the following schema:
                             <option value="">-- Select Course --</option>
                             {curriculum?.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
                           </select>
-                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">{lockedCourseName ? <Lock size={16} className="text-blue-400" /> : <ChevronRight size={16} className="rotate-90" />}</div>
+                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">{lockedCourseName ? <Lock size={16} className="text-blue-700" /> : <ChevronRight size={16} className="rotate-90" />}</div>
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -5028,7 +5028,7 @@ Return the response in JSON format with the following schema:
                             <div key={i} className="bg-slate-800 border border-white/5 rounded-xl p-5 flex justify-between items-center hover:bg-slate-800/80 hover:border-blue-500/30 transition-all cursor-pointer group" onClick={() => handleSelectAnalyzerQuestion(q)}>
                               <div className="flex-1 pr-6">
                                 <p className="text-white font-medium text-lg">{q.question}</p>
-                                <span className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-xs font-bold mt-3 inline-block tracking-wider">{q.marks} Marks</span>
+                                <span className="bg-blue-600/20 text-blue-700 px-3 py-1 rounded-full text-xs font-bold mt-3 inline-block tracking-wider">{q.marks} Marks</span>
                               </div>
                               <div className="w-10 h-10 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-slate-500 group-hover:bg-blue-600 group-hover:text-white transition-all shrink-0">
                                 <ChevronRight size={20} />
@@ -5050,12 +5050,12 @@ Return the response in JSON format with the following schema:
                       </div>
                       
                       {isGeneratingRubric ? (
-                        <div className="flex items-center gap-3 text-blue-400 text-sm font-medium bg-blue-500/10 p-4 rounded-xl border border-blue-500/20 w-fit">
+                        <div className="flex items-center gap-3 text-blue-700 text-sm font-medium bg-blue-500/10 p-4 rounded-xl border border-blue-500/20 w-fit">
                           <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
                           Automatically creating Answer Rubrics in the background...
                         </div>
                       ) : analyzerRubric ? (
-                        <div className="text-emerald-400 text-sm flex items-center gap-2 font-bold bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20 w-fit">
+                        <div className="text-emerald-700 text-sm flex items-center gap-2 font-bold bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20 w-fit">
                           <CheckCircle size={18} /> Answer Rubrics created in background. Ready for evaluation.
                         </div>
                       ) : null}
@@ -5069,7 +5069,7 @@ Return the response in JSON format with the following schema:
                       <div className="space-y-4">
                         <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-blue-500/50 transition-all bg-slate-800/50 group">
                           <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <Plus className="w-10 h-10 text-slate-500 mb-3 group-hover:text-blue-400 group-hover:scale-110 transition-all" />
+                            <Plus className="w-10 h-10 text-slate-500 mb-3 group-hover:text-blue-700 group-hover:scale-110 transition-all" />
                             <p className="text-base text-slate-300 font-semibold mb-1">Take Photos / Upload PDF</p>
                             <p className="text-xs text-slate-500">Supports multiple files</p>
                           </div>
@@ -5083,7 +5083,7 @@ Return the response in JSON format with the following schema:
                                   <img src={img} alt={`Upload ${i+1}`} className="w-full h-full object-cover" />
                                 ) : (
                                   <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-xs text-slate-400 break-words text-center px-2">
-                                    <FileText className="w-6 h-6 mb-2 text-blue-400" />
+                                    <FileText className="w-6 h-6 mb-2 text-blue-700" />
                                     Doc {i+1}
                                   </div>
                                 )}
@@ -5105,7 +5105,7 @@ Return the response in JSON format with the following schema:
                         <h3 className="text-2xl font-bold text-white mb-8 border-b border-white/10 pb-4 flex items-center gap-3">
                            <CheckSquare className="text-emerald-500" /> Evaluation Results & Feedback
                         </h3>
-                        <div className="prose prose-invert prose-lg max-w-none text-slate-300 whitespace-pre-wrap leading-relaxed marker:text-blue-400 prose-headings:text-white prose-a:text-blue-400">
+                        <div className="prose prose-invert prose-lg max-w-none text-slate-300 whitespace-pre-wrap leading-relaxed marker:text-blue-700 prose-headings:text-white prose-a:text-blue-700">
                            {analyzerEvaluation}
                         </div>
                       </div>
@@ -5151,12 +5151,12 @@ Return the response in JSON format with the following schema:
                       {lockedCourseName && (
                         <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/40 to-purple-900/30 border border-blue-500/30 rounded-xl px-4 py-3 mb-4 col-span-full">
                           <span className="text-lg">🔒</span>
-                          <div className="flex-1"><span className="text-sm font-semibold text-blue-300">Locked to: </span><span className="text-sm font-bold text-white">{lockedCourseName}</span></div>
-                          <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">Change in Dashboard</button>
+                          <div className="flex-1"><span className="text-sm font-semibold text-blue-800">Locked to: </span><span className="text-sm font-bold text-white">{lockedCourseName}</span></div>
+                          <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors">Change in Dashboard</button>
                         </div>
                       )}
                       <div className="space-y-2">
-                        <label className="block text-slate-300 font-medium">Select Subject / Course {lockedCourseName && <span className="text-xs text-blue-400 ml-1">(locked)</span>}</label>
+                        <label className="block text-slate-300 font-medium">Select Subject / Course {lockedCourseName && <span className="text-xs text-blue-700 ml-1">(locked)</span>}</label>
                         <div className="relative">
                           <select
                             value={simSubject}
@@ -5167,7 +5167,7 @@ Return the response in JSON format with the following schema:
                             <option value="">-- Select Course --</option>
                             {curriculum?.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
                           </select>
-                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">{lockedCourseName ? <Lock size={16} className="text-blue-400" /> : <ChevronRight size={16} className="rotate-90" />}</div>
+                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">{lockedCourseName ? <Lock size={16} className="text-blue-700" /> : <ChevronRight size={16} className="rotate-90" />}</div>
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -5217,7 +5217,7 @@ Return the response in JSON format with the following schema:
                       <div className="space-y-4">
                         <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-blue-500/50 transition-all bg-slate-800/50 relative overflow-hidden group">
                           <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <Plus className="w-8 h-8 text-slate-500 mb-2 group-hover:text-blue-400 group-hover:scale-110 transition-all" />
+                            <Plus className="w-8 h-8 text-slate-500 mb-2 group-hover:text-blue-700 group-hover:scale-110 transition-all" />
                             <p className="text-sm text-slate-400 font-semibold group-hover:text-slate-300">Take Photo / Upload Images</p>
                           </div>
                           <input type="file" className="hidden" multiple accept="image/*,.pdf" onChange={handleScanImage} />
@@ -5230,7 +5230,7 @@ Return the response in JSON format with the following schema:
                                    <img src={img} alt={`Upload ${i+1}`} className="w-full h-full object-cover" />
                                  ) : (
                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-xs text-slate-300 break-words text-center px-2">
-                                      <FileText className="w-6 h-6 mb-1 text-blue-400" />
+                                      <FileText className="w-6 h-6 mb-1 text-blue-700" />
                                       Doc {i+1}
                                    </div>
                                  )}
@@ -5257,7 +5257,7 @@ Return the response in JSON format with the following schema:
                         <p className="text-slate-400 text-sm mt-1">Please write your answers on a blank sheet of paper.</p>
                       </div>
                       <div className="text-right">
-                        <div className="text-3xl font-mono font-bold text-amber-400">
+                        <div className="text-3xl font-mono font-bold text-amber-700">
                           {Math.floor(simTimeRemaining / 3600).toString().padStart(2, '0')}:
                           {Math.floor((simTimeRemaining % 3600) / 60).toString().padStart(2, '0')}:
                           {(simTimeRemaining % 60).toString().padStart(2, '0')}
@@ -5274,14 +5274,14 @@ Return the response in JSON format with the following schema:
                           {simQuestions.map((q, idx) => (
                             <div key={q.id} className="border-b border-white/10 pb-6 last:border-0 last:pb-0">
                               {q.sectionName && (
-                                <h4 className="text-blue-400 font-bold mb-3 text-sm uppercase tracking-wider">{q.sectionName}</h4>
+                                <h4 className="text-blue-700 font-bold mb-3 text-sm uppercase tracking-wider">{q.sectionName}</h4>
                               )}
                               <div className="flex justify-between items-start gap-4">
                                 <p className="text-lg text-white leading-relaxed">
                                   <span className="font-bold text-blue-500 mr-2">Q{idx + 1}.</span> 
                                   {q.questionText}
                                 </p>
-                                <span className="bg-slate-900 border border-white/10 px-3 py-1 rounded-lg text-blue-400 font-bold whitespace-nowrap">
+                                <span className="bg-slate-900 border border-white/10 px-3 py-1 rounded-lg text-blue-700 font-bold whitespace-nowrap">
                                   [{q.marks} Marks]
                                 </span>
                               </div>
@@ -5312,13 +5312,13 @@ Return the response in JSON format with the following schema:
                   <div className="space-y-6">
                     <div className="flex justify-between items-center bg-emerald-900/30 border border-emerald-500/30 p-6 rounded-2xl shadow-lg sticky top-6 z-10">
                       <div>
-                        <h3 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
+                        <h3 className="text-xl font-bold text-emerald-700 flex items-center gap-2">
                           <Upload className="text-emerald-500" /> Upload Answer Scripts
                         </h3>
                         <p className="text-slate-400 text-sm mt-1">Take clear photos of your handwritten answers for each question.</p>
                       </div>
                       <div className="text-right">
-                        <div className={`text-3xl font-mono font-bold ${simUploadTimeRemaining < 60 ? 'text-red-500 animate-pulse' : 'text-emerald-400'}`}>
+                        <div className={`text-3xl font-mono font-bold ${simUploadTimeRemaining < 60 ? 'text-red-500 animate-pulse' : 'text-emerald-700'}`}>
                           {Math.floor(simUploadTimeRemaining / 60).toString().padStart(2, '0')}:
                           {(simUploadTimeRemaining % 60).toString().padStart(2, '0')}
                         </div>
@@ -5336,7 +5336,7 @@ Return the response in JSON format with the following schema:
                           
                           <div className="flex flex-col gap-4">
                             <div className="flex justify-between items-center bg-slate-900 border border-white/5 p-4 rounded-xl">
-                              <label className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-colors ${simNotAnswered[q.id] ? 'bg-slate-800 text-slate-500 opacity-50' : 'bg-blue-600/20 hover:bg-blue-600/30 text-blue-400'}`}>
+                              <label className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-colors ${simNotAnswered[q.id] ? 'bg-slate-800 text-slate-500 opacity-50' : 'bg-blue-600/20 hover:bg-blue-600/30 text-blue-700'}`}>
                                 <Plus size={18} />
                                 <span className="text-sm font-bold">Add Images</span>
                                 <input 
@@ -5356,7 +5356,7 @@ Return the response in JSON format with the following schema:
                                   checked={simNotAnswered[q.id] || false}
                                   onChange={(e) => setSimNotAnswered({...simNotAnswered, [q.id]: e.target.checked})}
                                 />
-                                <span className="text-slate-400 group-hover:text-red-400 text-sm font-medium transition-colors">Mark as Not Answered</span>
+                                <span className="text-slate-400 group-hover:text-red-700 text-sm font-medium transition-colors">Mark as Not Answered</span>
                               </label>
                             </div>
                             
@@ -5406,7 +5406,7 @@ Return the response in JSON format with the following schema:
                       <h3 className="text-2xl font-bold text-white mb-6 border-b border-white/10 pb-4 flex items-center gap-2">
                         <CheckCircle className="text-emerald-500" /> Exam Simulation Report
                       </h3>
-                      <div className="prose prose-invert prose-lg max-w-none text-slate-300 whitespace-pre-wrap leading-relaxed marker:text-blue-400 prose-headings:text-white prose-a:text-blue-400">
+                      <div className="prose prose-invert prose-lg max-w-none text-slate-300 whitespace-pre-wrap leading-relaxed marker:text-blue-700 prose-headings:text-white prose-a:text-blue-700">
                          {simEvaluationResult}
                       </div>
                     </div>
@@ -5443,12 +5443,12 @@ Return the response in JSON format with the following schema:
                       {lockedCourseName && (
                         <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/40 to-purple-900/30 border border-blue-500/30 rounded-xl px-4 py-3 mb-4 col-span-full">
                           <span className="text-lg">🔒</span>
-                          <div className="flex-1"><span className="text-sm font-semibold text-blue-300">Locked to: </span><span className="text-sm font-bold text-white">{lockedCourseName}</span></div>
-                          <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">Change in Dashboard</button>
+                          <div className="flex-1"><span className="text-sm font-semibold text-blue-800">Locked to: </span><span className="text-sm font-bold text-white">{lockedCourseName}</span></div>
+                          <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors">Change in Dashboard</button>
                         </div>
                       )}
                       <div className="space-y-2">
-                        <label className="block text-slate-300 font-medium">Select Subject / Course {lockedCourseName && <span className="text-xs text-blue-400 ml-1">(locked)</span>}</label>
+                        <label className="block text-slate-300 font-medium">Select Subject / Course {lockedCourseName && <span className="text-xs text-blue-700 ml-1">(locked)</span>}</label>
                         <div className="relative">
                           <select
                             value={mcqSubject}
@@ -5459,7 +5459,7 @@ Return the response in JSON format with the following schema:
                             <option value="">-- Select Course --</option>
                             {curriculum?.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
                           </select>
-                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">{lockedCourseName ? <Lock size={16} className="text-blue-400" /> : <ChevronRight size={16} className="rotate-90" />}</div>
+                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">{lockedCourseName ? <Lock size={16} className="text-blue-700" /> : <ChevronRight size={16} className="rotate-90" />}</div>
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -5511,7 +5511,7 @@ Return the response in JSON format with the following schema:
                                 />
                               </div>
                               <div>
-                                <p className="text-white font-medium text-sm group-hover:text-blue-400 transition-colors">{type.label}</p>
+                                <p className="text-white font-medium text-sm group-hover:text-blue-700 transition-colors">{type.label}</p>
                                 <p className="text-slate-500 text-xs mt-1">{type.desc}</p>
                               </div>
                             </label>
@@ -5528,7 +5528,7 @@ Return the response in JSON format with the following schema:
                         {mcqGeneratedList.map((q, idx) => (
                           <div key={q.id} className="bg-slate-800 border border-white/10 rounded-xl p-6">
                             <p className="text-lg text-white font-medium mb-4">
-                              <span className="text-blue-400 mr-2">Q{idx + 1}.</span>
+                              <span className="text-blue-700 mr-2">Q{idx + 1}.</span>
                               {q.question}
                             </p>
                             <div className="space-y-3">
@@ -5580,7 +5580,7 @@ Return the response in JSON format with the following schema:
                     ) : (
                       <div className="space-y-6">
                         <div className="bg-slate-900 border border-blue-500/30 rounded-2xl p-8 animate-in fade-in slide-in-from-bottom-4 shadow-xl">
-                          <div className="prose prose-invert prose-lg max-w-none text-slate-300 whitespace-pre-wrap leading-relaxed marker:text-blue-400 prose-headings:text-white prose-a:text-blue-400">
+                          <div className="prose prose-invert prose-lg max-w-none text-slate-300 whitespace-pre-wrap leading-relaxed marker:text-blue-700 prose-headings:text-white prose-a:text-blue-700">
                              {mcqEvaluationResult}
                           </div>
                         </div>
@@ -5597,19 +5597,19 @@ Return the response in JSON format with the following schema:
                                 <div className="space-y-2 mb-4">
                                   <p className="text-sm">
                                     <span className="text-slate-400">Your Answer: </span>
-                                    <span className={isCorrect ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>
+                                    <span className={isCorrect ? "text-emerald-700 font-bold" : "text-red-700 font-bold"}>
                                       {mcqUserAnswers[q.id] || "Not answered"}
                                     </span>
                                   </p>
                                   {!isCorrect && (
                                     <p className="text-sm">
                                       <span className="text-slate-400">Correct Answer: </span>
-                                      <span className="text-emerald-400 font-bold">{q.answer}</span>
+                                      <span className="text-emerald-700 font-bold">{q.answer}</span>
                                     </p>
                                   )}
                                 </div>
                                 <div className="bg-slate-900/50 rounded-lg p-4">
-                                  <p className="text-sm text-slate-300 leading-relaxed"><span className="text-blue-400 font-medium">Explanation:</span> {q.explanation}</p>
+                                  <p className="text-sm text-slate-300 leading-relaxed"><span className="text-blue-700 font-medium">Explanation:</span> {q.explanation}</p>
                                 </div>
                               </div>
                             );
@@ -5655,14 +5655,14 @@ Return the response in JSON format with the following schema:
                     <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/40 to-purple-900/30 border border-blue-500/30 rounded-xl px-4 py-3 mb-3">
                       <span className="text-lg">🔒</span>
                       <div className="flex-1">
-                        <span className="text-sm font-semibold text-blue-300">Locked to: </span>
+                        <span className="text-sm font-semibold text-blue-800">Locked to: </span>
                         <span className="text-sm font-bold text-white">{lockedCourseName}</span>
                       </div>
-                      <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">Change in Dashboard</button>
+                      <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors">Change in Dashboard</button>
                     </div>
                   )}
                   <label className="block text-slate-300 font-medium">
-                    Discipline / Course {lockedCourseName && <span className="text-xs text-blue-400 ml-1">(locked)</span>}
+                    Discipline / Course {lockedCourseName && <span className="text-xs text-blue-700 ml-1">(locked)</span>}
                   </label>
                   <div className="relative">
                     <select
@@ -5675,7 +5675,7 @@ Return the response in JSON format with the following schema:
                       {curriculum?.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                      {lockedCourseName ? <Lock size={16} className="text-blue-400" /> : <ChevronRight size={16} className="rotate-90" />}
+                      {lockedCourseName ? <Lock size={16} className="text-blue-700" /> : <ChevronRight size={16} className="rotate-90" />}
                     </div>
                   </div>
                 </div>
@@ -5766,7 +5766,7 @@ Return the response in JSON format with the following schema:
 
                     {(modelPaperText || isExtractingPaper) && (
                       <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                        <label className="block text-slate-300 font-medium text-sm text-emerald-400">
+                        <label className="block text-slate-300 font-medium text-sm text-emerald-700">
                           Extracted Reference Paper (Editable)
                         </label>
                         <textarea
@@ -5803,7 +5803,7 @@ Return the response in JSON format with the following schema:
                               }
                             }}
                             disabled={isExtractingPaper || !modelPaperText}
-                            className="bg-emerald-600/20 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed border border-emerald-500/30 text-emerald-400 hover:text-white font-bold py-2 px-6 rounded-lg transition-all text-sm"
+                            className="bg-emerald-600/20 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed border border-emerald-500/30 text-emerald-700 hover:text-white font-bold py-2 px-6 rounded-lg transition-all text-sm"
                           >
                             Save Reference directly to Database
                           </button>
@@ -5836,14 +5836,14 @@ Return the response in JSON format with the following schema:
                     <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/40 to-purple-900/30 border border-blue-500/30 rounded-xl px-4 py-3 mb-3">
                       <span className="text-lg">🔒</span>
                       <div className="flex-1">
-                        <span className="text-sm font-semibold text-blue-300">Locked to: </span>
+                        <span className="text-sm font-semibold text-blue-800">Locked to: </span>
                         <span className="text-sm font-bold text-white">{lockedCourseName}</span>
                       </div>
-                      <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">Change in Dashboard</button>
+                      <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors">Change in Dashboard</button>
                     </div>
                   )}
                   <label className="block text-slate-300 font-medium">
-                    Discipline {lockedCourseName && <span className="text-xs text-blue-400 ml-1">(locked)</span>}
+                    Discipline {lockedCourseName && <span className="text-xs text-blue-700 ml-1">(locked)</span>}
                   </label>
                   <div className="relative">
                     <select
@@ -5856,7 +5856,7 @@ Return the response in JSON format with the following schema:
                       {curriculum?.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                      {lockedCourseName ? <Lock size={16} className="text-blue-400" /> : <ChevronRight size={16} className="rotate-90" />}
+                      {lockedCourseName ? <Lock size={16} className="text-blue-700" /> : <ChevronRight size={16} className="rotate-90" />}
                     </div>
                   </div>
                 </div>
@@ -5906,11 +5906,11 @@ Return the response in JSON format with the following schema:
                   {lockedCourseName && (
                     <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/40 to-purple-900/30 border border-blue-500/30 rounded-xl px-4 py-3 mb-3">
                       <span className="text-lg">🔒</span>
-                      <div className="flex-1"><span className="text-sm font-semibold text-blue-300">Locked to: </span><span className="text-sm font-bold text-white">{lockedCourseName}</span></div>
-                      <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">Change in Dashboard</button>
+                      <div className="flex-1"><span className="text-sm font-semibold text-blue-800">Locked to: </span><span className="text-sm font-bold text-white">{lockedCourseName}</span></div>
+                      <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors">Change in Dashboard</button>
                     </div>
                   )}
-                  <label className="block text-slate-300 font-medium">Discipline {lockedCourseName && <span className="text-xs text-blue-400 ml-1">(locked)</span>}</label>
+                  <label className="block text-slate-300 font-medium">Discipline {lockedCourseName && <span className="text-xs text-blue-700 ml-1">(locked)</span>}</label>
                   <div className="relative">
                     <select
                       value={seminarDiscipline}
@@ -5921,7 +5921,7 @@ Return the response in JSON format with the following schema:
                       <option value="">-- Select Course --</option>
                       {curriculum?.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">{lockedCourseName ? <Lock size={16} className="text-blue-400" /> : <ChevronRight size={16} className="rotate-90" />}</div>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">{lockedCourseName ? <Lock size={16} className="text-blue-700" /> : <ChevronRight size={16} className="rotate-90" />}</div>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -5950,11 +5950,11 @@ Return the response in JSON format with the following schema:
                   {lockedCourseName && (
                     <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/40 to-purple-900/30 border border-blue-500/30 rounded-xl px-4 py-3 mb-3">
                       <span className="text-lg">🔒</span>
-                      <div className="flex-1"><span className="text-sm font-semibold text-blue-300">Locked to: </span><span className="text-sm font-bold text-white">{lockedCourseName}</span></div>
-                      <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">Change in Dashboard</button>
+                      <div className="flex-1"><span className="text-sm font-semibold text-blue-800">Locked to: </span><span className="text-sm font-bold text-white">{lockedCourseName}</span></div>
+                      <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors">Change in Dashboard</button>
                     </div>
                   )}
-                  <label className="block text-slate-300 font-medium">Discipline {lockedCourseName && <span className="text-xs text-blue-400 ml-1">(locked)</span>}</label>
+                  <label className="block text-slate-300 font-medium">Discipline {lockedCourseName && <span className="text-xs text-blue-700 ml-1">(locked)</span>}</label>
                   <div className="relative">
                     <select
                       value={jcDiscipline}
@@ -5965,7 +5965,7 @@ Return the response in JSON format with the following schema:
                       <option value="">-- Select Course --</option>
                       {curriculum?.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">{lockedCourseName ? <Lock size={16} className="text-blue-400" /> : <ChevronRight size={16} className="rotate-90" />}</div>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">{lockedCourseName ? <Lock size={16} className="text-blue-700" /> : <ChevronRight size={16} className="rotate-90" />}</div>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -6037,7 +6037,7 @@ Return the response in JSON format with the following schema:
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 text-slate-300 font-medium">
-                      <Globe size={16} className="text-blue-400" /> Region
+                      <Globe size={16} className="text-blue-700" /> Region
                     </label>
                     <select 
                       value={searchRegion}
@@ -6075,7 +6075,7 @@ Return the response in JSON format with the following schema:
                 </div>
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 text-slate-300 font-medium">
-                    <Search size={16} className="text-blue-400" /> Subject
+                    <Search size={16} className="text-blue-700" /> Subject
                   </label>
                   <input 
                     type="text"
@@ -6112,11 +6112,11 @@ Return the response in JSON format with the following schema:
                   {lockedCourseName && (
                     <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/40 to-purple-900/30 border border-blue-500/30 rounded-xl px-4 py-3 mb-3">
                       <span className="text-lg">🔒</span>
-                      <div className="flex-1"><span className="text-sm font-semibold text-blue-300">Locked to: </span><span className="text-sm font-bold text-white">{lockedCourseName}</span></div>
-                      <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">Change in Dashboard</button>
+                      <div className="flex-1"><span className="text-sm font-semibold text-blue-800">Locked to: </span><span className="text-sm font-bold text-white">{lockedCourseName}</span></div>
+                      <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors">Change in Dashboard</button>
                     </div>
                   )}
-                  <label className="block text-slate-300 font-medium">Subject {lockedCourseName && <span className="text-xs text-blue-400 ml-1">(locked)</span>}</label>
+                  <label className="block text-slate-300 font-medium">Subject {lockedCourseName && <span className="text-xs text-blue-700 ml-1">(locked)</span>}</label>
                   <div className="relative">
                     <select
                       value={refSubject}
@@ -6127,7 +6127,7 @@ Return the response in JSON format with the following schema:
                       <option value="">-- Select Course --</option>
                       {curriculum?.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">{lockedCourseName ? <Lock size={16} className="text-blue-400" /> : <ChevronRight size={16} className="rotate-90" />}</div>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">{lockedCourseName ? <Lock size={16} className="text-blue-700" /> : <ChevronRight size={16} className="rotate-90" />}</div>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -6277,7 +6277,7 @@ Return the response in JSON format with the following schema:
                         
                         <div>
                           <h4 className="text-2xl font-bold text-white tracking-tight">{personalCard.name}</h4>
-                          <p className="text-blue-400 font-medium text-sm">{personalCard.designation}</p>
+                          <p className="text-blue-700 font-medium text-sm">{personalCard.designation}</p>
                           <p className="text-slate-400 text-xs mt-1">{personalCard.organization}</p>
                         </div>
 
@@ -6417,7 +6417,7 @@ Return the response in JSON format with the following schema:
                             <div className="flex justify-between items-start">
                               <div>
                                 <h5 className="text-white font-bold">{contact.name}</h5>
-                                <p className="text-blue-400 text-xs">{contact.designation}</p>
+                                <p className="text-blue-700 text-xs">{contact.designation}</p>
                                 <p className="text-slate-500 text-[10px] mt-1">{contact.organization}</p>
                               </div>
                               <button 
@@ -6598,7 +6598,7 @@ Return the response in JSON format with the following schema:
                                 }}
                                 className="w-full text-left px-4 py-3 hover:bg-blue-600/10 transition-all border-b border-white/5 last:border-0 group"
                               >
-                                <div className="text-white text-[13px] font-medium group-hover:text-blue-400 transition-colors">{t.topicName}</div>
+                                <div className="text-white text-[13px] font-medium group-hover:text-blue-700 transition-colors">{t.topicName}</div>
                                 <div className="text-slate-500 text-[10px] mt-0.5">{t.courseName} → {t.paperName} → {t.sectionName}</div>
                               </button>
                             ))}
@@ -6631,16 +6631,16 @@ Return the response in JSON format with the following schema:
                               </p>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0 mt-1 flex-wrap justify-end">
-                              <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${selectedSearchTopic.hasNotes ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-700/50 text-slate-500'}`}>
+                              <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${selectedSearchTopic.hasNotes ? 'bg-emerald-500/15 text-emerald-700' : 'bg-slate-700/50 text-slate-500'}`}>
                                 {selectedSearchTopic.hasNotes ? '✓' : '✗'} Notes
                               </span>
-                              <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${selectedSearchTopic.hasEssay ? 'bg-blue-500/15 text-blue-400' : 'bg-slate-700/50 text-slate-500'}`}>
+                              <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${selectedSearchTopic.hasEssay ? 'bg-blue-500/15 text-blue-700' : 'bg-slate-700/50 text-slate-500'}`}>
                                 {selectedSearchTopic.hasEssay ? '✓' : '✗'} Essay
                               </span>
-                              <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${selectedSearchTopic.hasMcq ? 'bg-amber-500/15 text-amber-400' : 'bg-slate-700/50 text-slate-500'}`}>
+                              <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${selectedSearchTopic.hasMcq ? 'bg-amber-500/15 text-amber-700' : 'bg-slate-700/50 text-slate-500'}`}>
                                 {selectedSearchTopic.hasMcq ? '✓' : '✗'} MCQ
                               </span>
-                              <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${selectedSearchTopic.hasFlash ? 'bg-purple-500/15 text-purple-400' : 'bg-slate-700/50 text-slate-500'}`}>
+                              <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${selectedSearchTopic.hasFlash ? 'bg-purple-500/15 text-purple-700' : 'bg-slate-700/50 text-slate-500'}`}>
                                 {selectedSearchTopic.hasFlash ? '✓' : '✗'} Flash
                               </span>
                             </div>
@@ -6692,12 +6692,12 @@ Return the response in JSON format with the following schema:
                     <div className="mb-4 flex items-center gap-3 bg-gradient-to-r from-blue-900/40 to-purple-900/30 border border-blue-500/30 rounded-xl px-4 py-3">
                       <span className="text-lg">🔒</span>
                       <div className="flex-1">
-                        <span className="text-sm font-semibold text-blue-300">Locked to: </span>
+                        <span className="text-sm font-semibold text-blue-800">Locked to: </span>
                         <span className="text-sm font-bold text-white">{lockedCourseName}</span>
                       </div>
                       <button 
                         onClick={() => onNavigate('dashboard')}
-                        className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors"
+                        className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors"
                       >
                         Change in Dashboard
                       </button>
@@ -6707,7 +6707,7 @@ Return the response in JSON format with the following schema:
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="block text-slate-300 font-medium">
-                        Course {lockedCourseName && <span className="text-xs text-blue-400 ml-1">(locked)</span>}
+                        Course {lockedCourseName && <span className="text-xs text-blue-700 ml-1">(locked)</span>}
                       </label>
                       <div className="relative">
                         <select 
@@ -6726,7 +6726,7 @@ Return the response in JSON format with the following schema:
                           {curriculum?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                          {lockedCourseName ? <Lock size={16} className="text-blue-400" /> : <ChevronRight size={16} className="rotate-90" />}
+                          {lockedCourseName ? <Lock size={16} className="text-blue-700" /> : <ChevronRight size={16} className="rotate-90" />}
                         </div>
                       </div>
                     </div>
@@ -7000,14 +7000,14 @@ Return the response in JSON format with the following schema:
                     <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/40 to-purple-900/30 border border-blue-500/30 rounded-xl px-4 py-3 mb-3">
                       <span className="text-lg">🔒</span>
                       <div className="flex-1">
-                        <span className="text-sm font-semibold text-blue-300">Locked to: </span>
+                        <span className="text-sm font-semibold text-blue-800">Locked to: </span>
                         <span className="text-sm font-bold text-white">{lockedCourseName}</span>
                       </div>
-                      <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">Change in Dashboard</button>
+                      <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors">Change in Dashboard</button>
                     </div>
                   )}
                   <label className="block text-slate-300 font-medium">
-                    Discipline {lockedCourseName && <span className="text-xs text-blue-400 ml-1">(locked)</span>}
+                    Discipline {lockedCourseName && <span className="text-xs text-blue-700 ml-1">(locked)</span>}
                   </label>
                   <div className="relative">
                     <select
@@ -7020,7 +7020,7 @@ Return the response in JSON format with the following schema:
                       {curriculum?.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                      {lockedCourseName ? <Lock size={16} className="text-blue-400" /> : <ChevronRight size={16} className="rotate-90" />}
+                      {lockedCourseName ? <Lock size={16} className="text-blue-700" /> : <ChevronRight size={16} className="rotate-90" />}
                     </div>
                   </div>
                 </div>
@@ -7043,7 +7043,7 @@ Return the response in JSON format with the following schema:
                   <div className="space-y-4">
                     <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-blue-500/50 transition-all bg-slate-800/50 relative overflow-hidden group">
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <Plus className="w-8 h-8 text-slate-500 mb-2 group-hover:text-blue-400 group-hover:scale-110 transition-all" />
+                        <Plus className="w-8 h-8 text-slate-500 mb-2 group-hover:text-blue-700 group-hover:scale-110 transition-all" />
                         <p className="text-sm text-slate-400 font-semibold group-hover:text-slate-300">Multiple Images / PDF / Excel Sheet</p>
                       </div>
                       <input type="file" className="hidden" multiple accept="image/*,.pdf,.xls,.xlsx,.csv" onChange={handleScanImage} />
@@ -7056,7 +7056,7 @@ Return the response in JSON format with the following schema:
                                <img src={img} alt={`Upload ${i+1}`} className="w-full h-full object-cover" />
                              ) : (
                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-xs text-slate-300 break-words text-center px-2">
-                                  <FileText className="w-6 h-6 mb-1 text-blue-400" />
+                                  <FileText className="w-6 h-6 mb-1 text-blue-700" />
                                   Doc {i+1}
                                </div>
                              )}
@@ -7099,7 +7099,7 @@ Return the response in JSON format with the following schema:
                             <h4 className="font-bold text-white text-lg">{method.name}</h4>
                             <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-lg p-3">
-                                <span className="text-[10px] uppercase font-bold text-emerald-400 block mb-1">Advantages</span>
+                                <span className="text-[10px] uppercase font-bold text-emerald-700 block mb-1">Advantages</span>
                                 <p className="text-sm text-slate-300 leading-relaxed">{method.advantages}</p>
                               </div>
                               <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-3">
@@ -7149,19 +7149,19 @@ Return the response in JSON format with the following schema:
                       <div className="flex flex-wrap gap-2">
                         <button 
                           onClick={() => setIsEditingOutput(!isEditingOutput)}
-                          className="text-slate-400 hover:text-blue-400 text-xs sm:text-sm flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 rounded-lg transition-colors"
+                          className="text-slate-400 hover:text-blue-700 text-xs sm:text-sm flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 rounded-lg transition-colors"
                         >
                           <Edit3 size={14} /> {isEditingOutput ? 'Finish Editing' : 'Edit Results'}
                         </button>
                         <button 
                           onClick={handleSave}
-                          className="text-slate-400 hover:text-emerald-400 text-xs sm:text-sm flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 rounded-lg transition-colors"
+                          className="text-slate-400 hover:text-emerald-700 text-xs sm:text-sm flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 rounded-lg transition-colors"
                         >
                           <Save size={14} /> Save
                         </button>
                         <button 
                           onClick={handleDownload}
-                          className="text-slate-400 hover:text-blue-400 text-xs sm:text-sm flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 rounded-lg transition-colors"
+                          className="text-slate-400 hover:text-blue-700 text-xs sm:text-sm flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 rounded-lg transition-colors"
                         >
                           <Download size={14} /> Download
                         </button>
@@ -7199,14 +7199,14 @@ Return the response in JSON format with the following schema:
                       <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/40 to-purple-900/30 border border-blue-500/30 rounded-xl px-4 py-3">
                         <span className="text-lg">🔒</span>
                         <div className="flex-1">
-                          <span className="text-sm font-semibold text-blue-300">Locked to: </span>
+                          <span className="text-sm font-semibold text-blue-800">Locked to: </span>
                           <span className="text-sm font-bold text-white">{lockedCourseName}</span>
                         </div>
-                        <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">Change in Dashboard</button>
+                        <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors">Change in Dashboard</button>
                       </div>
                     )}
                     <label className="block text-slate-300 font-medium">
-                      Select Course to Analyze {lockedCourseName && <span className="text-xs text-blue-400 ml-1">(locked)</span>}
+                      Select Course to Analyze {lockedCourseName && <span className="text-xs text-blue-700 ml-1">(locked)</span>}
                     </label>
                     <div className="relative">
                       <select 
@@ -7219,7 +7219,7 @@ Return the response in JSON format with the following schema:
                         {curriculum?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
                       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                        {lockedCourseName ? <Lock size={16} className="text-blue-400" /> : <ChevronRight size={16} className="rotate-90" />}
+                        {lockedCourseName ? <Lock size={16} className="text-blue-700" /> : <ChevronRight size={16} className="rotate-90" />}
                       </div>
                     </div>
                   </div>
@@ -7246,11 +7246,11 @@ Return the response in JSON format with the following schema:
                          </div>
                          <div className="bg-slate-800/80 rounded-xl p-4 border border-white/5">
                             <p className="text-xs text-slate-400 font-semibold uppercase mb-1">Average Score</p>
-                            <p className="text-2xl font-bold text-emerald-400">68%</p>
+                            <p className="text-2xl font-bold text-emerald-700">68%</p>
                          </div>
                          <div className="bg-slate-800/80 rounded-xl p-4 border border-white/5">
                             <p className="text-xs text-slate-400 font-semibold uppercase mb-1">Next Action</p>
-                            <p className="text-lg font-bold text-red-400 line-clamp-1">Immediate Revision</p>
+                            <p className="text-lg font-bold text-red-700 line-clamp-1">Immediate Revision</p>
                          </div>
                       </div>
 
@@ -7280,8 +7280,8 @@ Return the response in JSON format with the following schema:
                           {prepAnalytics.weak?.map((item: any, i:number) => (
                              <li key={i} className="bg-red-500/5 p-3 rounded-lg border border-red-500/10">
                                <div className="flex justify-between border-b border-red-500/10 pb-2 mb-2">
-                                  <span className="font-semibold text-red-300">{item.topic}</span>
-                                  <span className="text-red-400 text-sm font-mono">{item.score}</span>
+                                  <span className="font-semibold text-red-800">{item.topic}</span>
+                                  <span className="text-red-700 text-sm font-mono">{item.score}</span>
                                </div>
                                <div className="text-sm text-slate-300 leading-relaxed mt-1">
                                   {(() => {
@@ -7294,7 +7294,7 @@ Return the response in JSON format with the following schema:
                                             const formatted = point.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
                                             return (
                                               <li key={pi} className="flex gap-2 pl-3 border-l-2 border-red-500/30 py-1">
-                                                <span className="text-red-400 font-bold shrink-0">{pi + 1}.</span>
+                                                <span className="text-red-700 font-bold shrink-0">{pi + 1}.</span>
                                                 <span dangerouslySetInnerHTML={{ __html: formatted }} />
                                               </li>
                                             );
@@ -7312,7 +7312,7 @@ Return the response in JSON format with the following schema:
                                             const formatted = s.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
                                             return (
                                               <li key={si} className="flex gap-2 pl-3 border-l-2 border-red-500/30 py-1">
-                                                <span className="text-red-400 font-bold shrink-0">{si + 1}.</span>
+                                                <span className="text-red-700 font-bold shrink-0">{si + 1}.</span>
                                                 <span dangerouslySetInnerHTML={{ __html: formatted }} />
                                               </li>
                                             );
@@ -7335,7 +7335,7 @@ Return the response in JSON format with the following schema:
                             {prepAnalytics.moderate?.map((item: any, i:number) => (
                                <li key={i} className="flex justify-between text-sm text-slate-300">
                                   <span>{item.topic}</span>
-                                  <span className="text-amber-400">{item.score}</span>
+                                  <span className="text-amber-700">{item.score}</span>
                                </li>
                             ))}
                           </ul>
@@ -7346,7 +7346,7 @@ Return the response in JSON format with the following schema:
                             {prepAnalytics.strong?.map((item: any, i:number) => (
                                <li key={i} className="flex justify-between text-sm text-slate-300">
                                   <span>{item.topic}</span>
-                                  <span className="text-emerald-400">{item.score}</span>
+                                  <span className="text-emerald-700">{item.score}</span>
                                </li>
                             ))}
                           </ul>
@@ -7366,14 +7366,14 @@ Return the response in JSON format with the following schema:
                       <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/40 to-purple-900/30 border border-blue-500/30 rounded-xl px-4 py-3 mb-3">
                         <span className="text-lg">🔒</span>
                         <div className="flex-1">
-                          <span className="text-sm font-semibold text-blue-300">Locked to: </span>
+                          <span className="text-sm font-semibold text-blue-800">Locked to: </span>
                           <span className="text-sm font-bold text-white">{lockedCourseName}</span>
                         </div>
-                        <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">Change in Dashboard</button>
+                        <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors">Change in Dashboard</button>
                       </div>
                     )}
                     <label className="block text-slate-300 font-medium">
-                      Discipline {lockedCourseName && <span className="text-xs text-blue-400 ml-1">(locked)</span>}
+                      Discipline {lockedCourseName && <span className="text-xs text-blue-700 ml-1">(locked)</span>}
                     </label>
                     <div className="relative">
                       <select
@@ -7386,7 +7386,7 @@ Return the response in JSON format with the following schema:
                         {curriculum?.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
                       </select>
                       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                        {lockedCourseName ? <Lock size={16} className="text-blue-400" /> : <ChevronRight size={16} className="rotate-90" />}
+                        {lockedCourseName ? <Lock size={16} className="text-blue-700" /> : <ChevronRight size={16} className="rotate-90" />}
                       </div>
                     </div>
                   </div>
@@ -7481,8 +7481,8 @@ Return the response in JSON format with the following schema:
 
             {featureId === 'journal-club' && !jcJournalLink.trim() && scanImages.length === 0 && (
               <div className="flex items-center gap-3 bg-amber-900/30 border border-amber-500/40 rounded-xl px-4 py-3 mb-2">
-                <span className="text-amber-400 text-xl">⚠️</span>
-                <p className="text-amber-300 text-sm font-medium">
+                <span className="text-amber-700 text-xl">⚠️</span>
+                <p className="text-amber-800 text-sm font-medium">
                   Please paste a <strong>Journal PDF Link</strong> or <strong>upload the journal article</strong> (PDF / Images) to proceed.
                 </p>
               </div>
@@ -7573,13 +7573,13 @@ Return the response in JSON format with the following schema:
                     <>
                       <button 
                         onClick={() => setIsEditingPPT(!isEditingPPT)}
-                        className="text-slate-400 hover:text-blue-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
+                        className="text-slate-400 hover:text-blue-700 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
                       >
                         <Edit3 size={16} /> {isEditingPPT ? 'Finish Editing' : 'Edit Slides'}
                       </button>
                       <button 
                         onClick={handleDownloadPPT}
-                        className="text-slate-400 hover:text-emerald-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
+                        className="text-slate-400 hover:text-emerald-700 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
                       >
                         <Download size={16} /> Download PPT
                       </button>
@@ -7588,13 +7588,13 @@ Return the response in JSON format with the following schema:
                     <>
                       <button 
                         onClick={() => setIsEditingNotes(!isEditingNotes)}
-                        className="text-slate-400 hover:text-blue-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
+                        className="text-slate-400 hover:text-blue-700 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
                       >
                         <Edit3 size={16} /> {isEditingNotes ? 'Finish Editing' : 'Edit Notes'}
                       </button>
                       <button 
                         onClick={handleDownloadNotes}
-                        className="text-slate-400 hover:text-emerald-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
+                        className="text-slate-400 hover:text-emerald-700 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
                       >
                         <Download size={16} /> Download Notes
                       </button>
@@ -7602,7 +7602,7 @@ Return the response in JSON format with the following schema:
                   )}
                   <button 
                     onClick={handleSave}
-                    className="text-slate-400 hover:text-emerald-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
+                    className="text-slate-400 hover:text-emerald-700 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
                   >
                     <Save size={16} /> Save to Database
                   </button>
@@ -7762,13 +7762,13 @@ Return the response in JSON format with the following schema:
                 <div>
                   <div className="flex flex-wrap justify-between items-center gap-4 mb-6 border-b border-white/5 pb-4 not-prose">
                     <h3 className="text-xl font-bold text-white m-0 flex items-center gap-2">
-                      <Search size={20} className="text-blue-400" /> Scientific Session Results
+                      <Search size={20} className="text-blue-700" /> Scientific Session Results
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      <button onClick={handleSave} className="text-slate-400 hover:text-emerald-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors">
+                      <button onClick={handleSave} className="text-slate-400 hover:text-emerald-700 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors">
                         <Save size={16} /> Save to Database
                       </button>
-                      <button onClick={handleDownload} className="text-slate-400 hover:text-blue-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors">
+                      <button onClick={handleDownload} className="text-slate-400 hover:text-blue-700 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors">
                         <Download size={16} /> Download
                       </button>
                       <button onClick={() => window.print()} className="text-slate-400 hover:text-white text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors">
@@ -7785,7 +7785,7 @@ Return the response in JSON format with the following schema:
                             href={href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 hover:text-blue-100 rounded-lg text-sm font-medium transition-all no-underline"
+                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-800 hover:text-blue-100 rounded-lg text-sm font-medium transition-all no-underline"
                           >
                             <Globe size={12} className="shrink-0" />
                             {children}
@@ -7830,13 +7830,13 @@ Return the response in JSON format with the following schema:
                     <>
                       <button 
                         onClick={() => setIsEditingOutput(!isEditingOutput)}
-                        className="text-slate-400 hover:text-blue-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
+                        className="text-slate-400 hover:text-blue-700 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
                       >
                         <Edit3 size={16} /> {isEditingOutput ? 'Finish Editing' : 'Edit Content'}
                       </button>
                       <button 
                         onClick={handleSave}
-                        className="text-slate-400 hover:text-emerald-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
+                        className="text-slate-400 hover:text-emerald-700 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
                       >
                         <Save size={16} /> Save to Database
                       </button>
@@ -7846,13 +7846,13 @@ Return the response in JSON format with the following schema:
                     <>
                       <button 
                         onClick={handleDownload}
-                        className="text-slate-400 hover:text-blue-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
+                        className="text-slate-400 hover:text-blue-700 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
                       >
                         <Download size={16} /> Download
                       </button>
                       <button 
                         onClick={handleShare}
-                        className="text-slate-400 hover:text-purple-400 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
+                        className="text-slate-400 hover:text-purple-700 text-sm flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg transition-colors"
                       >
                         <Share2 size={16} /> Share
                       </button>
@@ -8222,8 +8222,8 @@ Return the response in JSON format with the following schema:
                   .map((item) => (
                   <div key={item.id} className="p-6 rounded-2xl bg-slate-900 border border-white/5 flex flex-col h-full hover:border-blue-500/30 transition-colors group">
                     <div className="flex justify-between items-start mb-4">
-                      <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">{item.title}</span>
-                      <button onClick={() => removeSaved(item.id)} className="text-slate-500 hover:text-red-400 transition-colors">
+                      <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest">{item.title}</span>
+                      <button onClick={() => removeSaved(item.id)} className="text-slate-500 hover:text-red-700 transition-colors">
                         <X size={16} />
                       </button>
                     </div>
@@ -8328,7 +8328,7 @@ Return the response in JSON format with the following schema:
                            }
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
-                        className="text-blue-400 hover:text-blue-300 text-xs font-bold transition-colors opacity-0 group-hover:opacity-100"
+                        className="text-blue-700 hover:text-blue-800 text-xs font-bold transition-colors opacity-0 group-hover:opacity-100"
                       >
                         Load Content
                       </button>
@@ -16150,8 +16150,8 @@ const ControlPanelLogin = ({ onSuccess }: { onSuccess: (role: string) => void })
         <form onSubmit={handleLogin} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl shadow-black/30">
           {error && (
             <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 flex items-center gap-2">
-              <ShieldAlert size={18} className="text-red-400 shrink-0" />
-              <span className="text-red-300 text-sm font-medium">{error}</span>
+              <ShieldAlert size={18} className="text-red-700 shrink-0" />
+              <span className="text-red-800 text-sm font-medium">{error}</span>
             </div>
           )}
 
@@ -17041,7 +17041,7 @@ Return ONLY the JSON object, no extra text.`;
                   isSubItem ? 'pl-11 pr-4' : 'px-4'
                 } ${
                   isActive 
-                    ? 'bg-blue-600/20 text-blue-400 font-bold' 
+                    ? 'bg-blue-600/20 text-blue-700 font-bold' 
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800 font-bold'
                 }`}
                 style={{ fontSize: isSubItem ? '14px' : '15px' }}

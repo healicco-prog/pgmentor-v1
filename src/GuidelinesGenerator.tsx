@@ -197,7 +197,7 @@ Return strictly the JSON array with elements matching:
           parts.push(<strong key={key++} className="text-white font-semibold">{match[2]}</strong>);
         } else if (match[3]) {
           // *italic*
-          parts.push(<em key={key++} className="text-blue-300">{match[3]}</em>);
+          parts.push(<em key={key++} className="text-blue-800">{match[3]}</em>);
         }
         lastIndex = match.index + match[0].length;
       }
@@ -216,7 +216,7 @@ Return strictly the JSON array with elements matching:
         const headingText = trimmed.replace(/^#{1,3}\s+/, '').replace(/:$/, '');
         elements.push(
           <div key={i} className="mt-5 mb-3 first:mt-0">
-            <h5 className="text-blue-400 font-bold text-[13px] uppercase tracking-wider flex items-center gap-2">
+            <h5 className="text-blue-700 font-bold text-[13px] uppercase tracking-wider flex items-center gap-2">
               <div className="w-1 h-4 bg-blue-500 rounded-full" />
               {formatInlineText(headingText)}
             </h5>
@@ -230,7 +230,7 @@ Return strictly the JSON array with elements matching:
       if (numberedMatch) {
         elements.push(
           <div key={i} className="flex gap-3 mb-3 pl-1">
-            <span className="w-6 h-6 bg-blue-500/15 text-blue-400 text-xs font-bold rounded-full flex items-center justify-center shrink-0 mt-0.5">{numberedMatch[1]}</span>
+            <span className="w-6 h-6 bg-blue-500/15 text-blue-700 text-xs font-bold rounded-full flex items-center justify-center shrink-0 mt-0.5">{numberedMatch[1]}</span>
             <p className="text-slate-300 text-[14px] leading-relaxed flex-1">{formatInlineText(numberedMatch[2])}</p>
           </div>
         );
@@ -326,9 +326,9 @@ Return strictly the JSON array with elements matching:
                         onClick={() => setActiveCategoryTab(cat)}
                         className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeCategoryTab === cat ? 'bg-slate-800 text-white shadow-sm border border-white/10' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
                       >
-                        {cat === 'International' ? <Globe size={16} className={activeCategoryTab === cat ? 'text-blue-400' : ''}/> : 
-                         cat === 'National' ? <MapPin size={16} className={activeCategoryTab === cat ? 'text-emerald-400' : ''}/> : 
-                         <Building size={16} className={activeCategoryTab === cat ? 'text-amber-400' : ''}/>}
+                        {cat === 'International' ? <Globe size={16} className={activeCategoryTab === cat ? 'text-blue-700' : ''}/> : 
+                         cat === 'National' ? <MapPin size={16} className={activeCategoryTab === cat ? 'text-emerald-700' : ''}/> : 
+                         <Building size={16} className={activeCategoryTab === cat ? 'text-amber-700' : ''}/>}
                         {cat}
                       </button>
                     ))}
@@ -353,11 +353,11 @@ Return strictly the JSON array with elements matching:
                         >
                           <div className="space-y-2 pr-4">
                             <div className="flex items-center gap-3">
-                              <span className="px-2 py-1 bg-blue-500/10 text-blue-400 text-xs font-bold rounded uppercase tracking-wide border border-blue-500/20">{g.category}</span>
+                              <span className="px-2 py-1 bg-blue-500/10 text-blue-700 text-xs font-bold rounded uppercase tracking-wide border border-blue-500/20">{g.category}</span>
                               <span className="text-slate-400 text-sm flex items-center gap-1"><BookOpen size={14}/> {g.publicationYear}</span>
                             </div>
-                            <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">{g.title}</h3>
-                            <p className="text-blue-300 font-medium text-sm flex items-center gap-1.5">
+                            <h3 className="text-xl font-bold text-white group-hover:text-blue-700 transition-colors">{g.title}</h3>
+                            <p className="text-blue-800 font-medium text-sm flex items-center gap-1.5">
                               <Building size={14}/> {g.organization}
                             </p>
                             <p className="text-slate-400 text-sm line-clamp-2 mt-2 leading-relaxed">{g.summary}</p>
@@ -409,10 +409,10 @@ Return strictly the JSON array with elements matching:
                     <div key={g.id} className="bg-slate-900 border border-white/10 hover:border-emerald-500/50 rounded-2xl p-6 flex flex-col group transition-all relative">
                       <div className="flex justify-between items-start mb-4">
                         <span className="px-2 py-1 bg-slate-800 text-slate-300 text-[10px] font-bold rounded uppercase tracking-wide border border-white/5">{g.category}</span>
-                        <span className="text-emerald-400 text-xs font-bold bg-emerald-500/10 px-2 py-1 rounded">{g.publicationYear}</span>
+                        <span className="text-emerald-700 text-xs font-bold bg-emerald-500/10 px-2 py-1 rounded">{g.publicationYear}</span>
                       </div>
                       <h4 className="text-lg font-bold text-white mb-2 leading-snug">{g.title}</h4>
-                      <p className="text-blue-400 text-xs font-semibold mb-4 flex items-center gap-1"><Building size={12}/> {g.organization}</p>
+                      <p className="text-blue-700 text-xs font-semibold mb-4 flex items-center gap-1"><Building size={12}/> {g.organization}</p>
                       <div className="text-slate-400 text-sm bg-slate-800/50 p-3 rounded-lg flex-1 mb-4 italic border border-white/5">
                         <div className="font-semibold text-slate-300 text-xs uppercase mb-1 flex items-center gap-1"><Edit3 size={12}/> Notes</div>
                         {g.notes ? g.notes : "No notes attached."}
@@ -426,7 +426,7 @@ Return strictly the JSON array with elements matching:
                         </button>
                         <button 
                           onClick={() => handleDelete(g.id)}
-                          className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors"
+                          className="w-8 h-8 rounded-lg bg-red-500/10 text-red-700 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors"
                         >
                           <Trash2 size={14}/>
                         </button>
@@ -447,7 +447,7 @@ Return strictly the JSON array with elements matching:
             <div className="p-6 border-b border-white/10 flex justify-between items-start bg-slate-950/50">
               <div className="pr-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-[10px] font-bold rounded uppercase border border-blue-500/30">{selectedGuideline.category}</span>
+                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-700 text-[10px] font-bold rounded uppercase border border-blue-500/30">{selectedGuideline.category}</span>
                   <span className="text-slate-400 text-xs">{selectedGuideline.publicationYear}</span>
                 </div>
                 <h3 className="text-xl font-bold text-white leading-tight">{selectedGuideline.title}</h3>
@@ -465,7 +465,7 @@ Return strictly the JSON array with elements matching:
               
               {activeMainTab === 'library' && (
                 <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
-                  <label className="text-emerald-400 text-xs font-bold uppercase mb-2 block">My Personal Notes</label>
+                  <label className="text-emerald-700 text-xs font-bold uppercase mb-2 block">My Personal Notes</label>
                   <textarea 
                     defaultValue={selectedGuideline.notes || ''}
                     onBlur={(e) => {
@@ -489,7 +489,7 @@ Return strictly the JSON array with elements matching:
                 <>
                   {/* Executive Summary */}
                   <div className="bg-slate-950/50 rounded-2xl border border-white/5 p-5">
-                    <h4 className="text-blue-400 font-bold text-xs uppercase tracking-wider flex items-center gap-2 mb-4">
+                    <h4 className="text-blue-700 font-bold text-xs uppercase tracking-wider flex items-center gap-2 mb-4">
                       <div className="w-1 h-4 bg-blue-500 rounded-full" />
                       Executive Summary
                     </h4>
@@ -501,7 +501,7 @@ Return strictly the JSON array with elements matching:
                   {/* Key Recommendations */}
                   {selectedGuideline.keyRecommendations && typeof selectedGuideline.keyRecommendations === 'string' && selectedGuideline.keyRecommendations.trim() !== '' && (
                     <div className="bg-slate-950/50 rounded-2xl border border-white/5 p-5">
-                      <h4 className="text-emerald-400 font-bold text-xs uppercase tracking-wider flex items-center gap-2 mb-4">
+                      <h4 className="text-emerald-700 font-bold text-xs uppercase tracking-wider flex items-center gap-2 mb-4">
                         <div className="w-1 h-4 bg-emerald-500 rounded-full" />
                         Key Recommendations & Diagnostic Criteria
                       </h4>
@@ -512,7 +512,7 @@ Return strictly the JSON array with elements matching:
                   )}
 
                   {selectedGuideline.sourceUrl && (
-                    <a href={selectedGuideline.sourceUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm font-medium p-4 bg-blue-500/5 rounded-xl border border-blue-500/10 transition-colors">
+                    <a href={selectedGuideline.sourceUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-700 hover:text-blue-800 text-sm font-medium p-4 bg-blue-500/5 rounded-xl border border-blue-500/10 transition-colors">
                       <ExternalLink size={16} /> View Original Full Guideline
                     </a>
                   )}

@@ -256,7 +256,7 @@ ${infoText}`;
       while ((match = regex.exec(str)) !== null) {
         if (match.index > last) parts.push(str.slice(last, match.index));
         if (match[2]) parts.push(<strong key={key++} className="text-white font-semibold">{match[2]}</strong>);
-        else if (match[3]) parts.push(<em key={key++} className="text-blue-300">{match[3]}</em>);
+        else if (match[3]) parts.push(<em key={key++} className="text-blue-800">{match[3]}</em>);
         last = match.index + match[0].length;
       }
       if (last < str.length) parts.push(str.slice(last));
@@ -274,7 +274,7 @@ ${infoText}`;
       if (trimmed.startsWith('## ')) {
         elements.push(
           <div key={i} className="mt-5 mb-3 first:mt-0">
-            <h4 className="text-blue-400 font-bold text-sm uppercase tracking-wider flex items-center gap-2">
+            <h4 className="text-blue-700 font-bold text-sm uppercase tracking-wider flex items-center gap-2">
               <div className="w-1 h-4 bg-blue-500 rounded-full" />
               {formatInline(trimmed.replace(/^##\s+/, ''))}
             </h4>
@@ -287,7 +287,7 @@ ${infoText}`;
       if (trimmed.startsWith('### ')) {
         elements.push(
           <div key={i} className="mt-4 mb-2">
-            <h5 className="text-emerald-400 font-bold text-[13px] flex items-center gap-2">
+            <h5 className="text-emerald-700 font-bold text-[13px] flex items-center gap-2">
               <ChevronRight size={14} className="text-emerald-500" />
               {formatInline(trimmed.replace(/^###\s+/, ''))}
             </h5>
@@ -300,7 +300,7 @@ ${infoText}`;
       if (trimmed.endsWith(':') && trimmed.length < 100 && !trimmed.startsWith('-') && !trimmed.startsWith('*') && !trimmed.match(/^\d+\./)) {
         elements.push(
           <div key={i} className="mt-4 mb-2">
-            <h5 className="text-amber-400 font-semibold text-[13px]">
+            <h5 className="text-amber-700 font-semibold text-[13px]">
               {formatInline(trimmed.slice(0, -1))}
             </h5>
           </div>
@@ -313,7 +313,7 @@ ${infoText}`;
       if (numMatch) {
         elements.push(
           <div key={i} className="flex gap-3 mb-2.5 pl-1">
-            <span className="w-6 h-6 bg-blue-500/15 text-blue-400 text-xs font-bold rounded-full flex items-center justify-center shrink-0 mt-0.5">{numMatch[1]}</span>
+            <span className="w-6 h-6 bg-blue-500/15 text-blue-700 text-xs font-bold rounded-full flex items-center justify-center shrink-0 mt-0.5">{numMatch[1]}</span>
             <p className="text-slate-300 text-[13.5px] leading-relaxed flex-1">{formatInline(numMatch[2])}</p>
           </div>
         );
@@ -336,7 +336,7 @@ ${infoText}`;
       if (trimmed.startsWith('>')) {
         elements.push(
           <div key={i} className="border-l-2 border-amber-500/50 pl-4 py-2 my-3 bg-amber-500/5 rounded-r-lg">
-            <p className="text-amber-300/80 text-[12px] leading-relaxed italic">{formatInline(trimmed.replace(/^>\s*\**/, '').replace(/\**$/, ''))}</p>
+            <p className="text-amber-800/80 text-[12px] leading-relaxed italic">{formatInline(trimmed.replace(/^>\s*\**/, '').replace(/\**$/, ''))}</p>
           </div>
         );
         return;
@@ -388,7 +388,7 @@ ${infoText}`;
                 disabled={isSaving || saved}
                 className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
                   saved 
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                    ? 'bg-emerald-500/20 text-emerald-700 border border-emerald-500/30' 
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
                 }`}
               >
@@ -418,7 +418,7 @@ ${infoText}`;
               <React.Fragment key={label}>
                 {i > 0 && <div className={`flex-1 h-0.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-700'} transition-colors`} />}
                 <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all ${
-                  isCurrent ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
+                  isCurrent ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30' :
                   isActive ? 'text-emerald-500' : 'text-slate-500'
                 }`}>
                   <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
@@ -471,11 +471,11 @@ ${infoText}`;
               <div className={`flex items-center gap-2 mb-1.5 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                 {msg.role === 'ai' && (
                   <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                    <Stethoscope size={12} className="text-emerald-400" />
+                    <Stethoscope size={12} className="text-emerald-700" />
                   </div>
                 )}
                 <span className={`text-[11px] font-bold uppercase tracking-wider ${
-                  msg.role === 'user' ? 'text-blue-400' : msg.role === 'ai' ? 'text-emerald-400' : 'text-amber-400'
+                  msg.role === 'user' ? 'text-blue-700' : msg.role === 'ai' ? 'text-emerald-700' : 'text-amber-700'
                 }`}>
                   {msg.role === 'user' ? 'Clinician' : msg.role === 'ai' ? 'CDS Analysis' : 'System'}
                 </span>
@@ -497,10 +497,10 @@ ${infoText}`;
                 {msg.type === 'diagnosis' && (
                   <div className="flex items-center gap-2 mb-4 pb-3 border-b border-emerald-500/20">
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                      <CheckCircle size={16} className="text-emerald-400" />
+                      <CheckCircle size={16} className="text-emerald-700" />
                     </div>
                     <div>
-                      <div className="text-emerald-400 text-xs font-bold uppercase tracking-wider">Clinical Decision Analysis</div>
+                      <div className="text-emerald-700 text-xs font-bold uppercase tracking-wider">Clinical Decision Analysis</div>
                       <div className="text-slate-500 text-[10px]">Evidence-based assessment complete</div>
                     </div>
                   </div>
@@ -508,10 +508,10 @@ ${infoText}`;
                 {msg.type === 'request-info' && (
                   <div className="flex items-center gap-2 mb-4 pb-3 border-b border-blue-500/20">
                     <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                      <FileText size={16} className="text-blue-400" />
+                      <FileText size={16} className="text-blue-700" />
                     </div>
                     <div>
-                      <div className="text-blue-400 text-xs font-bold uppercase tracking-wider">Information Request</div>
+                      <div className="text-blue-700 text-xs font-bold uppercase tracking-wider">Information Request</div>
                       <div className="text-slate-500 text-[10px]">Please provide the following clinical data</div>
                     </div>
                   </div>
@@ -538,7 +538,7 @@ ${infoText}`;
                   <div className="absolute inset-0 w-5 h-5 bg-emerald-500/20 rounded-full animate-ping" />
                 </div>
                 <div>
-                  <p className="text-emerald-400 text-sm font-semibold">Analyzing clinical data...</p>
+                  <p className="text-emerald-700 text-sm font-semibold">Analyzing clinical data...</p>
                   <p className="text-slate-500 text-xs mt-0.5">Comparing with evidence-based guidelines</p>
                 </div>
               </div>
@@ -616,7 +616,7 @@ ${infoText}`;
           <div className="flex flex-col md:flex-row items-center gap-3">
             <div className="flex items-center gap-2 flex-1">
               <CheckCircle size={18} className="text-emerald-500" />
-              <span className="text-emerald-400 text-sm font-semibold">Clinical analysis complete.</span>
+              <span className="text-emerald-700 text-sm font-semibold">Clinical analysis complete.</span>
               <span className="text-slate-500 text-xs">You can add more information or save the session.</span>
             </div>
             <div className="flex gap-2">
@@ -631,7 +631,7 @@ ${infoText}`;
                 disabled={isSaving || saved}
                 className={`px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
                   saved 
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                    ? 'bg-emerald-500/20 text-emerald-700 border border-emerald-500/30' 
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
                 }`}
               >

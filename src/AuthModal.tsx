@@ -685,7 +685,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
           {mode === 'forgotPassword' && resetStep === 'code' && (
             <form onSubmit={handleVerifyCode} className="space-y-4">
               <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-amber-500/20">
-                <ShieldCheck size={28} className="text-amber-400" />
+                <ShieldCheck size={28} className="text-amber-700" />
               </div>
               <p className="text-center text-slate-400 text-sm -mt-1 mb-2">
                 Code sent to <strong className="text-white">{resetEmail}</strong>
@@ -717,7 +717,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                   type="button"
                   disabled={cooldown > 0}
                   onClick={() => { setError(''); setSuccess(''); handleSendResetCode({ preventDefault: () => {} } as any); }}
-                  className={`font-semibold transition-colors ${cooldown > 0 ? 'text-slate-600 cursor-not-allowed' : 'text-blue-400 hover:text-blue-300'}`}
+                  className={`font-semibold transition-colors ${cooldown > 0 ? 'text-slate-600 cursor-not-allowed' : 'text-blue-700 hover:text-blue-800'}`}
                 >
                   {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Code'}
                 </button>
@@ -728,7 +728,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
           {mode === 'forgotPassword' && resetStep === 'newPassword' && (
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-emerald-500/20">
-                <Lock size={28} className="text-emerald-400" />
+                <Lock size={28} className="text-emerald-700" />
               </div>
               <PasswordField
                 label="New Password" value={newPassword} onChange={setNewPassword}
@@ -746,7 +746,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                   ].map(([key, label]) => {
                     const ok = passwordChecks(newPassword)[key as keyof ReturnType<typeof passwordChecks>];
                     return (
-                      <div key={key} className={`flex items-center gap-1.5 text-[11px] font-medium ${ok ? 'text-emerald-400' : 'text-slate-500'}`}>
+                      <div key={key} className={`flex items-center gap-1.5 text-[11px] font-medium ${ok ? 'text-emerald-700' : 'text-slate-500'}`}>
                         {ok ? <CheckCircle size={11} /> : <span className="w-[11px] h-[11px] rounded-full border border-slate-600 inline-block" />}
                         {label}
                       </div>
@@ -771,7 +771,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
           {mode === 'forgotPassword' && resetStep === 'done' && (
             <div className="text-center space-y-4">
               <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border-2 border-emerald-500/30">
-                <CheckCircle size={36} className="text-emerald-400" />
+                <CheckCircle size={36} className="text-emerald-700" />
               </div>
               <p className="text-slate-300 text-sm leading-relaxed">
                 Your password has been reset successfully.<br />You can now sign in with your new password.
@@ -820,7 +820,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                   ].map(([key, label]) => {
                     const ok = passwordChecks(password)[key as keyof ReturnType<typeof passwordChecks>];
                     return (
-                      <div key={key} className={`flex items-center gap-1.5 text-[11px] font-medium ${ok ? 'text-emerald-400' : 'text-slate-500'}`}>
+                      <div key={key} className={`flex items-center gap-1.5 text-[11px] font-medium ${ok ? 'text-emerald-700' : 'text-slate-500'}`}>
                         {ok ? <CheckCircle size={11} /> : <span className="w-[11px] h-[11px] rounded-full border border-slate-600 inline-block" />}
                         {label}
                       </div>
@@ -868,7 +868,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
               </button>
               <p className="text-center text-xs text-slate-500 pt-1">
                 Already have an account?{' '}
-                <button type="button" onClick={() => switchMode('signin')} className="text-blue-400 hover:text-blue-300 font-semibold">
+                <button type="button" onClick={() => switchMode('signin')} className="text-blue-700 hover:text-blue-800 font-semibold">
                   Sign In
                 </button>
               </p>

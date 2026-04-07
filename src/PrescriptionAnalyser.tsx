@@ -114,20 +114,20 @@ export default function PrescriptionAnalyser({ onSave }: { onSave?: (data: any) 
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 9) return 'text-emerald-400';
-    if (score >= 7) return 'text-blue-400';
-    if (score >= 5) return 'text-amber-400';
-    return 'text-red-400';
+    if (score >= 9) return 'text-emerald-700';
+    if (score >= 7) return 'text-blue-700';
+    if (score >= 5) return 'text-amber-700';
+    return 'text-red-700';
   };
 
   const getQualityColor = (quality: string) => {
     switch (quality.toLowerCase()) {
-      case 'excellent': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
-      case 'very good': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
-      case 'good': return 'text-blue-400 bg-blue-400/10 border-blue-400/20';
-      case 'acceptable': return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
-      case 'needs improvement': return 'text-orange-400 bg-orange-400/10 border-orange-400/20';
-      case 'poor': return 'text-red-400 bg-red-400/10 border-red-400/20';
+      case 'excellent': return 'text-emerald-700 bg-emerald-400/10 border-emerald-400/20';
+      case 'very good': return 'text-emerald-700 bg-emerald-400/10 border-emerald-400/20';
+      case 'good': return 'text-blue-700 bg-blue-400/10 border-blue-400/20';
+      case 'acceptable': return 'text-amber-700 bg-amber-400/10 border-amber-400/20';
+      case 'needs improvement': return 'text-orange-700 bg-orange-400/10 border-orange-400/20';
+      case 'poor': return 'text-red-700 bg-red-400/10 border-red-400/20';
       default: return 'text-slate-400 bg-slate-800 border-slate-700';
     }
   };
@@ -174,7 +174,7 @@ export default function PrescriptionAnalyser({ onSave }: { onSave?: (data: any) 
                   />
                   <button 
                     onClick={(e) => { e.stopPropagation(); clearSelection(); }}
-                    className="absolute top-2 right-2 p-1.5 bg-slate-900/80 hover:bg-red-500/20 text-slate-300 hover:text-red-400 rounded-lg backdrop-blur-sm transition-all shadow-lg"
+                    className="absolute top-2 right-2 p-1.5 bg-slate-900/80 hover:bg-red-500/20 text-slate-300 hover:text-red-700 rounded-lg backdrop-blur-sm transition-all shadow-lg"
                   >
                     <X size={18} />
                   </button>
@@ -205,7 +205,7 @@ export default function PrescriptionAnalyser({ onSave }: { onSave?: (data: any) 
             ) : (
               <div className="text-center">
                 <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-700 shadow-inner">
-                  <UploadCloud size={28} className="text-blue-400" />
+                  <UploadCloud size={28} className="text-blue-700" />
                 </div>
                 <h3 className="text-lg font-bold text-white mb-2">Upload Prescription</h3>
                 <p className="text-slate-400 text-sm max-w-sm mx-auto mb-6">
@@ -220,7 +220,7 @@ export default function PrescriptionAnalyser({ onSave }: { onSave?: (data: any) 
           </div>
           
           {error && (
-            <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start text-red-400 text-sm">
+            <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start text-red-700 text-sm">
               <AlertCircle size={16} className="mt-0.5 mr-2 shrink-0" />
               <span>{error}</span>
             </div>
@@ -313,7 +313,7 @@ export default function PrescriptionAnalyser({ onSave }: { onSave?: (data: any) 
             {/* AI Feedback */}
             <div className="space-y-6">
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                <h4 className="text-lg font-bold text-white mb-4 flex items-center text-emerald-400">
+                <h4 className="text-lg font-bold text-white mb-4 flex items-center text-emerald-700">
                   <CheckCircle size={20} className="mr-2" /> What was done right
                 </h4>
                 {result.what_was_done_right?.length > 0 ? (
@@ -331,7 +331,7 @@ export default function PrescriptionAnalyser({ onSave }: { onSave?: (data: any) 
               </div>
 
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                <h4 className="text-lg font-bold text-white mb-4 flex items-center text-red-400">
+                <h4 className="text-lg font-bold text-white mb-4 flex items-center text-red-700">
                   <AlertTriangle size={20} className="mr-2" /> What went wrong
                 </h4>
                 {result.what_went_wrong?.length > 0 ? (
@@ -352,8 +352,8 @@ export default function PrescriptionAnalyser({ onSave }: { onSave?: (data: any) 
 
           {/* Recommendations */}
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-6">
-            <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center">
-              <AlertCircle size={20} className="mr-2 text-blue-400" /> How to correct
+            <h4 className="text-lg font-bold text-blue-700 mb-4 flex items-center">
+              <AlertCircle size={20} className="mr-2 text-blue-700" /> How to correct
             </h4>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {result.how_to_correct?.map((item, idx) => (

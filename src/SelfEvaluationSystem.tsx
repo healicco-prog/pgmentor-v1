@@ -502,7 +502,7 @@ Do not include any other text except the JSON. Determine the marks awarded objec
                     </div>
                     <div className="bg-[#f5f7fa] border border-[#dfe6f0] px-6 py-4 rounded-xl text-center shadow-inner">
                       <p className="text-[#6b7e99] text-xs font-bold uppercase tracking-wider mb-1">Marks Awarded</p>
-                      <p className="text-4xl font-bold text-emerald-600">{evaluationResult.marks_awarded} <span className="text-xl text-emerald-400">/ {marks}</span></p>
+                      <p className="text-4xl font-bold text-emerald-600">{evaluationResult.marks_awarded} <span className="text-xl text-emerald-700">/ {marks}</span></p>
                     </div>
                   </div>
 

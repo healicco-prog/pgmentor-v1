@@ -425,7 +425,7 @@ async function startServer() {
       try {
         aiResponse = await withTimeout(
           retryWithBackoff(() => geminiGenerate({ model: primaryModel, contents: prompt, systemInstruction, responseMimeType: responseMimeType || 'text/plain', temperature: 0.7, tools }), 1),
-          180000,
+          290000,
           `${primaryModel} stream-primary`
         );
       } catch (primaryError: any) {
@@ -437,7 +437,7 @@ async function startServer() {
           usedModel = fallbackModel;
           aiResponse = await withTimeout(
             retryWithBackoff(() => geminiGenerate({ model: fallbackModel, contents: prompt, systemInstruction, responseMimeType: responseMimeType || 'text/plain', temperature: 0.7, tools }), 1),
-            60000,
+            120000,
             `${fallbackModel} stream-fallback`
           );
           console.log(`✅ Stream fallback model ${fallbackModel} succeeded`);
@@ -2047,7 +2047,7 @@ async function startServer() {
   app.post("/api/logs", async (req, res) => {
     const { userId, feature } = req.body;
     try {
-      const { error } = await supabase.from('usage_logs').insert({ user_id: userId, feature });
+      const { error } = await supabaseAdmin.from('usage_logs').insert({ user_id: userId, feature });
       if (error) throw error;
       res.json({ success: true });
     } catch (error: any) {

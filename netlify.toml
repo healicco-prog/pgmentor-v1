@@ -11,7 +11,7 @@
 # ═══════════════════════════════════════════════════════════════
 [[redirects]]
   from = "/api/*"
-  to = "https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/api/:splat"
+  to = "https://pgmentor-backend-441308586999.us-central1.run.app/api/:splat"
   status = 200
   force = true
   [redirects.headers]
@@ -22,7 +22,7 @@
 # ═══════════════════════════════════════════════════════════════
 [[redirects]]
   from = "/blog/*"
-  to = "https://pgmentor-backend-tbnl2ceuca-uc.a.run.app/blog/:splat"
+  to = "https://pgmentor-backend-441308586999.us-central1.run.app/blog/:splat"
   status = 200
   force = true
 

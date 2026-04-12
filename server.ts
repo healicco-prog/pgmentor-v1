@@ -272,6 +272,53 @@ async function startServer() {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // UNIFIED API PROTECTION MIDDLEWARE
+  // ═══════════════════════════════════════════════════════════════════════════
+  app.use('/api', async (req, res, next) => {
+    const path = req.path;
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+
+    // 1. Global Rate Limiting (50 requests per minute per IP to prevent spam/DDoS)
+    if (rateLimit(`global:${clientIp}`, 50, 60 * 1000)) {
+      console.warn(`🚦 Global rate limit exceeded for IP: ${clientIp}`);
+      return res.status(429).json({ error: 'Too many requests' });
+    }
+
+    // 2. Extra stricter limit for AI endpoints (10 requests per minute)
+    if (path.startsWith('/ai/') || path.startsWith('/gen-ai')) {
+      if (rateLimit(`ai:${clientIp}`, 10, 60 * 1000)) {
+        return res.status(429).json({ error: 'AI rate limit exceeded' });
+      }
+    }
+    
+    // 3. Admin routes handled by requireAdmin later
+    if (path.startsWith('/admin/')) return next();
+    
+    // 4. Public auth & read paths
+    const publicPaths = ['/auth/', '/user/profile'];
+    if (publicPaths.some(p => path.startsWith(p))) return next();
+    
+    // 5. Enforce Authentication
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.warn(`🔒 Rejecting unauthenticated access to ${req.method} /api${path}`);
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      const token = authHeader.split(' ')[1];
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+      if (error || !user) {
+        console.warn(`🔒 Invalid token for ${req.method} /api${path} - ${error?.message}`);
+        return res.status(401).json({ error: 'Invalid or expired token' });
+      }
+      (req as any).user = user;
+      next();
+    } catch (err: any) {
+      res.status(500).json({ error: 'Authentication failed' });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // API KEY PROTECTION — Block unauthorized direct access to backend
   // ═══════════════════════════════════════════════════════════════════════════
   const BACKEND_API_KEY = process.env.BACKEND_API_KEY;

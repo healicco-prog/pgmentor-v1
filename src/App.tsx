@@ -33,6 +33,32 @@ const _supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
+
+// SECURITY: Global Fetch Interceptor to attach JWT tokens to secure API routes
+const originalFetch = window.fetch;
+window.fetch = async (input, init = {}) => {
+  let url = '';
+  if (typeof input === 'string') {
+    url = input;
+  } else if (input instanceof URL) {
+    url = input.toString();
+  } else if (input instanceof Request) {
+    url = input.url;
+  }
+
+  // Only intercept our backend API routes
+  if (url.startsWith('/api/') || url.includes('/api/')) {
+    const { data } = await _supabase.auth.getSession();
+    if (data?.session?.access_token) {
+      init.headers = {
+        ...init.headers,
+        Authorization: `Bearer ${data.session.access_token}`
+      };
+    }
+  }
+  return originalFetch(input, init);
+};
+
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import html2pdf from 'html2pdf.js';

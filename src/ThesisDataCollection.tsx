@@ -92,7 +92,7 @@ const GENDERS = ['Male', 'Female', 'Other'];
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER
 // ═══════════════════════════════════════════════════════════════════════════
-const getUserId = () => localStorage.getItem('PGMentor_user_id') || 'default';
+const getUserId = () => localStorage.getItem('PGMentor_user_id') || '';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // UI COMPONENTS

@@ -73,7 +73,7 @@ interface DocumentEntry {
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
-const getUserId = () => localStorage.getItem('PGMentor_user_id') || 'default';
+const getUserId = () => localStorage.getItem('PGMentor_user_id') || '';
 const API = (path: string) => `/api/portfolio/${path}`;
 
 async function apiFetch(path: string, opts?: RequestInit) {

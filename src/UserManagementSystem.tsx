@@ -19,11 +19,10 @@ interface UserRow { id: string; email: string; created_at: string; profile: User
 interface AuditLog { id: number; action_type: string; performed_by: string; target_user_email: string; details: any; created_at: string; }
 
 // ─── API ──────────────────────────────────────────────────────────────────────
-const ADMIN_SECRET = 'PGMentor-SuperAdmin-SecretKey-2026';
 const adminFetch = async (path: string, options?: RequestInit) => {
   const res = await fetch(path, {
     ...options,
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Secret ${ADMIN_SECRET}`, ...(options?.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) },
   });
   if (!res.ok) { const err = await res.json().catch(() => ({ error: res.statusText })); throw new Error(err.error || `HTTP ${res.status}`); }
   return res.json();

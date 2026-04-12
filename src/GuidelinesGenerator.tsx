@@ -135,7 +135,7 @@ Return strictly the JSON array with elements matching:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: g.id || Date.now().toString(),
-          userId: localStorage.getItem('PGMentor_user_id') || 'default',
+          userId: localStorage.getItem('PGMentor_user_id') || '',
           conditionName: g.conditionName,
           title: g.title,
           organization: g.organization,

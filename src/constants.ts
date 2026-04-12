@@ -3,11 +3,13 @@ import { Feature } from "./types";
 export const FEATURES: Feature[] = [
   { id: "search-topic", title: "Search Topic", description: "Search and discover topics across your entire curriculum instantly.", icon: "Search", path: "/features/search-topic", category: "Knowledge & Learning Resources" },
   { id: "knowledge-library", title: "Knowledge Library", description: "Evidence-based PG medical notes with clinical relevance and recent advances.", icon: "Library", path: "/features/knowledge-library", category: "Knowledge & Learning Resources" },
-  { id: "essay-library", title: "Essay Library", description: "Access a wide range of pre-written medical essays.", icon: "FileText", path: "/features/essay-library", category: "Knowledge & Learning Resources" },
-  { id: "mcq-library", title: "MCQ Library", description: "Practice with extensive multiple-choice questions for exam prep.", icon: "CheckSquare", path: "/features/mcq-library", category: "Knowledge & Learning Resources" },
-  { id: "flash-cards", title: "Flash Cards", description: "Create and study digital flashcards for quick revision.", icon: "Layers", path: "/features/flash-cards", category: "Knowledge & Learning Resources" },
+  { id: "essay-library", title: "Essay Question Library", description: "Access a wide range of pre-written medical essay questions with comprehensive answers.", icon: "FileText", path: "/features/essay-library", category: "Knowledge & Learning Resources" },
+  { id: "mcq-library", title: "MCQ Question Library", description: "Practice with extensive multiple-choice questions for exam prep.", icon: "CheckSquare", path: "/features/mcq-library", category: "Knowledge & Learning Resources" },
+  { id: "flash-cards", title: "Flash Card Library", description: "Create and study digital flashcards for quick revision.", icon: "Layers", path: "/features/flash-cards", category: "Knowledge & Learning Resources" },
 
+  { id: "notes-generator", title: "Notes Generator", description: "Generate comprehensive clinical and academic notes on any topic not covered in your Knowledge Library.", icon: "BookOpen", path: "/features/notes-generator", category: "Academic & Research Writing" },
   { id: "essay-generator", title: "Essay Generator", description: "Generate structured long/short essays and short notes for medical exams.", icon: "FileText", path: "/features/essay-generator", category: "Academic & Research Writing" },
+  { id: "mcq-generator", title: "MCQ Generator", description: "Generate high-quality multiple-choice questions with answers and explanations for any medical topic.", icon: "CheckSquare", path: "/features/mcq-generator", category: "Academic & Research Writing" },
   { id: "seminar-builder", title: "Seminar Builder", description: "Create professional 20-30 slide PPT structures and detailed seminar notes.", icon: "Presentation", path: "/features/seminar-builder", category: "Academic & Research Writing" },
   { id: "journal-club", title: "Journal Club Preparator", description: "Critical appraisal of research papers with PPT structure generation.", icon: "BookOpen", path: "/features/journal-club", category: "Academic & Research Writing" },
   { id: "protocol-generator", title: "Protocol Generator", description: "Generate structured research protocols.", icon: "FilePlus", path: "/features/protocol-generator", category: "Academic & Research Writing" },
@@ -28,8 +30,11 @@ export const FEATURES: Feature[] = [
 
   { id: "ai-tutor", title: "AI Tutor", description: "Your personal AI mentor for continuous medical learning.", icon: "Brain", path: "/features/ai-tutor", category: "Learning Management System" },
 
-  { id: "digital-diary", title: "Digital Diary", description: "AI-powered reflective journal, productivity assistant, and learning tracker.", icon: "BookOpen", path: "/features/digital-diary", category: "Productivity & Professional Management" },
-  { id: "contacts-management", title: "Contacts Management System", description: "Digital visiting cards, OCR contact scanning, and professional networking database.", icon: "UserPlus", path: "/features/contacts-management", category: "Productivity & Professional Management" },
-  { id: "session-search", title: "Scientific Session Search", description: "Search for upcoming medical conferences, webinars, and scientific sessions globally.", icon: "Search", path: "/features/session-search", category: "Productivity & Professional Management" },
-  { id: "resume-builder", title: "Professional Resume Builder", description: "AI-powered academic CV builder with templates, live preview, and downloadable output for medical professionals.", icon: "FileText", path: "/features/resume-builder", category: "Productivity & Professional Management" }
+  { id: "digital-diary", title: "Digital Diary", description: "AI-powered reflective journal, productivity assistant, and learning tracker.", icon: "BookOpen", path: "/features/digital-diary", category: "Productivity Management" },
+  { id: "contacts-management", title: "Contacts Management System", description: "Digital visiting cards, OCR contact scanning, and professional networking database.", icon: "UserPlus", path: "/features/contacts-management", category: "Productivity Management" },
+  { id: "session-search", title: "Scientific Session Search", description: "Search for upcoming medical conferences, webinars, and scientific sessions globally.", icon: "Search", path: "/features/session-search", category: "Productivity Management" },
+  { id: "resume-builder", title: "Professional Resume Builder", description: "AI-powered academic CV builder with templates, live preview, and downloadable output for medical professionals.", icon: "FileText", path: "/features/resume-builder", category: "Productivity Management" },
+
+  { id: "thesis-data-ct", title: "Thesis Data CT", description: "Structured thesis data collection tool for PG medical research. Enter, track, and export your thesis case data.", icon: "ClipboardList", path: "/features/thesis-data-ct", category: "Professional Management" },
+  { id: "eportfolio-ms", title: "e-Portfolio MS", description: "Digital academic portfolio for PG medical students. Log procedures, cases, seminars, reflections, and generate your academic CV.", icon: "GraduationCap", path: "/features/eportfolio-ms", category: "Professional Management" }
 ];

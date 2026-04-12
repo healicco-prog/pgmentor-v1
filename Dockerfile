@@ -1,24 +1,30 @@
 # ──────────────────────────────────────────────────────────
-# MediMentr Backend — Cloud Run Dockerfile
+# PGMentor Backend — Cloud Run Dockerfile
 # ──────────────────────────────────────────────────────────
 FROM node:20-slim AS base
 
 WORKDIR /app
 
-# Copy package files and install deps
-# We need tsx (devDep) to run server.ts, but NOT vite/react etc.
+# Copy package files and install ONLY the deps needed by server.ts
 COPY package.json package-lock.json* ./
-RUN npm install --production express dotenv @supabase/supabase-js @google/genai resend tsx
+RUN npm install --production \
+    express \
+    dotenv \
+    @supabase/supabase-js \
+    @google/genai \
+    resend \
+    tsx \
+    typescript
 
-# Copy only backend-related files
+# Copy only backend-related files — NO src/, NO .env, NO secrets
 COPY server.ts ./
 COPY tsconfig.json ./
 
-# Cloud Run sets PORT automatically; default to 8080
+# Cloud Run sets PORT automatically → default 8080
 ENV PORT=8080
 ENV NODE_ENV=production
 
 EXPOSE 8080
 
-# Start the Express server directly (no Vite in production)
+# Run server.ts with tsx (TypeScript executor)
 CMD ["npx", "tsx", "server.ts"]

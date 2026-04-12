@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Settings, LogOut, ChevronRight, Brain, 
   Activity, Microscope, HeartPulse, Download, Share2, Save,
   Plus, Trash2, Edit3, Monitor, Search, Globe, Users, User as UserIcon,
-  Upload, Layers, Sparkles, CheckCircle, Eye, Play, RotateCcw,
+  Upload, Layers, Sparkles, CheckCircle, Check, Eye, Play, RotateCcw,
   Cpu, LineChart, Target, FileSymlink, GraduationCap, Lightbulb, HelpCircle, Pill, Lock,
   Gift, Award, Trophy, Shield, Mail, EyeOff, ChevronUp, ChevronDown, GripVertical,
   Zap, Calendar, Crown, TrendingUp
@@ -19,6 +19,8 @@ import PrescriptionAnalyser from './PrescriptionAnalyser';
 import ClinicalDecisionSupport from './ClinicalDecisionSupport';
 import ProfessionalResumeBuilder from './ProfessionalResumeBuilder';
 import DoubtSolver from './DoubtSolver';
+import ThesisDataCollection from './ThesisDataCollection';
+import EPortfolioMS from './EPortfolioMS';
 import DrugTreatmentAssistant from './DrugTreatmentAssistant';
 import LearningManagementDashboard from './LearningManagementDashboard';
 import AiTutorWelcome from './AiTutorWelcome';
@@ -548,7 +550,7 @@ const LANDING_PRICING_PLANS = [
     trialNote: "15-day free trial with full access to all features",
     features: [
       {
-        title: "Productivity & Professional Management",
+        title: "Productivity Management",
         items: [
           "Digital Diary",
           "Contacts Management System",
@@ -567,7 +569,7 @@ const LANDING_PRICING_PLANS = [
     tokens: "1,00,000 AI Tokens/month",
     features: [
       {
-        title: "Productivity & Professional Management",
+        title: "Productivity Management",
         items: [
           "Digital Diary",
           "Contacts Management System",
@@ -579,10 +581,10 @@ const LANDING_PRICING_PLANS = [
         title: "Knowledge & Learning Resources",
         items: [
           "Search Topic",
-          "Knowledge Library – LMS Notes",
-          "Essay Library",
-          "MCQ Library",
-          "Flash Cards"
+          "Knowledge Library",
+          "Essay Question Library",
+          "MCQ Question Library",
+          "Flash Card Library"
         ]
       },
       {
@@ -1129,23 +1131,25 @@ const LandingPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => 
 
 const CATEGORIES = [
   "Dashboard",
-  "Productivity & Professional Management",
+  "Productivity Management",
   "Learning Management System",
   "Knowledge & Learning Resources",
   "Academic & Research Writing",
   "Assessment & Examination System",
-  "Clinical Decision & Practice Support"
+  "Clinical Decision & Practice Support",
+  "Professional Management"
 ];
 
 // Plan-based category access control
 const ALL_CATEGORIES = [
   "Dashboard",
-  "Productivity & Professional Management",
+  "Productivity Management",
   "Knowledge & Learning Resources",
   "Academic & Research Writing",
   "Assessment & Examination System",
   "Clinical Decision & Practice Support",
-  "Learning Management System"
+  "Learning Management System",
+  "Professional Management"
 ];
 
 const PLAN_CATEGORY_ACCESS: Record<string, string[]> = {
@@ -1154,15 +1158,17 @@ const PLAN_CATEGORY_ACCESS: Record<string, string[]> = {
   // Free: Basic access after trial expires (10,000 tokens/month)
   free: [
     "Dashboard",
-    "Productivity & Professional Management"
+    "Productivity Management",
+    "Professional Management"
   ],
   // Standard: ₹499/month (100,000 tokens/month)
   standard: [
     "Dashboard",
-    "Productivity & Professional Management",
+    "Productivity Management",
     "Knowledge & Learning Resources",
     "Academic & Research Writing",
-    "Learning Management System"
+    "Learning Management System",
+    "Professional Management"
   ],
   // Premium: ₹999/month (300,000 tokens/month)
   premium: [...ALL_CATEGORIES]
@@ -2050,9 +2056,12 @@ const FeaturesPage = ({ onNavigate }: { onNavigate: (page: string) => void }) =>
 const FlashcardViewer = ({ output }: { output: string }) => {
   const [flipped, setFlipped] = useState<Record<number, boolean>>({});
 
+  // Strip out AI-generated numbering artifacts like "**Flashcard 10/10**" before parsing
+  const cleanedOutput = output.replace(/\**(?:Flashcard|Card)\s+\d+(?:\s*\/\s*\d+)?\**:?/gi, '');
+
   // Robust flashcard parser that handles all AI output variations
   const cards: {front: string, back: string}[] = [];
-  const lines = output.split('\n');
+  const lines = cleanedOutput.split('\n');
   let currentFront = '';
   let currentBack = '';
   let inFront = false;
@@ -2062,12 +2071,13 @@ const FlashcardViewer = ({ output }: { output: string }) => {
   const frontRegex = /^\*{0,2}\s*Front\s*(?:\(Question\))?\s*:?\s*\*{0,2}\s*:?\s*(.*)/i;
   // Patterns for Back line detection
   const backRegex = /^\*{0,2}\s*Back\s*(?:\(Answer\))?\s*:?\s*\*{0,2}\s*:?\s*(.*)/i;
-  // Flashcard header detection
+  // Flashcard header detection (legacy fallback)
   const flashcardHeaderRegex = /^\*{0,2}\s*Flashcard\s+\d+\s*:?\s*\*{0,2}\s*$/i;
 
   for (let i = 0; i < lines.length; i++) {
     // Strip leading bullet markers: "* ", "- ", "• ", "1. ", etc.
     const line = lines[i].trim().replace(/^[\*\-•]\s+/, '').replace(/^\d+\.\s+/, '').trim();
+    if (!line) continue;
     
     // Check for Flashcard header (e.g., "Flashcard 1", "**Flashcard 2**")
     if (flashcardHeaderRegex.test(line)) {
@@ -2137,37 +2147,37 @@ const FlashcardViewer = ({ output }: { output: string }) => {
           <div className={`w-full h-full transition-transform duration-600 ease-in-out [transform-style:preserve-3d] ${flipped[index] ? '[transform:rotateY(180deg)]' : ''}`}>
              
              {/* Front of card */}
-             <div className="absolute w-full h-full rounded-2xl p-5 flex flex-col items-center text-center bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-600/50 [backface-visibility:hidden] shadow-lg group-hover:border-blue-500/60 group-hover:shadow-blue-900/20 group-hover:shadow-xl transition-all duration-300">
+             <div className="absolute w-full h-full rounded-2xl p-6 flex flex-col justify-between items-center text-center bg-gradient-to-b from-[#ffffff] to-[#f8fafc] border border-slate-200 [backface-visibility:hidden] shadow-md group-hover:border-indigo-300 group-hover:shadow-indigo-900/10 group-hover:shadow-xl transition-all duration-300">
                 <div className="flex items-center gap-2 mb-3 shrink-0">
-                  <div className="w-6 h-6 rounded-md bg-blue-600/30 flex items-center justify-center">
-                    <span className="text-blue-700 text-[10px] font-bold">{index + 1}</span>
+                  <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center">
+                    <span className="text-indigo-700 text-[11px] font-extrabold">{index + 1}</span>
                   </div>
-                  <span className="text-blue-700 text-[10px] font-bold uppercase tracking-widest">Question</span>
+                  <span className="text-indigo-800 text-[11px] font-bold uppercase tracking-[0.15em]">Question</span>
                 </div>
                 <div className="flex-1 overflow-y-auto w-full flex items-center justify-center [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  <p className={`text-slate-100 ${card.front.length > 400 ? 'text-[11px] leading-snug' : card.front.length > 250 ? 'text-[12px] leading-snug' : card.front.length > 150 ? 'text-[13px] leading-normal' : 'text-[15px] leading-relaxed'} font-medium`}>{card.front}</p>
+                  <p className={`text-[#1e293b] ${card.front.length > 400 ? 'text-[13px] leading-relaxed' : card.front.length > 250 ? 'text-[14px] leading-relaxed' : card.front.length > 150 ? 'text-[15px] leading-relaxed' : 'text-[17px] leading-relaxed'} font-bold`}>{card.front}</p>
                 </div>
-                <span className="text-slate-500 text-[10px] mt-3 uppercase tracking-wider font-semibold shrink-0 flex items-center gap-1.5">
-                  <svg className="w-3 h-3 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                <span className="text-slate-400 text-[10px] mt-4 uppercase tracking-[0.1em] font-bold shrink-0 flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                  <svg className="w-3.5 h-3.5 animate-pulse text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                   Tap to flip
                 </span>
              </div>
              
              {/* Back of card */}
-             <div className="absolute w-full h-full rounded-2xl p-5 flex flex-col items-center bg-gradient-to-br from-blue-900/80 via-slate-900 to-slate-900 border border-blue-500/30 shadow-lg shadow-blue-900/10 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+             <div className="absolute w-full h-full rounded-2xl p-6 flex flex-col justify-between items-center bg-gradient-to-br from-[#f0fdfa] via-[#ffffff] to-[#f8fafc] border border-emerald-200 shadow-lg shadow-emerald-900/5 [backface-visibility:hidden] [transform:rotateY(180deg)] transition-all duration-300">
                 <div className="flex items-center gap-2 mb-3 shrink-0">
-                  <div className="w-6 h-6 rounded-md bg-emerald-600/30 flex items-center justify-center">
-                    <span className="text-emerald-700 text-[10px] font-bold">{index + 1}</span>
+                  <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <span className="text-emerald-700 text-[11px] font-extrabold">{index + 1}</span>
                   </div>
-                  <span className="text-emerald-700 text-[10px] font-bold uppercase tracking-widest">Answer</span>
+                  <span className="text-emerald-800 text-[11px] font-bold uppercase tracking-[0.15em]">Answer</span>
                 </div>
-                <div className="flex-1 overflow-y-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  <div className={`text-slate-200 text-left w-full ${card.back.length > 600 ? 'text-[10px] leading-snug space-y-0.5' : card.back.length > 400 ? 'text-[11px] leading-snug space-y-0.5' : card.back.length > 250 ? 'text-[12px] leading-normal space-y-1' : 'text-[13px] leading-relaxed space-y-1'}`}>
+                <div className="flex-1 overflow-y-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex items-center">
+                  <div className={`text-[#0f172a] text-left w-full ${card.back.length > 600 ? 'text-[11px] leading-relaxed space-y-1' : card.back.length > 400 ? 'text-[12px] leading-relaxed space-y-1.5' : card.back.length > 250 ? 'text-[14px] leading-relaxed space-y-1.5' : 'text-[15px] leading-relaxed space-y-2'} font-medium`}>
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{card.back}</ReactMarkdown>
                   </div>
                 </div>
-                <span className="text-blue-800/60 text-[10px] mt-3 uppercase tracking-wider font-semibold shrink-0 flex items-center gap-1.5">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                <span className="text-emerald-600/70 text-[10px] mt-4 uppercase tracking-[0.1em] font-bold shrink-0 flex items-center gap-1.5 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+                  <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                   Tap to flip back
                 </span>
              </div>
@@ -2606,6 +2616,46 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
         console.error("Error fetching essays:", e);
       }
 
+      // Fetch from mcq_generator for mcq-generator
+      try {
+        const mcqGenRes = await fetch('/api/mcq-generator');
+        if (mcqGenRes.ok) {
+          const mcqGenData = await mcqGenRes.json();
+          const mappedMcqGen = mcqGenData.map((item: any) => ({
+            ...item,
+            featureId: 'mcq-generator',
+            title: item.title || `MCQs: ${item.topic}`,
+            date: item.created_at || item.date || new Date().toISOString(),
+            content: item.content
+          }));
+          mappedData = mappedData.filter(d => d.featureId !== 'mcq-generator');
+          mappedData = [...mappedData, ...mappedMcqGen];
+          mappedData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        }
+      } catch (e) {
+        console.error("Error fetching MCQ Generator items:", e);
+      }
+
+      // Fetch from notes_generator for notes-generator
+      try {
+        const notesGenRes = await fetch('/api/notes-generator');
+        if (notesGenRes.ok) {
+          const notesGenData = await notesGenRes.json();
+          const mappedNotesGen = notesGenData.map((item: any) => ({
+            ...item,
+            featureId: 'notes-generator',
+            title: item.title || `Notes: ${item.topic}`,
+            date: item.created_at || item.date || new Date().toISOString(),
+            content: item.content
+          }));
+          mappedData = mappedData.filter(d => d.featureId !== 'notes-generator');
+          mappedData = [...mappedData, ...mappedNotesGen];
+          mappedData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        }
+      } catch (e) {
+        console.error("Error fetching Notes Generator items:", e);
+      }
+
       setSavedItems(mappedData);
     } catch (error) {
       console.error('Error fetching saved items from db:', error);
@@ -2623,6 +2673,10 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
       let response: Response;
       if (itemToDelete?.featureId === 'essay-generator') {
         response = await fetch(`/api/essay-generator/${id}`, { method: 'DELETE' });
+      } else if (itemToDelete?.featureId === 'mcq-generator') {
+        response = await fetch(`/api/mcq-generator/${id}`, { method: 'DELETE' });
+      } else if (itemToDelete?.featureId === 'notes-generator') {
+        response = await fetch(`/api/notes-generator/${id}`, { method: 'DELETE' });
       } else {
         response = await fetch(`/api/saved/${id}`, { method: 'DELETE' });
       }
@@ -2731,8 +2785,27 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
 
 
   // Specialized states for Essay Generator
-  const [essayType, setEssayType] = useState('long');
   const [essayCourse, setEssayCourse] = useState('');
+  const [essayTopic, setEssayTopic] = useState('');
+  const [essayType, setEssayType] = useState('long');
+  const [essayQuestionCount, setEssayQuestionCount] = useState(5);
+  const [essayQuestionTypes, setEssayQuestionTypes] = useState('');
+  const [generatedEssayQuestions, setGeneratedEssayQuestions] = useState<{id: string, text: string, selected: boolean}[]>([]);
+  const [isGeneratingEssayAnswers, setIsGeneratingEssayAnswers] = useState(false);
+
+  // Specialized states for MCQ Generator
+  const [mcqGenCourse, setMcqGenCourse] = useState('');
+  const [mcqGenTopic, setMcqGenTopic] = useState('');
+  const [mcqGenDifficulty, setMcqGenDifficulty] = useState('mixed');
+  const [mcqGenCount, setMcqGenCount] = useState(10);
+  const [mcqGenType, setMcqGenType] = useState('single-best'); // single-best | multiple-correct | true-false | case-based
+
+  // Specialized states for Notes Generator
+  const [notesGenCourse, setNotesGenCourse] = useState('');
+  const [notesGenTopic, setNotesGenTopic] = useState('');
+  const [notesGenType, setNotesGenType] = useState('clinical-notes'); // clinical-notes | quick-revision | mnemonics | comparative | case-study
+  const [notesGenFormat, setNotesGenFormat] = useState('structured'); // structured | bullet | detailed-prose
+  const [notesGenSpecialInstructions, setNotesGenSpecialInstructions] = useState('');
 
   // Specialized states for Protocol Generator
   const [protocolCourse, setProtocolCourse] = useState('');
@@ -2789,6 +2862,8 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
     // Lock name-based course states
     setQuestionPaperCourse(courseName);
     setEssayCourse(courseName);
+    setMcqGenCourse(courseName);
+    setNotesGenCourse(courseName);
     setProtocolCourse(courseName);
     setManuscriptCourse(courseName);
     setStatCourse(courseName);
@@ -3057,7 +3132,7 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
             if (!p.sections) continue;
             for (const s of p.sections) {
               if (!s.topics) continue;
-              const t = s.topics.find((x: any) => x && x.id === klTopicId);
+              const t = s.topics.find((x: any) => x && x.id?.toString() === klTopicId?.toString());
               if (t) {
                 if (featureId === 'knowledge-library' && t.generatedContent) {
                   curriculumContent = t.generatedContent;
@@ -3094,7 +3169,7 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
                   if (!p.sections) continue;
                   for (const s of p.sections) {
                     if (!s.topics) continue;
-                    const t = s.topics.find((x: any) => x && x.id === klTopicId);
+                    const t = s.topics.find((x: any) => x && x.id?.toString() === klTopicId?.toString());
                     if (t) {
                       const contentKey = featureId === 'knowledge-library' ? 'generatedContent'
                         : featureId === 'essay-library' ? 'generatedEssayContent'
@@ -3147,12 +3222,33 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
       }
       setIsLoading(false);
       return;
-    } else if (featureId === 'essay-generator') {
-      if (!essayCourse || !input.trim()) {
-        alert("Please select a course and enter a question or topic.");
+    } else if (featureId === 'notes-generator') {
+      if (!notesGenCourse || !notesGenTopic.trim()) {
+        alert("Please select a discipline and enter a topic.");
         return;
       }
-      finalInput = `Course: ${essayCourse}\nEssay Type: ${essayType}\nQuestion/Topic: ${input}`;
+      finalInput = `Course: ${notesGenCourse}\nTopic: ${notesGenTopic}\nNotes Type: ${notesGenType}\nFormat: ${notesGenFormat}\nSpecial Instructions: ${notesGenSpecialInstructions || 'None'}`;
+    } else if (featureId === 'essay-generator') {
+      if (!essayCourse || !essayTopic.trim()) {
+        alert("Please select a discipline and enter a section/topic.");
+        return;
+      }
+      if (generatedEssayQuestions.length === 0) {
+        finalInput = `Course: ${essayCourse}\nSection/Topic: ${essayTopic}\nEssay Type: ${essayType}\nTotal Questions to Generate: ${essayQuestionCount}\nQuestion Types Focus: ${essayQuestionTypes || 'All relevant types'}`;
+      } else {
+        const selected = generatedEssayQuestions.filter(q => q.selected);
+        if (selected.length === 0) {
+           alert("Please select at least one question.");
+           return;
+        }
+        finalInput = `Course: ${essayCourse}\nEssay Type: ${essayType}\nQuestions to Answer:\n${selected.map((q, i) => `${i+1}. ${q.text}`).join('\n')}`;
+      }
+    } else if (featureId === 'mcq-generator') {
+      if (!mcqGenCourse || !mcqGenTopic.trim()) {
+        alert("Please select a discipline and enter a topic.");
+        return;
+      }
+      finalInput = `Course: ${mcqGenCourse}\nTopic: ${mcqGenTopic}\nQuestion Type: ${mcqGenType}\nDifficulty: ${mcqGenDifficulty}\nNumber of MCQs: ${mcqGenCount}`;
     } else if (featureId === 'seminar-builder') {
       if (!seminarDiscipline || !seminarTopic) {
         alert("Please enter Discipline and Topic.");
@@ -3276,6 +3372,10 @@ Required Word Count: ${refWordCount} words`;
 
       let responseMimeType = "text/plain";
       let useSearch = false;
+
+      if (featureId === 'essay-generator' && generatedEssayQuestions.length === 0) {
+        responseMimeType = "application/json";
+      }
 
       if (featureId === 'session-search') {
         useSearch = true;
@@ -3879,80 +3979,197 @@ Output each generated question paper clearly, one below another, separated by a 
         9. Adverse effects / limitations.
         10. Summary / key points.
         11. References: Standard textbooks, Review articles, Guidelines.`;
+      } else if (featureId === 'notes-generator') {
+        const notesTypeDesc = notesGenType === 'clinical-notes'
+          ? 'Comprehensive Clinical Notes (pathophysiology, clinical features, investigations, treatment, complications, prognosis, recent advances)'
+          : notesGenType === 'nonclinical-notes'
+          ? 'Comprehensive Nonclinical / Pre & Para-clinical Notes (anatomy, physiology, biochemistry, pathology, pharmacology, microbiology, and forensic medicine aspects)'
+          : notesGenType === 'quick-revision'
+          ? 'Quick Revision Notes (high-yield bullet points, key facts, must-know exam points, memory aids)'
+          : notesGenType === 'mnemonics'
+          ? 'Mnemonics & Memory Aids (creative mnemonics, visual memory hooks, associations, pattern-based recall)'
+          : notesGenType === 'comparative'
+          ? 'Comparative / Differentiation Notes (tables comparing similar conditions, drugs, or concepts side by side)'
+          : 'Case-Study Based Notes (clinical vignette-style notes reinforcing concepts through patient scenarios)';
+
+        const formatDesc = notesGenFormat === 'structured'
+          ? 'Use clear numbered headings and subheadings with organized paragraphs.'
+          : notesGenFormat === 'bullet'
+          ? 'Use concise, high-yield bullet points under each heading. Keep each point to 1–2 lines.'
+          : 'Write in flowing, detailed prose paragraphs under each heading, suitable for in-depth reading.';
+
+        systemInstruction += `\nYou are an expert medical educator creating high-quality study notes for postgraduate medical students.
+
+Generate ${notesTypeDesc} on the following:
+
+Discipline / Course: ${notesGenCourse}
+Topic: ${notesGenTopic}
+${notesGenSpecialInstructions ? `Special Instructions: ${notesGenSpecialInstructions}` : ''}
+
+FORMAT RULE: ${formatDesc}
+
+${notesGenType === 'comparative' ? `Structure as a detailed comparison table with these columns:
+| Feature | [Entity A] | [Entity B] | [Entity C if applicable] |
+followed by a narrative summary of key differentiating points.` :
+notesGenType === 'mnemonics' ? `Structure as:
+## 1. Core Concept Overview
+Brief 2–3 sentence intro to the topic.
+
+## 2. Key Mnemonics
+Present 3–6 original, memorable mnemonics with full expansion of each letter/word.
+
+## 3. Visual Associations & Memory Hooks
+Describe vivid mental images or stories to aid recall.
+
+## 4. Pattern Recognition Tips
+Key patterns to recognise in exams (e.g., "whenever you see X, think Y").
+
+## 5. High-Yield Summary
+5–10 must-know exam points.` :
+notesGenType === 'case-study' ? `Structure as:
+## Case Presentation
+A realistic 5–8 line clinical vignette involving this topic.
+
+## Clinical Analysis
+Break down the case using the core concepts: History → Examination → Differentials → Investigations → Diagnosis → Treatment → Follow-up.
+
+## Key Learning Points
+Extract 5–8 clinical pearls from this case.
+
+## Common Exam Traps on This Topic
+2–3 common mistakes or misconceptions doctors make.` :
+notesGenType === 'nonclinical-notes' ? `Structure the notes dynamically using the universally accepted standard sections and formatting applicable to this specific topic and discipline.
+Do not use a rigid generic structure. Instead, use the most appropriate academic headings based on the subject (e.g., standard Anatomical headings for an Anatomy topic, mechanism-focused headings for Pharmacology, metabolic pathways for Biochemistry, pathogenesis for Pathology, etc.).
+Ensure your structure broadly covers:
+- Core Introduction & Basic Concepts
+- The Discipline-Specific Content (using standard global academic subheadings)
+- Applied / Clinical Significance
+- Key Takeaways & High-Yield Exam Points` :
+notesGenType === 'quick-revision' ? `Structure as:
+## ⚡ High-Yield Facts (Must Know)
+## 🏷️ Definition & Classification
+## 🔬 Pathophysiology (Key Points Only)
+## 🩺 Clinical Features (Key Points)
+## 🧪 Investigations (Important Values & Findings)
+## 💊 Treatment (First-line drugs, doses if applicable)
+## ⚠️ Complications
+## 📌 Exam Tips & Common Traps` :
+`Structure as:
+## 1. Definition & Classification
+## 2. Epidemiology & Risk Factors
+## 3. Aetiology
+## 4. Pathophysiology
+   ### 4.1 Mechanisms
+   ### 4.2 Pathological Changes
+## 5. Clinical Features
+   ### 5.1 Symptoms
+   ### 5.2 Signs
+## 6. Investigations
+   ### 6.1 Laboratory
+   ### 6.2 Imaging
+   ### 6.3 Special Tests
+## 7. Diagnosis & Diagnostic Criteria
+## 8. Differential Diagnosis
+## 9. Management
+   ### 9.1 Non-Pharmacological
+   ### 9.2 Pharmacological
+   ### 9.3 Surgical / Procedural
+## 10. Complications & Prognosis
+## 11. Recent Advances & Guidelines
+## 12. Key Takeaways & Exam Points`}
+
+Additional Rules:
+• Use correct medical terminology throughout.
+• Include specific values, criteria, doses where relevant.
+• Highlight exam-important points clearly.
+• Base content on current evidence and standard guidelines.`;
       } else if (featureId === 'essay-generator') {
-        const wordCount = essayType === 'long' ? '1500–2500 words' : essayType === 'short' ? '500–1000 words' : '200–500 words';
-        
-        systemInstruction += `\nYou are an expert academic writer specializing in Medical and Healthcare disciplines.
-
-Write a high-quality academic essay answering the following question:
-
-Essay Question:
-${input}
+        if (generatedEssayQuestions.length === 0) {
+          systemInstruction += `\nYou are an expert medical educator and university examiner.
+Generate exactly ${essayQuestionCount} distinct, high-quality essay questions for a postgraduate medical exam on the provided Course and Section/Topic.
+Match the difficulty and scope expected for a ${essayType} (e.g., Long Essay = 10-20 marks, Short Essay = 5-10 marks, Short Notes = 2-5 marks).
+Ensure the questions explore different aspects of the topic (${essayQuestionTypes || "all standard aspects"}).
+CRITICAL REQUIREMENT: Output your response ONLY as a raw JSON array of strings containing the questions.
+Example Output: ["What are the clinical features of...", "Discuss the management of..."]`;
+        } else {
+          const wordCount = essayType === 'long' ? '1500–2500 words total' : essayType === 'short' ? '500–1000 words total' : '200–500 words total';
+          
+          systemInstruction += `\nYou are an expert academic writer specializing in Medical and Healthcare disciplines.
+Write high-quality academic essay answers for EACH of the provided questions.
 
 Academic Level:
 Masters / PhD
 
-Word Count:
+Approximate Word Count constraint per essay:
 ${wordCount}
 
 Requirements:
+• Focus ONLY on answering the provided questions.
+• For each question, clearly state the question as a Markdown heading (e.g., ## Question 1: ...), followed by the structured answer.
 • Write at the highest academic standard expected in this discipline.
 • Use formal academic language.
-• Present a clear thesis statement.
 • Support arguments with reasoning, evidence, and examples.
 • Maintain logical flow and coherence.
-• Avoid bullet points in the essay body.
+• Base content on current evidence and standard guidelines.
 
-Structure the essay with clear divisions and subdivisions as follows:
+Structure EACH essay answer with clear divisions and subdivisions using standard academic format (Introduction, Main Analysis block, Conclusion/Summary).`;
+        }
+      } else if (featureId === 'mcq-generator') {
+        const questionTypeDesc = mcqGenType === 'single-best' ? 'Single Best Answer (SBA) — 4 options (A–D), one correct answer'
+          : mcqGenType === 'multiple-correct' ? 'Multiple Correct Answers — 4 options (A–D), more than one may be correct'
+          : mcqGenType === 'true-false' ? 'True/False questions — each with a brief explanation'
+          : 'Case-Based MCQs — clinical vignette followed by 3–5 linked questions';
 
-1. Introduction
-   1.1 Context and background of the topic  
-   1.2 Importance of the issue in the discipline  
-   1.3 Thesis statement / central argument  
-   1.4 Outline of the essay
+        systemInstruction += `\nYou are an expert medical educator and question writer for postgraduate medical examinations.
 
-2. Theoretical or Conceptual Framework
-   2.1 Key concepts and definitions  
-   2.2 Relevant theories or scholarly perspectives  
-   2.3 Literature or scholarly debate
+Generate exactly ${mcqGenCount} high-quality MCQs on the following topic:
 
-3. Main Analysis
-   3.1 First major argument  
-       3.1.1 Explanation  
-       3.1.2 Supporting evidence or examples  
-       3.1.3 Critical discussion  
+Discipline / Course: ${mcqGenCourse}
+Topic: ${mcqGenTopic}
+Question Type: ${questionTypeDesc}
+Difficulty Level: ${mcqGenDifficulty === 'easy' ? 'Easy (basic recall)' : mcqGenDifficulty === 'medium' ? 'Medium (application-based)' : mcqGenDifficulty === 'hard' ? 'Hard (analysis and reasoning)' : 'Mixed (a blend of easy, medium, and hard)'}
 
-   3.2 Second major argument  
-       3.2.1 Explanation  
-       3.2.2 Supporting evidence  
-       3.2.3 Critical evaluation  
+CRITICAL FORMATTING RULES — follow EXACTLY:
 
-   3.3 Third major argument (if relevant)  
-       3.3.1 Explanation  
-       3.3.2 Evidence  
-       3.3.3 Implications
+${mcqGenType === 'true-false' ? `Format each question as:
 
-4. Counterarguments and Critical Perspectives
-   4.1 Major opposing viewpoints  
-   4.2 Evaluation of their strengths and weaknesses  
-   4.3 Reaffirmation of the main thesis
+**Q[N].** [Statement]
+**Answer:** True / False
+**Explanation:** [Why it is true or false, with clinical reasoning]
 
-5. Implications / Applications
-   5.1 Practical implications  
-   5.2 Policy or theoretical implications  
-   5.3 Future considerations
+---` : mcqGenType === 'case-based' ? `Format each case block as:
 
-6. Summary and Conclusion
-   6.1 Restate the thesis  
-   6.2 Summarize key arguments  
-   6.3 Final critical insight or broader significance
+**Case [N]:**
+[Paste a detailed clinical vignette of 3–5 sentences]
+
+**Q[N]a.** [First question based on the case]
+A) [Option]  B) [Option]  C) [Option]  D) [Option]
+**Correct Answer:** [Letter] — [Option text]
+**Explanation:** [Brief clinical explanation]
+
+**Q[N]b.** [Second question based on the same case]
+A) [Option]  B) [Option]  C) [Option]  D) [Option]
+**Correct Answer:** [Letter] — [Option text]
+**Explanation:** [Brief clinical explanation]
+
+---` : `Format each question as:
+
+**Q[N].** [Question stem — clear, unambiguous, exam-quality]
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+**Correct Answer:** [Letter] — [Full text of correct option]
+**Explanation:** [2–4 sentences explaining why the answer is correct and why others are wrong, with clinical relevance]
+
+---`}
 
 Additional Instructions:
-• Use clear academic headings and subheadings.
-• Maintain strong argumentation throughout.
-• Ensure coherence between sections.
-• Write in a scholarly tone appropriate for Medical and Healthcare disciplines.
-• If applicable, include references in APA style.`;
+• Questions must be clinically relevant and based on current medical evidence.
+• Avoid absolute terms like "always" or "never".
+• Distractors (wrong options) must be plausible, not obviously wrong.
+• All ${mcqGenCount} questions must be numbered sequentially.
+• Do not repeat the same concept more than once.`;
       } else if (featureId === 'clinical-decision-support') {
         systemInstruction += `\nAn AI-based Clinical Decision Support System (CDS) is designed to assist doctors and clinicians by analyzing patient data and providing evidence-based recommendations during diagnosis, treatment, or medication decisions. For hospitals aiming for NABH compliance, CDS can improve patient safety, clinical quality, and documentation.
         Below is the required workflow and output format for the AI-based CDS system.
@@ -4164,6 +4381,25 @@ Return the response in JSON format with the following schema:
           setOutput(`${feature?.title} content generated successfully. View slides and notes below.`);
         } catch (e) {
           console.error("Failed to parse JSON", e);
+          setOutput(response);
+        }
+      } else if (featureId === 'essay-generator' && generatedEssayQuestions.length === 0 && response) {
+        try {
+          let jsonString = cleanResponse;
+          const startIdx = cleanResponse.indexOf('[');
+          const endIdx = cleanResponse.lastIndexOf(']');
+          if (startIdx !== -1 && endIdx !== -1 && endIdx >= startIdx) {
+            jsonString = cleanResponse.substring(startIdx, endIdx + 1);
+          }
+          const parsed = JSON.parse(jsonString);
+          if (Array.isArray(parsed)) {
+            setGeneratedEssayQuestions(parsed.map((q: string, idx: number) => ({ id: `q_${Date.now()}_${idx}`, text: q, selected: true })));
+            setOutput("Questions generated. Select and click Generate Answers.");
+          } else {
+             throw new Error("Parsed JSON is not an array");
+          }
+        } catch (e) {
+          console.error("Failed to parse Essay questions JSON", e);
           setOutput(response);
         }
       } else if (featureId === 'stat-assist' && response) {
@@ -4679,20 +4915,52 @@ Return the response in JSON format with the following schema:
         title: customTitle,
         featureId: featureId
       };
+    } else if (featureId === 'notes-generator') {
+      customTitle = `Notes: ${notesGenTopic}`;
+      endpoint = '/api/notes-generator';
+      newItem = {
+        id: Date.now().toString(),
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
+        title: customTitle,
+        course: notesGenCourse,
+        topic: notesGenTopic,
+        notes_type: notesGenType,
+        format: notesGenFormat,
+        special_instructions: notesGenSpecialInstructions,
+        content: output,
+        date: new Date().toISOString(),
+        featureId: featureId
+      };
     } else if (featureId === 'essay-generator') {
-      customTitle = `Essay: ${input}`;
+      customTitle = `Essay: ${essayTopic || 'Generated content'}`;
       endpoint = '/api/essay-generator';
       newItem = {
         id: Date.now().toString(),
         user_id: localStorage.getItem('PGMentor_user_id') || 'default',
         title: customTitle,
-        topic: input,
+        topic: essayTopic, // Using the new 'Section/Topic' variable
         course: essayCourse,
         type: typeof essayType !== 'undefined' ? essayType : 'long',
         content: output,
         date: new Date().toISOString(),
         
         // Include fallback props for saved_items dashboard
+        featureId: featureId
+      };
+    } else if (featureId === 'mcq-generator') {
+      customTitle = `MCQs: ${mcqGenTopic}`;
+      endpoint = '/api/mcq-generator';
+      newItem = {
+        id: Date.now().toString(),
+        user_id: localStorage.getItem('PGMentor_user_id') || 'default',
+        title: customTitle,
+        course: mcqGenCourse,
+        topic: mcqGenTopic,
+        question_type: mcqGenType,
+        difficulty: mcqGenDifficulty,
+        mcq_count: mcqGenCount,
+        content: output,
+        date: new Date().toISOString(),
         featureId: featureId
       };
     } else if (featureId === 'protocol-generator') {
@@ -5862,41 +6130,291 @@ Return the response in JSON format with the following schema:
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-slate-300 font-medium">Select Essay Type</label>
-                  <select 
-                    value={essayType}
-                    onChange={(e) => setEssayType(e.target.value)}
+                  <label className="block text-slate-300 font-medium">Section / Topic</label>
+                  <input 
+                    type="text"
+                    value={essayTopic}
+                    onChange={(e) => setEssayTopic(e.target.value)}
                     className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  >
-                    <option value="long">Long Essay (10–20 marks)</option>
-                    <option value="short">Short Essay (5–10 marks)</option>
-                    <option value="notes">Short Notes (2–5 marks)</option>
-                  </select>
+                    placeholder="e.g., Immunology, Cardiovascular System, Autonomic Nervous System..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-slate-300 font-medium">Select Essay Type</label>
+                    <select 
+                      value={essayType}
+                      onChange={(e) => setEssayType(e.target.value)}
+                      className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    >
+                      <option value="long">Long Essay (10–20 marks)</option>
+                      <option value="short">Short Essay (5–10 marks)</option>
+                      <option value="notes">Short Notes (2–5 marks)</option>
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="block text-slate-300 font-medium">Questions to Generate</label>
+                    <input 
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={essayQuestionCount}
+                      onChange={(e) => setEssayQuestionCount(parseInt(e.target.value) || 1)}
+                      className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-slate-300 font-medium">Type Question</label>
-                  <div className="relative">
-                    <textarea 
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      className="w-full bg-slate-800 border border-white/10 rounded-xl p-4 text-white h-32 focus:outline-none focus:border-blue-500 transition-colors"
-                      placeholder="Type your question here..."
-                    />
-                    <div className="absolute bottom-3 right-3 flex gap-2">
-                      <label className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors cursor-pointer" title="Upload Image">
-                        <Activity size={18} />
-                        <input 
-                          type="file" 
-                          className="hidden" 
-                          accept="image/*"
-                          onChange={(e) => {
-                            const fileName = e.target.files?.[0]?.name;
-                            if (fileName) setInput(prev => prev + ` [Image Attached: ${fileName}]`);
-                          }}
-                        />
-                      </label>
+                  <label className="block text-slate-300 font-medium">Types of questions to be generated <span className="text-slate-500 text-xs font-normal">(optional)</span></label>
+                  <input 
+                    type="text"
+                    value={essayQuestionTypes}
+                    onChange={(e) => setEssayQuestionTypes(e.target.value)}
+                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    placeholder="e.g., Clinical application, pathogenesis, drug mechanisms..."
+                  />
+                </div>
+
+                {generatedEssayQuestions.length > 0 && (
+                  <div className="mt-6 space-y-4 border border-blue-500/30 rounded-xl p-4 bg-blue-900/10">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-semibold text-white flex items-center gap-2">
+                        <Check size={18} className="text-blue-500" /> Select Questions to Answer
+                      </h4>
+                      <div className="flex gap-2">
+                         <button 
+                           onClick={() => setGeneratedEssayQuestions(prev => prev.map(q => ({...q, selected: true})))}
+                           className="text-xs text-blue-500 hover:text-white transition-colors"
+                         >Select All</button>
+                         <button 
+                           onClick={() => setGeneratedEssayQuestions(prev => prev.map(q => ({...q, selected: false})))}
+                           className="text-xs text-slate-500 hover:text-white transition-colors"
+                         >Deselect All</button>
+                      </div>
                     </div>
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                      {generatedEssayQuestions.map(q => (
+                        <label key={q.id} className="flex items-start gap-3 p-3 bg-slate-800 rounded-lg cursor-pointer hover:bg-slate-700 transition-colors group">
+                           <div className="mt-0.5">
+                             <input 
+                               type="checkbox" 
+                               checked={q.selected}
+                               onChange={(e) => setGeneratedEssayQuestions(prev => prev.map(item => item.id === q.id ? { ...item, selected: e.target.checked } : item))}
+                               className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
+                             />
+                           </div>
+                           <span className={`text-sm ${q.selected ? 'text-white' : 'text-slate-400 group-hover:text-slate-300'}`}>
+                             {q.text}
+                           </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : featureId === 'notes-generator' ? (
+              <>
+                {/* Discipline */}
+                <div className="space-y-2">
+                  {lockedCourseName && (
+                    <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/40 to-purple-900/30 border border-blue-500/30 rounded-xl px-4 py-3 mb-3">
+                      <span className="text-lg">🔒</span>
+                      <div className="flex-1"><span className="text-sm font-semibold text-blue-800">Locked to: </span><span className="text-sm font-bold text-white">{lockedCourseName}</span></div>
+                      <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors">Change in Dashboard</button>
+                    </div>
+                  )}
+                  <label className="block text-slate-300 font-medium">Discipline {lockedCourseName && <span className="text-xs text-blue-700 ml-1">(locked)</span>}</label>
+                  <div className="relative">
+                    <select
+                      value={notesGenCourse}
+                      onChange={(e) => { if (!lockedCourseName) setNotesGenCourse(e.target.value); }}
+                      disabled={!!lockedCourseName}
+                      className={`w-full appearance-none bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors ${lockedCourseName ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                      <option value="">-- Select Course / Discipline --</option>
+                      {curriculum?.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                      {lockedCourseName ? <Lock size={16} className="text-blue-700" /> : <ChevronRight size={16} className="rotate-90" />}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Topic */}
+                <div className="space-y-2">
+                  <label className="block text-slate-300 font-medium">Topic</label>
+                  <input
+                    type="text"
+                    value={notesGenTopic}
+                    onChange={(e) => setNotesGenTopic(e.target.value)}
+                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    placeholder="e.g., Hypertension, Acute Pancreatitis, Pharmacokinetics..."
+                  />
+                </div>
+
+                {/* Notes Type */}
+                <div className="space-y-2">
+                  <label className="block text-slate-300 font-medium">Notes Type</label>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {[
+                      { value: 'clinical-notes', icon: '🏥', label: 'Clinical Notes', sub: 'Full structured clinical write-up' },
+                      { value: 'nonclinical-notes', icon: '🔬', label: 'Nonclinical Notes', sub: 'Foundational/Pre & Para-clinical notes' },
+                      { value: 'quick-revision', icon: '⚡', label: 'Quick Revision', sub: 'High-yield exam bullet points' },
+                      { value: 'mnemonics', icon: '🧠', label: 'Mnemonics', sub: 'Memory aids & associations' },
+                      { value: 'comparative', icon: '📊', label: 'Comparative', sub: 'Side-by-side comparison tables' },
+                      { value: 'case-study', icon: '📋', label: 'Case-Study', sub: 'Vignette-based learning notes' },
+                    ].map(nt => (
+                      <button
+                        key={nt.value}
+                        onClick={() => setNotesGenType(nt.value)}
+                        className={`text-left p-3 rounded-xl border transition-all ${notesGenType === nt.value ? 'bg-emerald-600/20 border-emerald-500 text-white' : 'bg-slate-800 border-white/10 text-slate-300 hover:border-emerald-500/50'}`}
+                      >
+                        <div className="text-base mb-0.5">{nt.icon}</div>
+                        <div className="font-semibold text-sm">{nt.label}</div>
+                        <div className="text-xs text-slate-400 mt-0.5">{nt.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Format */}
+                <div className="space-y-2">
+                  <label className="block text-slate-300 font-medium">Output Format</label>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'structured', label: '📐 Structured', sub: 'Headings + paragraphs' },
+                      { value: 'bullet', label: '• Bullet Points', sub: 'Concise, scannable' },
+                      { value: 'detailed-prose', label: '📖 Detailed Prose', sub: 'In-depth reading' },
+                    ].map(f => (
+                      <button
+                        key={f.value}
+                        onClick={() => setNotesGenFormat(f.value)}
+                        className={`flex-1 py-2.5 px-2 rounded-xl border text-center transition-all ${notesGenFormat === f.value ? 'bg-teal-600/20 border-teal-500 text-white' : 'bg-slate-800 border-white/10 text-slate-300 hover:border-teal-500/50'}`}
+                      >
+                        <div className="text-sm font-semibold">{f.label}</div>
+                        <div className="text-xs text-slate-400">{f.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Special Instructions */}
+                <div className="space-y-2">
+                  <label className="block text-slate-300 font-medium">
+                    Special Instructions <span className="text-slate-500 text-xs font-normal">(optional)</span>
+                  </label>
+                  <textarea
+                    value={notesGenSpecialInstructions}
+                    onChange={(e) => setNotesGenSpecialInstructions(e.target.value)}
+                    rows={2}
+                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                    placeholder="e.g., Focus on recent guidelines, include drug doses, emphasise differences from standard presentation..."
+                  />
+                </div>
+              </>
+            ) : featureId === 'mcq-generator' ? (
+              <>
+                {/* Discipline */}
+                <div className="space-y-2">
+                  {lockedCourseName && (
+                    <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/40 to-purple-900/30 border border-blue-500/30 rounded-xl px-4 py-3 mb-3">
+                      <span className="text-lg">🔒</span>
+                      <div className="flex-1"><span className="text-sm font-semibold text-blue-800">Locked to: </span><span className="text-sm font-bold text-white">{lockedCourseName}</span></div>
+                      <button onClick={() => onNavigate('dashboard')} className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 transition-colors">Change in Dashboard</button>
+                    </div>
+                  )}
+                  <label className="block text-slate-300 font-medium">Discipline {lockedCourseName && <span className="text-xs text-blue-700 ml-1">(locked)</span>}</label>
+                  <div className="relative">
+                    <select
+                      value={mcqGenCourse}
+                      onChange={(e) => { if (!lockedCourseName) setMcqGenCourse(e.target.value); }}
+                      disabled={!!lockedCourseName}
+                      className={`w-full appearance-none bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors ${lockedCourseName ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                      <option value="">-- Select Course / Discipline --</option>
+                      {curriculum?.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                      {lockedCourseName ? <Lock size={16} className="text-blue-700" /> : <ChevronRight size={16} className="rotate-90" />}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Topic */}
+                <div className="space-y-2">
+                  <label className="block text-slate-300 font-medium">Topic</label>
+                  <input
+                    type="text"
+                    value={mcqGenTopic}
+                    onChange={(e) => setMcqGenTopic(e.target.value)}
+                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    placeholder="e.g., Hypertension, Diabetes Mellitus Type 2, Renal Physiology..."
+                  />
+                </div>
+
+                {/* Question Type */}
+                <div className="space-y-2">
+                  <label className="block text-slate-300 font-medium">Question Type</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: 'single-best', label: 'Single Best Answer', sub: 'SBA — 1 correct out of 4' },
+                      { value: 'multiple-correct', label: 'Multiple Correct', sub: 'More than 1 correct option' },
+                      { value: 'true-false', label: 'True / False', sub: 'Statement-based with explanation' },
+                      { value: 'case-based', label: 'Case-Based', sub: 'Clinical vignette + linked Qs' },
+                    ].map(qt => (
+                      <button
+                        key={qt.value}
+                        onClick={() => setMcqGenType(qt.value)}
+                        className={`text-left p-3 rounded-xl border transition-all ${mcqGenType === qt.value ? 'bg-blue-600/20 border-blue-500 text-white' : 'bg-slate-800 border-white/10 text-slate-300 hover:border-blue-500/50'}`}
+                      >
+                        <div className="font-semibold text-sm">{qt.label}</div>
+                        <div className="text-xs text-slate-400 mt-0.5">{qt.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Difficulty */}
+                <div className="space-y-2">
+                  <label className="block text-slate-300 font-medium">Difficulty Level</label>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'easy', label: '🟢 Easy', sub: 'Basic recall' },
+                      { value: 'medium', label: '🟡 Medium', sub: 'Application' },
+                      { value: 'hard', label: '🔴 Hard', sub: 'Analysis' },
+                      { value: 'mixed', label: '🌈 Mixed', sub: 'All levels' },
+                    ].map(d => (
+                      <button
+                        key={d.value}
+                        onClick={() => setMcqGenDifficulty(d.value)}
+                        className={`flex-1 py-2.5 px-2 rounded-xl border text-center transition-all ${mcqGenDifficulty === d.value ? 'bg-indigo-600/20 border-indigo-500 text-white' : 'bg-slate-800 border-white/10 text-slate-300 hover:border-indigo-500/50'}`}
+                      >
+                        <div className="text-sm font-semibold">{d.label}</div>
+                        <div className="text-xs text-slate-400">{d.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* MCQ Count */}
+                <div className="space-y-3">
+                  <label className="block text-slate-300 font-medium">
+                    Number of MCQs — <span className="text-blue-400 font-bold text-lg">{mcqGenCount}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={5}
+                    max={50}
+                    step={5}
+                    value={mcqGenCount}
+                    onChange={(e) => setMcqGenCount(Number(e.target.value))}
+                    className="w-full accent-blue-500"
+                  />
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>5</span><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span><span>35</span><span>40</span><span>45</span><span>50</span>
                   </div>
                 </div>
               </>
@@ -6651,9 +7169,9 @@ Return the response in JSON format with the following schema:
                         <div className="flex flex-wrap gap-3">
                           {[
                             { id: 'knowledge-library', label: 'Knowledge Library', icon: <Library size={18} /> },
-                            { id: 'essay-library', label: 'Essay Library', icon: <FileText size={18} /> },
-                            { id: 'mcq-library', label: 'MCQ Library', icon: <CheckSquare size={18} /> },
-                            { id: 'flash-cards', label: 'Flash Cards', icon: <Layers size={18} /> },
+                            { id: 'essay-library', label: 'Essay Question Library', icon: <FileText size={18} /> },
+                            { id: 'mcq-library', label: 'MCQ Question Library', icon: <CheckSquare size={18} /> },
+                            { id: 'flash-cards', label: 'Flash Card Library', icon: <Layers size={18} /> },
                           ].map((lib) => (
                             <button
                               key={lib.id}
@@ -6673,7 +7191,7 @@ Return the response in JSON format with the following schema:
                       <div className="text-center py-10 mt-2">
                         <Search size={48} className="text-slate-700 mx-auto mb-4" />
                         <p className="text-slate-500 text-sm">Start typing to search across all topics in your curriculum</p>
-                        <p className="text-slate-600 text-xs mt-2">Select a topic to access its Knowledge Library, Essay Library, MCQ Library, and Flash Cards</p>
+                        <p className="text-slate-600 text-xs mt-2">Select a topic to access its Knowledge Library, Essay Question Library, MCQ Question Library, and Flash Card Library</p>
                       </div>
                     )}
                   </div>
@@ -7500,7 +8018,7 @@ Return the response in JSON format with the following schema:
                 </>
               ) : (
                 <>
-                  <Brain size={20} /> {isQuestionPaper ? 'Generate Question Papers' : featureId === 'session-search' ? 'Search Scientific Sessions' : featureId === 'essay-generator' ? 'Generate Essay Answer' : featureId === 'seminar-builder' ? 'Generate Seminar PPT and Notes' : featureId === 'journal-club' ? 'Generate Journal Club PPT and Notes' : featureId === 'manuscript-generator' ? 'Generate Manuscript' : featureId === 'protocol-generator' ? 'Generate Protocol' : featureId === 'stat-assist' ? 'Generate Statistical Methods' : featureId === 'reflection-generator' ? 'Generate Reflection' : featureId === 'answer-analyser' ? 'Generate Question (5 questions)' : featureId === 'mcqs-analyser' ? 'Generate MCQs' : featureId === 'ai-exam-prep' ? 'Exam Preparation System' : featureId === 'ai-exam-simulator' ? 'Generate Complete Exam Simulation' : featureId === 'guidelines-generator' ? 'Generate Guidelines' : featureId === 'resume-builder' ? 'Generate Resume' : featureId === 'doubt-solver' ? 'Generate Discussion' : featureId === 'drug-treatment-assistant' ? 'Generate Drug Info' : featureId === 'clinical-examination' ? 'Generate OSCE/ OSPE Station and Checklist' : 'Generate Notes'}
+                  <Brain size={20} /> {isQuestionPaper ? 'Generate Question Papers' : featureId === 'session-search' ? 'Search Scientific Sessions' : featureId === 'notes-generator' ? 'Generate Notes' : featureId === 'essay-generator' ? (generatedEssayQuestions.length === 0 ? 'Generate Questions' : 'Generate Answers') : featureId === 'mcq-generator' ? `Generate ${mcqGenCount} MCQs` : featureId === 'seminar-builder' ? 'Generate Seminar PPT and Notes' : featureId === 'journal-club' ? 'Generate Journal Club PPT and Notes' : featureId === 'manuscript-generator' ? 'Generate Manuscript' : featureId === 'protocol-generator' ? 'Generate Protocol' : featureId === 'stat-assist' ? 'Generate Statistical Methods' : featureId === 'reflection-generator' ? 'Generate Reflection' : featureId === 'answer-analyser' ? 'Generate Question (5 questions)' : featureId === 'mcqs-analyser' ? 'Generate MCQs' : featureId === 'ai-exam-prep' ? 'Exam Preparation System' : featureId === 'ai-exam-simulator' ? 'Generate Complete Exam Simulation' : featureId === 'guidelines-generator' ? 'Generate Guidelines' : featureId === 'resume-builder' ? 'Generate Resume' : featureId === 'doubt-solver' ? 'Generate Discussion' : featureId === 'drug-treatment-assistant' ? 'Generate Drug Info' : featureId === 'clinical-examination' ? 'Generate OSCE/ OSPE Station and Checklist' : 'Generate Notes'}
                 </>
               )}
             </button>
@@ -8345,18 +8863,12 @@ Return the response in JSON format with the following schema:
 };
 
 const DEFAULT_LMS_STRUCTURE = [
-  { id: 1, title: 'Topic Title', desc: 'Mention how it has to be', instruction: 'Exam-oriented bullet points', format: 'Text Format', words: 100 },
-  { id: 2, title: 'Definition / Overview', desc: 'Mention how it has to be', instruction: 'Essay format', format: 'Text Format', words: 100 },
-  { id: 3, title: 'Basic Concepts / Background', desc: 'Mention how it has to be', instruction: 'Detailed explanation', format: 'Text Format', words: 200 },
-  { id: 4, title: 'Classification', desc: 'Mention how it has to be', instruction: 'Clear categorization', format: 'Table Format', words: 100 },
-  { id: 5, title: 'Mechanism / Pathophysiology', desc: 'Mention how it has to be', instruction: 'Flowchart style mapping', format: 'Markdown Map', words: 150 },
-  { id: 6, title: 'Key Clinical or Functional Relevance', desc: 'Mention how it has to be', instruction: 'Clinical scenarios', format: 'Text Format', words: 150 },
-  { id: 7, title: 'Investigations / Methods', desc: 'Mention how it has to be', instruction: 'Step-by-step points', format: 'Text Format', words: 100 },
-  { id: 8, title: 'Management / Application', desc: 'Mention how it has to be', instruction: 'Treatment protocols', format: 'Text Format', words: 200 },
-  { id: 9, title: 'Complications / Limitations', desc: 'Mention how it has to be', instruction: 'List of issues', format: 'Text Format', words: 100 },
-  { id: 10, title: 'Recent Advances / Guidelines', desc: 'Mention how it has to be', instruction: 'Latest updates', format: 'Text Format', words: 100 },
-  { id: 11, title: 'Viva Points', desc: 'Mention how it has to be', instruction: 'Question & Answer', format: 'Text Format', words: 100 },
-  { id: 12, title: 'Key Takeaways', desc: 'Mention how it has to be', instruction: 'Summary points', format: 'Text Format', words: 50 }
+  { id: 1, title: 'Topic Title', desc: 'Mention how it has to be', instruction: 'Concise heading-style title of the topic', format: 'Text Format', words: 30 },
+  { id: 2, title: 'Definition', desc: 'Mention how it has to be', instruction: 'Clear and concise definition', format: 'Essay', words: 100 },
+  { id: 3, title: 'Basic Concepts', desc: 'Mention how it has to be', instruction: 'Foundational concepts explained simply', format: 'Bullet Points', words: 200 },
+  { id: 4, title: 'Detailed Essay', desc: 'Mention how it has to be', instruction: 'Comprehensive in-depth essay with all details', format: 'Essay', words: 800 },
+  { id: 5, title: 'Summary', desc: 'Mention how it has to be', instruction: 'Brief recap of key points', format: 'Bullet Points', words: 150 },
+  { id: 6, title: 'Key Takeaways', desc: 'Mention how it has to be', instruction: 'Most important clinical/exam points', format: 'Bullet Points', words: 100 },
 ];
 
 const DEFAULT_ESSAY_STRUCTURE = [
@@ -16257,6 +16769,19 @@ const ControlPanel = ({ onNavigate, curriculum, setCurriculum, blogPosts, setBlo
   const [lmsPaperId, setLmsPaperId] = useState('');
   const [lmsSectionId, setLmsSectionId] = useState('');
   const [isGeneratingLMS, setIsGeneratingLMS] = useState(false);
+  // Overwrite confirmation dialog state
+  const [overwriteDialogTopics, setOverwriteDialogTopics] = useState<string[]>([]);
+  const [overwriteDialogResolve, setOverwriteDialogResolve] = useState<((v: boolean) => void) | null>(null);
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
+
+  // Helper: show the overwrite confirm dialog and await user decision
+  const confirmOverwrite = (topics: string[]): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setOverwriteDialogTopics(topics);
+      setOverwriteDialogResolve(() => resolve);
+      setShowOverwriteDialog(true);
+    });
+  };
 
   useEffect(() => {
     try {
@@ -16682,9 +17207,7 @@ Return ONLY the JSON object, no extra text.`;
       }
     }
     if (topicsWithExistingContent.length > 0) {
-      const proceed = window.confirm(
-        `Content already exists for ${topicsWithExistingContent.length} topic(s):\n${topicsWithExistingContent.join(', ')}\n\nDo you want to overwrite the existing content?`
-      );
+      const proceed = await confirmOverwrite(topicsWithExistingContent);
       if (!proceed) return;
     }
     
@@ -16715,19 +17238,30 @@ Return ONLY the JSON object, no extra text.`;
         if (!topicName) continue;
         
         try {
-          let prompt = `Provide a comprehensive clinical note for the knowledge library on the following topic:\nTopic: ${topicName}\nCourse Context: ${courseName}\n
-          Ideal Structure of Expert Notes:
-          1. Definition: Short precise definition.
-          2. Historical background (optional): Major discoveries or milestones.
-          3. Basic concepts: Physiology, Pathophysiology, Mechanism.
-          4. Classification: Use tables or flowcharts (represented in text/markdown).
-          5. Detailed description: Explain major subtopics.
-          6. Clinical relevance: Diagnosis, Investigations, Treatment.
-          7. Guidelines / protocols: Mention current guidelines.
-          8. Recent advances: Include new drugs, technologies, therapies.
-          9. Adverse effects / limitations.
-          10. Summary / key points.
-          11. References: Standard textbooks, Review articles, Guidelines.`;
+          // Build dynamic structure prompt from active lmsNotes structure
+          const selectedStructureSections = lmsNotes.filter((s: any) => selectedStructureIds.includes(s.id));
+          const structureInstructions = selectedStructureSections.map((s: any, i: number) => 
+            `${i+1}. **${s.title}** — ${s.desc || 'Mention how it must be'}. Format: ${s.format || 'Text Format'}. Target: ~${s.words || 100} words.`
+          ).join('\n          ');
+
+          let prompt = `Generate a comprehensive Knowledge Library entry for the following medical topic.
+
+Topic: ${topicName}
+Course Context: ${courseName}
+
+You MUST generate EXACTLY the following sections in this order, using the exact headings provided:
+${structureInstructions}
+
+FORMATTING REQUIREMENTS:
+- Use markdown headings (##) for each section title
+- If format is "Bullet Points": use clear numbered or bulleted lists
+- If format is "Essay": write in flowing prose paragraphs  
+- If format is "Text Format": use a mix of sentences and key phrases
+- Respect the approximate word count per section
+- Write for postgraduate medical students preparing for clinical exams
+- Be evidence-based, clinically relevant, and academically rigorous`;
+
+
 
           if (currentTab === 'essay-questions') {
             prompt = `Generate 5 high-quality, long-form clinical essay questions based on the following topic:\nTopic: ${topicName}\nCourse Context: ${courseName}\n
@@ -16985,19 +17519,19 @@ Return ONLY the JSON object, no extra text.`;
 
   const TABS = [
     { type: 'item', id: 'lms-auto-gen', label: 'LMS Auto-Gen', icon: <Settings size={20} /> },
-    { type: 'subitem', id: 'lms-notes', label: 'LMS Notes', icon: <BookOpen size={16} /> },
-    { type: 'subitem', id: 'essay-questions', label: 'Essay Questions', icon: <FileText size={16} /> },
-    { type: 'subitem', id: 'mcq-questions', label: 'MCQ Questions', icon: <FileQuestion size={16} /> },
-    { type: 'subitem', id: 'flash-cards', label: 'Flash Cards', icon: <Layers size={16} /> },
+    { type: 'subitem', id: 'lms-notes', label: 'Knowledge Library', icon: <BookOpen size={16} /> },
+    { type: 'subitem', id: 'essay-questions', label: 'Essay Question Library', icon: <FileText size={16} /> },
+    { type: 'subitem', id: 'mcq-questions', label: 'MCQ Question Library', icon: <FileQuestion size={16} /> },
+    { type: 'subitem', id: 'flash-cards', label: 'Flash Card Library', icon: <Layers size={16} /> },
     { type: 'item', id: 'blog-publications', label: 'Blog Publications', icon: <FileText size={20} /> },
     { type: 'item', id: 'token-economy', label: 'Token Economy', icon: <Brain size={20} /> },
     { type: 'item', id: 'user-management', label: 'User Management', icon: <Users size={20} /> },
     { type: 'item', id: 'affiliate-partners', label: 'Affiliate Partners', icon: <Share2 size={20} /> },
     { type: 'header', id: 'header-admin', label: 'Admin' },
-    { type: 'item', id: 'lms-notes-editor', label: 'LMS Notes Editor', icon: <Edit3 size={20} /> },
-    { type: 'item', id: 'essay-questions-editor', label: 'Essay Questions Editor', icon: <Edit3 size={20} /> },
-    { type: 'item', id: 'mcq-questions-editor', label: 'MCQ Questions Editor', icon: <Edit3 size={20} /> },
-    { type: 'item', id: 'flash-cards-editor', label: 'Flash Cards Editor', icon: <Edit3 size={20} /> },
+    { type: 'item', id: 'lms-notes-editor', label: 'Knowledge Library Editor', icon: <Edit3 size={20} /> },
+    { type: 'item', id: 'essay-questions-editor', label: 'Essay Question Library Editor', icon: <Edit3 size={20} /> },
+    { type: 'item', id: 'mcq-questions-editor', label: 'MCQ Question Library Editor', icon: <Edit3 size={20} /> },
+    { type: 'item', id: 'flash-cards-editor', label: 'Flash Card Library Editor', icon: <Edit3 size={20} /> },
   ];
 
   return (
@@ -17006,6 +17540,60 @@ Return ONLY the JSON object, no extra text.`;
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div className="md:hidden fixed inset-0 bg-slate-900/50 z-40" onClick={() => setIsSidebarOpen(false)} />
+      )}
+
+      {/* ── Overwrite Confirmation Dialog ────────────────────────── */}
+      {showOverwriteDialog && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(6px)' }}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 animate-in fade-in zoom-in-95 duration-200">
+            {/* Icon */}
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-5">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            {/* Title */}
+            <h2 className="text-[20px] font-extrabold text-slate-900 text-center mb-2">Notes Already Exist</h2>
+            <p className="text-slate-500 text-[14px] text-center mb-5 leading-relaxed">
+              Generated content already exists for <span className="font-bold text-slate-700">{overwriteDialogTopics.length} topic{overwriteDialogTopics.length > 1 ? 's' : ''}</span>. Do you want to overwrite it with newly generated content?
+            </p>
+            {/* Topic list */}
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 max-h-40 overflow-y-auto">
+              <p className="text-[11px] font-bold text-amber-600 uppercase tracking-widest mb-2">Topics to be overwritten</p>
+              <ul className="space-y-1">
+                {overwriteDialogTopics.map((name, i) => (
+                  <li key={i} className="flex items-center gap-2 text-[13px] font-semibold text-slate-700">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                    {name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* Action buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowOverwriteDialog(false);
+                  if (overwriteDialogResolve) overwriteDialogResolve(false);
+                  setOverwriteDialogResolve(null);
+                }}
+                className="flex-1 py-3 rounded-xl font-bold text-slate-600 border-2 border-slate-200 hover:bg-slate-50 transition-colors text-[14px]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowOverwriteDialog(false);
+                  if (overwriteDialogResolve) overwriteDialogResolve(true);
+                  setOverwriteDialogResolve(null);
+                }}
+                className="flex-1 py-3 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors text-[14px] shadow-lg shadow-amber-500/30"
+              >
+                Yes, Overwrite
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Left Sidebar */}
@@ -17041,13 +17629,13 @@ Return ONLY the JSON object, no extra text.`;
                   isSubItem ? 'pl-11 pr-4' : 'px-4'
                 } ${
                   isActive 
-                    ? 'bg-blue-600/20 text-blue-700 font-bold' 
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800 font-bold'
+                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-900/40' 
+                    : 'text-slate-300 hover:text-white hover:bg-slate-700/70 font-semibold'
                 }`}
                 style={{ fontSize: isSubItem ? '14px' : '15px' }}
               >
                 {tab.icon && (
-                  <div className={`${isActive ? 'text-[#3E7B5C]' : 'text-slate-400'}`}>
+                  <div className={`${isActive ? 'text-white' : 'text-slate-400'}`}>
                     {tab.icon}
                   </div>
                 )}
@@ -17110,11 +17698,11 @@ Return ONLY the JSON object, no extra text.`;
               {/* Step Indicator */}
               <div className="flex justify-center mb-6">
                 <div className="flex items-center gap-0 text-[12px] font-bold text-slate-400">
-                  {['curriculum', 'sections', 'lms-notes', 'generation-engine'].map((step, idx) => {
-                    const stepLabels = ['1', '2', '3', '4'];
-                    const stepNames = ['Curriculum', 'Sections', 'Structure', 'Generate'];
+                  {['curriculum', 'lms-notes', 'generation-engine'].map((step, idx) => {
+                    const stepLabels = ['1', '2', '3'];
+                    const stepNames = ['Curriculum', 'Structure', 'Generate'];
                     const isActive = activeGenTab === step;
-                    const steps = ['curriculum', 'sections', 'lms-notes', 'generation-engine'];
+                    const steps = ['curriculum', 'lms-notes', 'generation-engine'];
                     const isPast = steps.indexOf(activeGenTab) > idx;
                     return (
                       <div key={step} className="flex items-center">
@@ -17124,7 +17712,7 @@ Return ONLY the JSON object, no extra text.`;
                           }`}>{isPast ? '✓' : stepLabels[idx]}</div>
                           <span className={`text-[12px] font-semibold transition-colors ${isActive ? 'text-[#4f46e5] font-bold' : isPast ? 'text-[#10b981]' : 'text-slate-400'}`}>{stepNames[idx]}</span>
                         </div>
-                        {idx < 3 && <div className={`w-10 md:w-16 h-[3px] mx-2 mb-5 rounded-full transition-colors ${isPast ? 'bg-[#10b981]' : 'bg-slate-200'}`} />}
+                        {idx < 2 && <div className={`w-10 md:w-16 h-[3px] mx-2 mb-5 rounded-full transition-colors ${isPast ? 'bg-[#10b981]' : 'bg-slate-200'}`} />}
                       </div>
                     );
                   })}
@@ -17144,16 +17732,7 @@ Return ONLY the JSON object, no extra text.`;
                   >
                     Curriculum Setup
                   </button>
-                  <button 
-                    onClick={() => setActiveGenTab('sections')}
-                    className={`px-5 md:px-7 py-3.5 rounded-xl text-[13px] md:text-[14px] font-bold transition-all duration-200 ${
-                      activeGenTab === 'sections' 
-                        ? 'bg-white text-[#4f46e5] shadow-md ring-1 ring-slate-900/5' 
-                        : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
-                    }`}
-                  >
-                    {activeTab === 'essay-questions' ? 'Essay Sections' : activeTab === 'mcq-questions' ? 'MCQ Sections' : activeTab === 'flash-cards' ? 'Flash Card Sections' : 'LMS Notes Sections'}
-                  </button>
+
                   <button 
                     onClick={() => setActiveGenTab('lms-notes')}
                     className={`px-5 md:px-7 py-3.5 rounded-xl text-[13px] md:text-[14px] font-bold transition-all duration-200 ${
@@ -17162,7 +17741,7 @@ Return ONLY the JSON object, no extra text.`;
                         : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
                     }`}
                   >
-                    {activeTab === 'essay-questions' ? 'Essay Structure' : activeTab === 'mcq-questions' ? 'MCQ Structure' : activeTab === 'flash-cards' ? 'Flash Cards Structure' : 'LMS Notes Structure'}
+                    {activeTab === 'essay-questions' ? 'Essay Structure' : activeTab === 'mcq-questions' ? 'MCQ Structure' : activeTab === 'flash-cards' ? 'Flash Cards Structure' : 'Knowledge Library Structure'}
                   </button>
                   <button 
                     onClick={() => setActiveGenTab('generation-engine')}
@@ -17460,13 +18039,13 @@ Return ONLY the JSON object, no extra text.`;
                 </div>
               ) : activeGenTab === 'sections' ? (
                 /* ═══════════════════════════════════════════════════════════════
-                   NEW TAB: LMS Notes Sections — Add / Select sections
+                   Sections Panel (legacy — not accessible from UI)
                    ═══════════════════════════════════════════════════════════════ */
                 <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm w-full max-w-5xl mx-auto min-h-[500px] animate-in fade-in zoom-in-95 duration-500">
                   <div className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4 mb-8">
                     <div>
                       <h3 className="text-[24px] font-bold text-[#0f172a] mb-1">
-                        {activeTab === 'essay-questions' ? 'Essay Sections' : activeTab === 'mcq-questions' ? 'MCQ Sections' : activeTab === 'flash-cards' ? 'Flash Card Sections' : 'LMS Notes Sections'}
+                        {activeTab === 'essay-questions' ? 'Essay Sections' : activeTab === 'mcq-questions' ? 'MCQ Sections' : activeTab === 'flash-cards' ? 'Flash Card Sections' : 'Knowledge Library Sections'}
                       </h3>
                       <p className="text-[14px] text-[#64748b] font-medium">Add as many sections as needed, then select the ones to include in the structure template.</p>
                     </div>
@@ -17717,7 +18296,7 @@ Return ONLY the JSON object, no extra text.`;
                         <Sparkles size={22} className="text-[#8b5cf6]" />
                         Generation Queue
                       </h3>
-                      <p className="text-[#64748b] text-[14px] font-medium">Select topics to auto-generate {activeTab === 'essay-questions' ? 'essay questions' : activeTab === 'mcq-questions' ? 'multiple-choice questions' : activeTab === 'flash-cards' ? 'flash cards' : 'LMS notes'}.</p>
+                      <p className="text-[#64748b] text-[14px] font-medium">Select topics to auto-generate {activeTab === 'essay-questions' ? 'essay questions' : activeTab === 'mcq-questions' ? 'multiple-choice questions' : activeTab === 'flash-cards' ? 'flash cards' : 'knowledge library notes'}.</p>
                     </div>
 
                     <div className="space-y-6">
@@ -17807,7 +18386,7 @@ Return ONLY the JSON object, no extra text.`;
                             <div className="bg-[#f8fafc] rounded-xl p-3 border border-slate-100 mb-1">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                                  {activeTab === 'lms-notes' ? 'Notes' : activeTab === 'essay-questions' ? 'Essay' : activeTab === 'mcq-questions' ? 'MCQ' : 'Flash Cards'} Progress
+                                  {activeTab === 'lms-notes' ? 'Knowledge Library' : activeTab === 'essay-questions' ? 'Essay' : activeTab === 'mcq-questions' ? 'MCQ' : 'Flash Cards'} Progress
                                 </span>
                                 <span className="text-[12px] font-bold text-slate-700">{createdCount}/{genActiveTopics.length} created</span>
                               </div>
@@ -17873,7 +18452,7 @@ Return ONLY the JSON object, no extra text.`;
                                   {/* Content Status Badges */}
                                   <div className="flex items-center gap-1.5 ml-8">
                                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${hasNotes ? 'bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]' : 'bg-[#fff7ed] text-[#c2410c] border-[#fed7aa]'}`}>
-                                      {hasNotes ? '✓' : '✗'} Notes
+                                      {hasNotes ? '✓' : '✗'} Knowledge
                                     </span>
                                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${hasEssay ? 'bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]' : 'bg-[#fff7ed] text-[#c2410c] border-[#fed7aa]'}`}>
                                       {hasEssay ? '✓' : '✗'} Essay
@@ -17930,21 +18509,15 @@ Return ONLY the JSON object, no extra text.`;
 
                 </div>
               ) : activeGenTab === 'lms-notes' ? (
-                /* ═══════════════════════════════════════════════════════════════
-                   LMS Notes Structure — Only shows SELECTED sections from Sections tab
-                   ═══════════════════════════════════════════════════════════════ */
+                /* ─────────────────────────────────────────────────────────────────
+                   Knowledge Library Structure — Configure structure fields
+                   ───────────────────────────────────────────────────────────────── */
                 <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm w-full max-w-5xl mx-auto min-h-[500px] animate-in fade-in zoom-in-95 duration-500">
                   <div className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4 mb-10">
                     <div>
-                      <h3 className="text-[24px] font-bold text-[#0f172a] mb-1">{activeTab === 'essay-questions' ? 'Essay Questions Structure' : activeTab === 'mcq-questions' ? 'MCQ Structure' : activeTab === 'flash-cards' ? 'Flash Cards Structure' : 'LMS Notes Structure'}</h3>
-                      <p className="text-[14px] text-[#64748b] font-medium">Configure the output generation template — showing {activeStructure.filter((n: any) => selectedStructureIds.includes(n.id)).length} selected sections</p>
+                      <h3 className="text-[24px] font-bold text-[#0f172a] mb-1">{activeTab === 'essay-questions' ? 'Essay Questions Structure' : activeTab === 'mcq-questions' ? 'MCQ Question Library Structure' : activeTab === 'flash-cards' ? 'Flash Card Library Structure' : 'Knowledge Library Structure'}</h3>
+                      <p className="text-[14px] text-[#64748b] font-medium">Configure each section's description, format, and word count • {activeStructure.filter((n: any) => selectedStructureIds.includes(n.id)).length} sections active</p>
                     </div>
-                    <button
-                      onClick={() => setActiveGenTab('sections')}
-                      className="text-[13px] font-bold text-[#4f46e5] hover:text-[#3730a3] bg-[#eef2ff] px-4 py-2.5 rounded-xl border border-[#c7d2fe] transition-colors flex items-center gap-2"
-                    >
-                      <Edit3 size={14} /> Edit Sections
-                    </button>
                   </div>
 
                   <div className="space-y-4">
@@ -17953,9 +18526,9 @@ Return ONLY the JSON object, no extra text.`;
                       if (filteredStructure.length === 0) return (
                         <div className="text-center py-20 bg-slate-50/50 rounded-3xl border border-slate-100 border-dashed">
                           <Layers className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-                          <h3 className="text-lg font-bold text-slate-900 mb-1">No sections selected</h3>
-                          <p className="text-slate-500 text-sm mb-4">Go back to the Sections tab to select sections for your template.</p>
-                          <button onClick={() => setActiveGenTab('sections')} className="bg-[#4f46e5] text-white px-6 py-2.5 rounded-xl font-bold text-[13px] hover:bg-[#3730a3] transition-colors">← Go to Sections</button>
+                          <h3 className="text-lg font-bold text-slate-900 mb-1">No sections in structure</h3>
+                          <p className="text-slate-500 text-sm mb-4">Reset to default to reload the Knowledge Library structure.</p>
+                          <button onClick={() => setLmsNotes([...DEFAULT_LMS_STRUCTURE])} className="bg-[#4f46e5] text-white px-6 py-2.5 rounded-xl font-bold text-[13px] hover:bg-[#3730a3] transition-colors">↺ Reset to Default Structure</button>
                         </div>
                       );
                       return filteredStructure.map((note: any, idx: number) => (
@@ -17964,7 +18537,36 @@ Return ONLY the JSON object, no extra text.`;
                           
                           <div className="flex-1 w-full border-b border-slate-200 border-dashed md:border-none pb-4 md:pb-0">
                             <div className="font-bold text-[#1e293b] text-[16px] xl:text-[18px] mb-1 tracking-tight">{note.title}</div>
-                            <div className="text-[13px] text-[#64748b] font-medium">{note.desc}</div>
+                            {activeTab === 'lms-notes' ? (
+                              <div className="mt-3 space-y-3">
+                                {/* Row 1: Describe how it must be (in words) */}
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-[11px] font-bold text-[#8b5cf6] tracking-widest uppercase">Describe how it must be (in words)</label>
+                                  <input
+                                    type="text"
+                                    defaultValue={note.desc}
+                                    onChange={(e) => setActiveStructure((prev: any[]) => prev.map(n => n.id === note.id ? { ...n, desc: e.target.value } : n))}
+                                    placeholder="e.g. Concise and clear, no jargon..."
+                                    className="w-full bg-white border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-[13px] font-medium focus:outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/10 text-[#334155] transition-all"
+                                  />
+                                </div>
+                                {/* Row 2: Format (Bullet Points / Essay) */}
+                                <div className="flex items-center gap-3">
+                                  <label className="text-[11px] font-bold text-[#64748b] tracking-widest uppercase whitespace-nowrap">Format:</label>
+                                  <div className="flex gap-2">
+                                    {['Bullet Points', 'Essay', 'Text Format'].map(fmt => (
+                                      <button
+                                        key={fmt}
+                                        onClick={() => setActiveStructure((prev: any[]) => prev.map(n => n.id === note.id ? { ...n, format: fmt } : n))}
+                                        className={`px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all border ${note.format === fmt ? 'bg-[#4f46e5] text-white border-[#4f46e5] shadow-sm' : 'bg-white text-[#64748b] border-[#e2e8f0] hover:border-[#4f46e5] hover:text-[#4f46e5]'}`}
+                                      >{fmt}</button>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-[13px] text-[#64748b] font-medium">{note.desc}</div>
+                            )}
                             {activeTab === 'essay-questions' && (
                               <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-slate-100">
                                 <label className="flex items-center gap-2 text-[13px] font-bold text-slate-600 cursor-pointer hover:text-slate-900 transition-colors">
@@ -17985,23 +18587,6 @@ Return ONLY the JSON object, no extra text.`;
                           </div>
 
                           <div className="flex flex-col md:flex-row w-full lg:w-auto gap-3 items-center">
-                            {activeTab === 'lms-notes' && (
-                              <>
-                                <input type="text" defaultValue={note.instruction} className="w-full lg:w-[260px] bg-white border border-[#e2e8f0] rounded-xl px-4 py-3 text-[14px] font-medium focus:outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/10 text-[#334155] shadow-[0_2px_4px_rgba(0,0,0,0.01)] transition-all" />
-                                
-                                <div className="relative w-full lg:w-[150px]">
-                                  <select defaultValue={note.format} className="w-full appearance-none bg-white border border-[#e2e8f0] rounded-xl px-4 py-3 text-[#334155] font-bold text-[13px] focus:outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/10 shadow-[0_2px_4px_rgba(0,0,0,0.01)] transition-all cursor-pointer">
-                                    <option>Text Format</option>
-                                    <option>Table Format</option>
-                                    <option>Markdown Map</option>
-                                  </select>
-                                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                                    <ChevronRight size={16} className="rotate-90" />
-                                  </div>
-                                </div>
-                              </>
-                            )}
-
                             <div className={`relative w-full ${activeTab === 'lms-notes' ? 'lg:w-[120px]' : 'lg:w-[160px]'}`}>
                               <input 
                                 type="number" 
@@ -18019,6 +18604,7 @@ Return ONLY the JSON object, no extra text.`;
                             </div>
                           </div>
                         </div>
+
                       ));
                     })()}
 
@@ -18444,7 +19030,7 @@ Return ONLY the JSON object, no extra text.`;
             <div className="w-full max-w-5xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
                <div className="mb-10">
                 <h2 className="text-[28px] md:text-[34px] font-bold text-slate-900 mb-3 tracking-tight">
-                  {activeTab === 'essay-questions-editor' ? 'Essay Questions Editor' : activeTab === 'mcq-questions-editor' ? 'MCQ Editor' : activeTab === 'flash-cards-editor' ? 'Flash Cards Editor' : 'LMS Notes Editor'}
+                  {activeTab === 'essay-questions-editor' ? 'Essay Question Library Editor' : activeTab === 'mcq-questions-editor' ? 'MCQ Question Library Editor' : activeTab === 'flash-cards-editor' ? 'Flash Card Library Editor' : 'Knowledge Library Editor'}
                 </h2>
                 <p className="text-[15px] md:text-[16px] text-slate-500 font-medium">Review and edit all auto-generated content before it goes live.</p>
               </div>
@@ -18468,14 +19054,14 @@ Return ONLY the JSON object, no extra text.`;
                 }
                 
                 return (
-                  <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                  <div className="bg-white rounded-[32px] border border-slate-200 p-8 shadow-lg">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-5 border-b border-slate-200">
                       <div>
-                        <h3 className="text-[22px] font-bold text-slate-900 leading-tight">{currentTopic?.name}</h3>
-                        <p className="text-slate-500 text-[13px] font-medium mt-1">{contextStr}</p>
+                        <h3 className="text-[22px] font-extrabold text-slate-900 leading-tight">{currentTopic?.name}</h3>
+                        <p className="text-slate-600 text-[13px] font-semibold mt-1">{contextStr}</p>
                       </div>
                       <div className="flex gap-3 w-full md:w-auto">
-                        <button onClick={() => { setEditingNoteId(null); setEditingContent(''); }} className="flex-1 md:flex-none px-5 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-50 border border-slate-200 transition-colors">Cancel</button>
+                        <button onClick={() => { setEditingNoteId(null); setEditingContent(''); }} className="flex-1 md:flex-none px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 border border-slate-300 transition-colors">Cancel</button>
                         <button onClick={async () => {
                           let updatedCurriculum = JSON.parse(JSON.stringify(curriculum));
                           for (const c of updatedCurriculum) {
@@ -18510,7 +19096,8 @@ Return ONLY the JSON object, no extra text.`;
                     <textarea 
                       value={editingContent}
                       onChange={(e) => setEditingContent(e.target.value)}
-                      className="w-full min-h-[500px] border border-slate-200 rounded-2xl p-6 text-[15px] text-slate-700 leading-relaxed focus:outline-none focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/10 transition-all font-mono"
+                      className="w-full min-h-[500px] border-2 border-slate-300 rounded-2xl p-6 text-[15px] text-slate-900 bg-white leading-relaxed focus:outline-none focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/10 transition-all font-mono"
+                      style={{ color: '#1e293b', backgroundColor: '#ffffff' }}
                       placeholder="Note content..."
                     />
                   </div>
@@ -18954,6 +19541,10 @@ export default function App() {
                   <AiTutorWelcome onNavigate={handleNavigate} curriculum={curriculum} />
                 ) : currentPage === 'feature-self-evaluation-system' ? (
                   <SelfEvaluationSystem onNavigate={handleNavigate} curriculum={curriculum} />
+                ) : currentPage === 'feature-thesis-data-ct' ? (
+                  <ThesisDataCollection onNavigate={handleNavigate} />
+                ) : currentPage === 'feature-eportfolio-ms' ? (
+                  <EPortfolioMS onNavigate={handleNavigate} />
                 ) : currentPage.startsWith('feature-') && (
                   <FeatureModule 
                     featureId={currentPage.replace('feature-', '')} 

@@ -32,6 +32,13 @@ api_key*.txt
 api_keys*.txt
 api_test.txt
 api_utf8.txt
+api_keys*.json
+keystring*.txt
+new_key*.txt
+backend_logs*.json
+recent_logs*.json
+cr_status.*
+run_eportfolio_migration.mjs
 *.tmp
 
 # Debug/fix scripts output

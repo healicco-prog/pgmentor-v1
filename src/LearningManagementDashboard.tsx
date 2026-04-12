@@ -51,7 +51,7 @@ const CATEGORY_CONFIG: Record<string, { icon: React.ReactNode; gradient: string;
     barColor: 'bg-gradient-to-r from-emerald-500 to-teal-500',
     iconBg: 'bg-gradient-to-br from-emerald-500 to-teal-600',
   },
-  'Productivity & Professional Management': {
+  'Productivity Management': {
     icon: <BookOpen size={22} />,
     gradient: 'from-sky-500 to-indigo-500',
     bgLight: 'bg-sky-50',
@@ -67,7 +67,7 @@ const CATEGORIES_ORDER = [
   'Assessment & Examination System',
   'Clinical Decision & Practice Support',
   'Learning Management System',
-  'Productivity & Professional Management',
+  'Productivity Management',
 ];
 
 // ─── Analytics Helpers ───────────────────────────────────────────────────────

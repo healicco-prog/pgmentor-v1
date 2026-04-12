@@ -2045,7 +2045,7 @@ async function startServer() {
   });
 
   app.post("/api/logs", async (req, res) => {
-    const { userId, feature } = req.body;
+        const { userId, feature } = req.body;
     try {
       const { error } = await supabaseAdmin.from('usage_logs').insert({ user_id: userId, feature });
       if (error) throw error;
@@ -2214,16 +2214,46 @@ async function startServer() {
     try {
       const { user_id, data } = req.body;
       const dataStr = JSON.stringify(data);
-      console.log(`📥 Saving curriculum for user: ${(user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id)}, data length: ${dataStr.length}, hasNotes: ${dataStr.includes('generatedContent')}, hasEssay: ${dataStr.includes('generatedEssayContent')}, hasMcq: ${dataStr.includes('generatedMcqContent')}, hasFlash: ${dataStr.includes('generatedFlashCardsContent')}`);
+      const GLOBAL_DEFAULT_ID = '00000000-0000-0000-0000-000000000000';
+      const resolvedUserId = (user_id === 'default' || !user_id) ? GLOBAL_DEFAULT_ID : user_id;
+      const hasGeneratedContent = dataStr.includes('generatedContent') || dataStr.includes('generatedEssayContent') || dataStr.includes('generatedMcqContent') || dataStr.includes('generatedFlashCardsContent');
+      console.log(`📥 Saving curriculum for user: ${resolvedUserId}, data length: ${dataStr.length}, hasNotes: ${dataStr.includes('generatedContent')}, hasEssay: ${dataStr.includes('generatedEssayContent')}, hasMcq: ${dataStr.includes('generatedMcqContent')}, hasFlash: ${dataStr.includes('generatedFlashCardsContent')}`);
+      
+      // Save curriculum for the specific user
       const { error } = await supabaseAdmin.from('user_curriculum').upsert({
-        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
+        user_id: resolvedUserId,
         data,
         updated_at: new Date().toISOString()
-      });
+      }, { onConflict: 'user_id' });
       if (error) {
         console.error('❌ Curriculum save error:', error);
         throw error;
       }
+
+      // ─────────────────────────────────────────────────────────────────────
+      // KNOWLEDGE LIBRARY SYNC:
+      // If the curriculum contains generated content AND was saved by a real
+      // user (not already the global default), also publish it as the global
+      // default so the Knowledge Library (/api/state/curriculum/default) can
+      // access admin-generated LMS notes for all students.
+      // ─────────────────────────────────────────────────────────────────────
+      if (hasGeneratedContent && resolvedUserId !== GLOBAL_DEFAULT_ID) {
+        try {
+          const { error: globalError } = await supabaseAdmin.from('user_curriculum').upsert({
+            user_id: GLOBAL_DEFAULT_ID,
+            data,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+          if (globalError) {
+            console.warn('⚠️ Global curriculum KL sync failed:', globalError.message);
+          } else {
+            console.log('🌍 Curriculum also published as global default (Knowledge Library sync)');
+          }
+        } catch (syncErr: any) {
+          console.warn('⚠️ Global curriculum sync exception:', syncErr.message);
+        }
+      }
+
       console.log('✅ Curriculum saved successfully');
       res.json({ success: true });
     } catch (error: any) {
@@ -2273,6 +2303,144 @@ async function startServer() {
       });
       if (error2) console.error("Error saving to saved_items:", error2);
 
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ─── Notes Generator Routes ──────────────────────────────────────────────
+  app.get("/api/notes-generator", async (req, res) => {
+    try {
+      const { data, error } = await supabase.from('notes_generator').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/notes-generator/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      const { data, error } = await supabase.from('notes_generator').select('*').eq('id', id).single();
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/notes-generator", async (req, res) => {
+    const { id, user_id, title, course, topic, notes_type, format, special_instructions, content, date } = req.body;
+    try {
+      const { error } = await supabase.from('notes_generator').upsert({
+        id,
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
+        title: title || `Notes: ${topic}`,
+        course: course || '',
+        topic: topic || '',
+        notes_type: notes_type || 'clinical-notes',
+        format: format || 'structured',
+        special_instructions: special_instructions || '',
+        content,
+        created_at: date || new Date().toISOString()
+      });
+      if (error) {
+        console.error("Supabase Error on notes_generator upsert:", error.message);
+      }
+
+      // Also save to generic saved_items for dashboard visibility
+      const { error: error2 } = await supabase.from('saved_items').upsert({
+        id,
+        title: title || `Notes: ${topic}`,
+        content: content,
+        feature_id: 'notes-generator',
+        date: date || new Date().toISOString()
+      });
+      if (error2) console.error("Error saving notes-generator to saved_items:", error2);
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/notes-generator/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      const { error } = await supabase.from('notes_generator').delete().eq('id', id);
+      if (error) throw error;
+      await supabase.from('saved_items').delete().eq('id', id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ─── MCQ Generator Routes ────────────────────────────────────────────────
+  app.get("/api/mcq-generator", async (req, res) => {
+    try {
+      const { data, error } = await supabase.from('mcq_generator').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/mcq-generator/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      const { data, error } = await supabase.from('mcq_generator').select('*').eq('id', id).single();
+      if (error) throw error;
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/mcq-generator", async (req, res) => {
+    const { id, user_id, title, course, topic, question_type, difficulty, mcq_count, content, date } = req.body;
+    try {
+      const { error } = await supabase.from('mcq_generator').upsert({
+        id,
+        user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id),
+        title: title || `MCQs: ${topic}`,
+        course: course || '',
+        topic: topic || '',
+        question_type: question_type || 'single-best',
+        difficulty: difficulty || 'mixed',
+        mcq_count: mcq_count || 10,
+        content,
+        created_at: date || new Date().toISOString()
+      });
+      if (error) {
+        console.error("Supabase Error on mcq_generator upsert:", error.message);
+      }
+
+      // Also save to generic saved_items for dashboard visibility
+      const { error: error2 } = await supabase.from('saved_items').upsert({
+        id,
+        title: title || `MCQs: ${topic}`,
+        content: content,
+        feature_id: 'mcq-generator',
+        date: date || new Date().toISOString()
+      });
+      if (error2) console.error("Error saving mcq-generator to saved_items:", error2);
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/mcq-generator/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      const { error } = await supabase.from('mcq_generator').delete().eq('id', id);
+      if (error) throw error;
+      await supabase.from('saved_items').delete().eq('id', id);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -4350,7 +4518,326 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development (dynamic import — vite not installed in production)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // THESIS DATA COLLECTION TOOL — API ROUTES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ── Studies CRUD ──────────────────────────────────────────────────────────
+
+  // GET all studies for a user
+  app.get("/api/thesis/studies", async (req, res) => {
+    const user_id = req.query.user_id as string;
+    if (!user_id) return res.status(400).json({ error: "user_id is required" });
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('thesis_studies')
+        .select('*')
+        .eq('user_id', user_id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      res.json(data || []);
+    } catch (err: any) {
+      console.error("❌ Thesis studies fetch error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST create new study
+  app.post("/api/thesis/studies", async (req, res) => {
+    try {
+      const id = `STUDY-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`.toUpperCase();
+      const payload = { id, ...req.body, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      const { data, error } = await supabaseAdmin
+        .from('thesis_studies')
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      console.log(`✅ Thesis study created: ${data.thesis_title} (${data.id})`);
+      res.json(data);
+    } catch (err: any) {
+      console.error("❌ Thesis study create error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PUT update study
+  app.put("/api/thesis/studies/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('thesis_studies')
+        .update({ ...req.body, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      res.json(data);
+    } catch (err: any) {
+      console.error("❌ Thesis study update error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // DELETE study (cascades to cases)
+  app.delete("/api/thesis/studies/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      // Delete cases first (cascade may or may not work with RLS)
+      await supabaseAdmin.from('thesis_cases').delete().eq('study_id', id);
+      const { error } = await supabaseAdmin.from('thesis_studies').delete().eq('id', id);
+      if (error) throw error;
+      console.log(`🗑️ Thesis study deleted: ${id}`);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("❌ Thesis study delete error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ── Cases CRUD ────────────────────────────────────────────────────────────
+
+  // GET all cases for a study
+  app.get("/api/thesis/cases", async (req, res) => {
+    const study_id = req.query.study_id as string;
+    const user_id = req.query.user_id as string;
+    if (!study_id || !user_id) return res.status(400).json({ error: "study_id and user_id are required" });
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('thesis_cases')
+        .select('*')
+        .eq('study_id', study_id)
+        .eq('user_id', user_id)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      res.json(data || []);
+    } catch (err: any) {
+      console.error("❌ Thesis cases fetch error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST create new case
+  app.post("/api/thesis/cases", async (req, res) => {
+    try {
+      const id = `CASE-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`.toUpperCase();
+      const payload = { id, ...req.body, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      const { data, error } = await supabaseAdmin
+        .from('thesis_cases')
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      console.log(`✅ Thesis case created: ${data.subject_id} (${data.id})`);
+      res.json(data);
+    } catch (err: any) {
+      console.error("❌ Thesis case create error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PUT update case
+  app.put("/api/thesis/cases/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('thesis_cases')
+        .update({ ...req.body, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      res.json(data);
+    } catch (err: any) {
+      console.error("❌ Thesis case update error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // DELETE case
+  app.delete("/api/thesis/cases/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      const { error } = await supabaseAdmin.from('thesis_cases').delete().eq('id', id);
+      if (error) throw error;
+      console.log(`🗑️ Thesis case deleted: ${id}`);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("❌ Thesis case delete error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // e-PORTFOLIO MS ROUTES
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // --- PROFILE ---
+  app.get("/api/portfolio/profile", async (req, res) => {
+    const { user_id } = req.query as any;
+    if (!user_id) return res.status(400).json({ error: "user_id required" });
+    try {
+      const { data, error } = await supabaseAdmin
+        .from("portfolio_profiles").select("*").eq("user_id", user_id).maybeSingle();
+      if (error) throw error;
+      res.json(data || null);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/portfolio/profile", async (req, res) => {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from("portfolio_profiles")
+        .upsert({ ...req.body, updated_at: new Date().toISOString() }, { onConflict: "user_id" })
+        .select().single();
+      if (error) throw error;
+      res.json(data);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  // --- IMAGE UPLOAD (Supabase Storage) ---
+  app.post("/api/portfolio/upload-image", async (req, res) => {
+    try {
+      const { user_id, module, filename, base64, content_type } = req.body;
+      if (!user_id || !base64 || !filename) return res.status(400).json({ error: "Missing fields" });
+      const buf = Buffer.from(base64.replace(/^data:[^;]+;base64,/, ""), "base64");
+      const filePath = `${user_id}/${module || "misc"}/${Date.now()}_${filename}`;
+      const { error } = await supabaseAdmin.storage.from("portfolio_images").upload(filePath, buf, {
+        contentType: content_type || "image/jpeg", upsert: true
+      });
+      if (error) throw error;
+      const { data: urlData } = supabaseAdmin.storage.from("portfolio_images").getPublicUrl(filePath);
+      res.json({ url: urlData.publicUrl, path: filePath });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  // Generic helper to create module routes
+  const makePortfolioRoutes = (
+    route: string,
+    table: string,
+    imageTable: string,
+    fkField: string
+  ) => {
+    app.get(`/api/portfolio/${route}`, async (req, res) => {
+      const { user_id } = req.query as any;
+      if (!user_id) return res.status(400).json({ error: "user_id required" });
+      try {
+        const { data, error } = await supabaseAdmin
+          .from(table).select(`*, ${imageTable}(*)`)
+          .eq("user_id", user_id).order("created_at", { ascending: false });
+        if (error) throw error;
+        res.json(data || []);
+      } catch (err: any) { res.status(500).json({ error: err.message }); }
+    });
+
+    app.post(`/api/portfolio/${route}`, async (req, res) => {
+      try {
+        const { images, ...body } = req.body;
+        const { data, error } = await supabaseAdmin.from(table).insert(body).select().single();
+        if (error) throw error;
+        if (images?.length) {
+          const imgs = images.map((url: string) => ({ [fkField]: data.id, image_url: url }));
+          await supabaseAdmin.from(imageTable).insert(imgs);
+        }
+        res.json(data);
+      } catch (err: any) { res.status(500).json({ error: err.message }); }
+    });
+
+    app.put(`/api/portfolio/${route}/:id`, async (req, res) => {
+      const { id } = req.params;
+      try {
+        const { images, deleteImages, ...body } = req.body;
+        const { data, error } = await supabaseAdmin
+          .from(table).update(body).eq("id", id).select().single();
+        if (error) throw error;
+        if (deleteImages?.length) {
+          await supabaseAdmin.from(imageTable).delete().in("id", deleteImages);
+        }
+        if (images?.length) {
+          const imgs = images.map((url: string) => ({ [fkField]: id, image_url: url }));
+          await supabaseAdmin.from(imageTable).insert(imgs);
+        }
+        res.json(data);
+      } catch (err: any) { res.status(500).json({ error: err.message }); }
+    });
+
+    app.delete(`/api/portfolio/${route}/:id`, async (req, res) => {
+      const { id } = req.params;
+      try {
+        const { error } = await supabaseAdmin.from(table).delete().eq("id", id);
+        if (error) throw error;
+        res.json({ success: true });
+      } catch (err: any) { res.status(500).json({ error: err.message }); }
+    });
+  };
+
+  makePortfolioRoutes("logbook", "portfolio_logbook", "portfolio_logbook_images", "logbook_id");
+  makePortfolioRoutes("cases", "portfolio_cases", "portfolio_case_images", "case_id");
+  makePortfolioRoutes("seminars", "portfolio_seminars", "portfolio_seminar_images", "seminar_id");
+  makePortfolioRoutes("journals", "portfolio_journals", "portfolio_journal_images", "journal_id");
+  makePortfolioRoutes("teaching", "portfolio_teaching", "portfolio_teaching_images", "teaching_id");
+  makePortfolioRoutes("assessments", "portfolio_assessments", "portfolio_assessment_images", "assessment_id");
+  makePortfolioRoutes("reflections", "portfolio_reflections", "portfolio_reflection_images", "reflection_id");
+  makePortfolioRoutes("documents", "portfolio_documents", "portfolio_document_images", "document_id");
+
+  // --- AI NOTES GENERATOR ---
+  app.post("/api/portfolio/generate-notes", async (req, res) => {
+    const { module, data: inputData } = req.body;
+    if (!geminiApiKey) return res.status(503).json({ error: "AI not configured" });
+    const prompts: Record<string, string> = {
+      logbook: `Write a concise 4-6 line clinical learning note for a postgraduate medical student who performed/observed the procedure "${inputData?.procedure_name}" at ${inputData?.posting || "the hospital"} on ${inputData?.date}. Role: ${inputData?.role}. Learning points: ${inputData?.learning_points || "not specified"}. Academic clinical tone, first person.`,
+      cases: `Write a 4-6 line case presentation note for a postgraduate student. Case: "${inputData?.title}", Diagnosis: ${inputData?.diagnosis}, Type: ${inputData?.case_type}, Department: ${inputData?.department}. Learning points: ${inputData?.learning_points || "none"}. Academic tone, first person.`,
+      seminars: `Write a 4-6 line academic note for a postgraduate student seminar. Topic: "${inputData?.title || inputData?.topic}", Department: ${inputData?.department}. Key learnings: ${inputData?.key_learning_points || "none"}. Concise academic tone.`,
+      journals: `Write a 4-6 line journal club note. Article: "${inputData?.article_title}", Journal: ${inputData?.journal_name}, Study design: ${inputData?.study_design}. Key findings: ${inputData?.key_findings || "none"}. Critical appraisal style, first person.`,
+      teaching: `Write a 4-6 line teaching activity note. Topic taught: "${inputData?.topic}", Audience: ${inputData?.audience}, Method: ${inputData?.teaching_method}. Learning points: ${inputData?.learning_points || "none"}. Reflective academic tone.`,
+      assessments: `Write a 4-6 line assessment reflection note. Exam: "${inputData?.exam_type}", Topic: ${inputData?.topic}, Score: ${inputData?.score}. Learning gaps: ${inputData?.learning_gaps || "none"}. Growth-oriented reflective tone.`,
+      reflections: `Write a 4-6 line Gibbs cycle reflection. Context: ${inputData?.context}, What happened: ${inputData?.what_happened}, Future plan: ${inputData?.future_plan}. Academic reflective style.`,
+      documents: `Write a 4-6 line professional note about this achievement. Title: "${inputData?.title}", Category: ${inputData?.category}, Description: ${inputData?.description || "none"}. Professional academic tone.`,
+    };
+    const prompt = prompts[module] || `Write a 4-6 line professional academic note about: ${JSON.stringify(inputData)}`;
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        }
+      );
+      const result = await response.json() as any;
+      const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      res.json({ notes: text });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  // --- CV EXPORT DATA ---
+  app.get("/api/portfolio/cv-data", async (req, res) => {
+    const { user_id } = req.query as any;
+    if (!user_id) return res.status(400).json({ error: "user_id required" });
+    try {
+      const [profile, logbook, cases, seminars, journals, teaching, assessments, documents] = await Promise.all([
+        supabaseAdmin.from("portfolio_profiles").select("*").eq("user_id", user_id).maybeSingle(),
+        supabaseAdmin.from("portfolio_logbook").select("*").eq("user_id", user_id),
+        supabaseAdmin.from("portfolio_cases").select("*").eq("user_id", user_id),
+        supabaseAdmin.from("portfolio_seminars").select("*").eq("user_id", user_id),
+        supabaseAdmin.from("portfolio_journals").select("*").eq("user_id", user_id),
+        supabaseAdmin.from("portfolio_teaching").select("*").eq("user_id", user_id),
+        supabaseAdmin.from("portfolio_assessments").select("*").eq("user_id", user_id),
+        supabaseAdmin.from("portfolio_documents").select("*").eq("user_id", user_id),
+      ]);
+      res.json({
+        profile: profile.data,
+        logbook: logbook.data || [],
+        cases: cases.data || [],
+        seminars: seminars.data || [],
+        journals: journals.data || [],
+        teaching: teaching.data || [],
+        assessments: assessments.data || [],
+        documents: documents.data || [],
+      });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({

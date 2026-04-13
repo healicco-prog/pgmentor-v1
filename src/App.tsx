@@ -35,6 +35,7 @@ const _supabase = createClient(
 );
 
 // SECURITY: Global Fetch Interceptor to attach JWT tokens to secure API routes
+// Also handles Control Panel admin secret injection when CP session is active
 const originalFetch = window.fetch;
 window.fetch = async (input, init = {}) => {
   let url = '';
@@ -48,12 +49,34 @@ window.fetch = async (input, init = {}) => {
 
   // Only intercept our backend API routes
   if (url.startsWith('/api/') || url.includes('/api/')) {
-    const { data } = await _supabase.auth.getSession();
-    if (data?.session?.access_token) {
+    // 1. Check if a Control Panel admin session is active (higher priority)
+    const cpAuth = (() => {
+      try {
+        const stored = sessionStorage.getItem('cp_auth');
+        if (!stored) return null;
+        const parsed = JSON.parse(stored);
+        // Session valid for 4 hours
+        if (Date.now() - parsed.ts < 4 * 60 * 60 * 1000) return parsed;
+        sessionStorage.removeItem('cp_auth');
+        return null;
+      } catch { return null; }
+    })();
+
+    if (cpAuth) {
+      // Inject secret header for control panel admin operations
       init.headers = {
         ...init.headers,
-        Authorization: `Bearer ${data.session.access_token}`,
+        Authorization: `Secret PGMentor-SuperAdmin-SecretKey-2026`,
       };
+    } else {
+      // 2. Fallback: inject Supabase JWT for regular logged-in users
+      const { data } = await _supabase.auth.getSession();
+      if (data?.session?.access_token) {
+        init.headers = {
+          ...init.headers,
+          Authorization: `Bearer ${data.session.access_token}`,
+        };
+      }
     }
   }
   return originalFetch(input, init);

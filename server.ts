@@ -283,17 +283,10 @@ async function startServer() {
     const path = req.path;
     const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
 
-    // 1. Global Rate Limiting (50 requests per minute per IP to prevent spam/DDoS)
-    if (rateLimit(`global:${clientIp}`, 50, 60 * 1000)) {
+    // 1. Global Rate Limiting (200 requests per minute per IP)
+    if (rateLimit(`global:${clientIp}`, 200, 60 * 1000)) {
       console.warn(`🚦 Global rate limit exceeded for IP: ${clientIp}`);
       return res.status(429).json({ error: 'Too many requests' });
-    }
-
-    // 2. Extra stricter limit for AI endpoints (10 requests per minute)
-    if (path.startsWith('/ai/') || path.startsWith('/gen-ai')) {
-      if (rateLimit(`ai:${clientIp}`, 10, 60 * 1000)) {
-        return res.status(429).json({ error: 'AI rate limit exceeded' });
-      }
     }
     
     // 3. Admin routes handled by requireAdmin later
@@ -306,10 +299,20 @@ async function startServer() {
     // 5. Public read-only library endpoints (LMS Auto-Gen status check)
     const publicReadPaths = ['/knowledge', '/essays', '/mcqs', '/flashcards'];
     if (req.method === 'GET' && publicReadPaths.some(p => path === p || path.startsWith(p + '?'))) return next();
-    
-    // 5. Enforce Authentication
+
+    // 6. Accept Control Panel admin secret key as valid auth
+    // This allows the control panel to call ALL API endpoints incl. AI generation
+    // without needing a Supabase JWT (the CP authenticates via its own login form)
+    const ADMIN_SECRET = process.env.ADMIN_API_SECRET || 'PGMentor-SuperAdmin-SecretKey-2026';
+    const authHeader = req.headers.authorization;
+    if (authHeader === `Secret ${ADMIN_SECRET}`) {
+      (req as any).user = { id: '00000000-0000-0000-0000-000000000000', role: 'super_admin', email: 'admin@pgmentor.in' };
+      console.log(`✅ Admin secret auth accepted for ${req.method} /api${path}`);
+      return next();
+    }
+
+    // 7. Enforce JWT Authentication for all other routes
     try {
-      const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         console.warn(`🔒 Rejecting unauthenticated access to ${req.method} /api${path}`);
         return res.status(401).json({ error: 'Authentication required' });
@@ -323,7 +326,9 @@ async function startServer() {
       (req as any).user = user;
       next();
     } catch (err: any) {
-      res.status(500).json({ error: 'Authentication failed' });
+      // Network error reaching Supabase (e.g. missing SUPABASE_URL env var)
+      console.error(`❌ Auth middleware network error for ${req.method} /api${path}: ${err.message}`);
+      res.status(503).json({ error: 'Authentication service temporarily unavailable. Please retry.' });
     }
   });
 

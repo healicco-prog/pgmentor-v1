@@ -114,7 +114,7 @@ function selectAIModel(_userRole?: string): string {
 }
 
 function selectFallbackModel(): string {
-  // Same model — retry handles transient 429/503 errors
+  // Use the verified model as fallback, since 1.5-flash returns NOT_FOUND
   return GEMINI_MODEL;
 }
 
@@ -191,15 +191,20 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label?: string): Promis
 // ═══════════════════════════════════════════════════════════════════════════
 // RETRY WITH EXPONENTIAL BACKOFF — handles 429 RESOURCE_EXHAUSTED errors
 // ═══════════════════════════════════════════════════════════════════════════
-async function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+async function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 5): Promise<T> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
     } catch (error: any) {
-      const is429 = error?.message?.includes('429') || error?.message?.includes('RESOURCE_EXHAUSTED');
-      if (is429 && attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000; // 1-2s, 2-3s, 4-5s
-        console.log(`⏳ Rate limited (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${Math.round(delay)}ms...`);
+      const msg = error?.message || '';
+      const is429 = msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED');
+      const is503 = msg.includes('503') || msg.includes('UNAVAILABLE');
+      const isRetryable = is429 || is503;
+      if (isRetryable && attempt < maxRetries) {
+        // Longer delay for 503 (server overload) vs 429 (rate limit)
+        const baseDelay = is503 ? 5000 : 2000;
+        const delay = baseDelay * Math.pow(1.5, attempt) + Math.random() * 1000;
+        console.log(`⏳ ${is503 ? 'Server overload' : 'Rate limited'} (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${Math.round(delay)}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -295,8 +300,12 @@ async function startServer() {
     if (path.startsWith('/admin/')) return next();
     
     // 4. Public auth & read paths
-    const publicPaths = ['/auth/', '/user/profile'];
+    const publicPaths = ['/auth/'];
     if (publicPaths.some(p => path.startsWith(p))) return next();
+
+    // 5. Public read-only library endpoints (LMS Auto-Gen status check)
+    const publicReadPaths = ['/knowledge', '/essays', '/mcqs', '/flashcards'];
+    if (req.method === 'GET' && publicReadPaths.some(p => path === p || path.startsWith(p + '?'))) return next();
     
     // 5. Enforce Authentication
     try {
@@ -325,6 +334,11 @@ async function startServer() {
 
   if (IS_PRODUCTION && BACKEND_API_KEY) {
     app.use('/api', (req, res, next) => {
+      // Allow public read-only library endpoints without API key (for LMS Auto-Gen status check)
+      const publicReadPaths = ['/knowledge', '/essays', '/mcqs', '/flashcards'];
+      if (req.method === 'GET' && publicReadPaths.some(p => req.path === p || req.path.startsWith(p + '?'))) {
+        return next();
+      }
       const clientKey = req.headers['x-api-key'];
       if (clientKey !== BACKEND_API_KEY) {
         return res.status(403).json({ error: 'Forbidden: Invalid or missing API key.' });
@@ -396,7 +410,7 @@ async function startServer() {
     let usedModel = primaryModel;
     try {
       response = await withTimeout(
-        retryWithBackoff(() => geminiGenerate({ model: primaryModel, contents: prompt, systemInstruction, responseMimeType: responseMimeType || 'text/plain', temperature: 0.7, tools }), 1),
+        retryWithBackoff(() => geminiGenerate({ model: primaryModel, contents: prompt, systemInstruction, responseMimeType: responseMimeType || 'text/plain', temperature: 0.7, tools }), 3),
         120000,
         `${primaryModel} primary`
       );
@@ -409,8 +423,8 @@ async function startServer() {
         try {
           usedModel = fallbackModel;
           response = await withTimeout(
-            retryWithBackoff(() => geminiGenerate({ model: fallbackModel, contents: prompt, systemInstruction, responseMimeType: responseMimeType || 'text/plain', temperature: 0.7, tools }), 1),
-            45000,
+            retryWithBackoff(() => geminiGenerate({ model: fallbackModel, contents: prompt, systemInstruction, responseMimeType: responseMimeType || 'text/plain', temperature: 0.7, tools }), 3),
+            60000,
             `${fallbackModel} fallback`
           );
           console.log(`✅ Fallback model ${fallbackModel} succeeded`);
@@ -471,7 +485,7 @@ async function startServer() {
     try {
       try {
         aiResponse = await withTimeout(
-          retryWithBackoff(() => geminiGenerate({ model: primaryModel, contents: prompt, systemInstruction, responseMimeType: responseMimeType || 'text/plain', temperature: 0.7, tools }), 1),
+          retryWithBackoff(() => geminiGenerate({ model: primaryModel, contents: prompt, systemInstruction, responseMimeType: responseMimeType || 'text/plain', temperature: 0.7, tools }), 3),
           290000,
           `${primaryModel} stream-primary`
         );
@@ -483,8 +497,8 @@ async function startServer() {
         if (isTimeout || is429 || is503) {
           usedModel = fallbackModel;
           aiResponse = await withTimeout(
-            retryWithBackoff(() => geminiGenerate({ model: fallbackModel, contents: prompt, systemInstruction, responseMimeType: responseMimeType || 'text/plain', temperature: 0.7, tools }), 1),
-            120000,
+            retryWithBackoff(() => geminiGenerate({ model: fallbackModel, contents: prompt, systemInstruction, responseMimeType: responseMimeType || 'text/plain', temperature: 0.7, tools }), 3),
+            180000,
             `${fallbackModel} stream-fallback`
           );
           console.log(`✅ Stream fallback model ${fallbackModel} succeeded`);
@@ -1105,6 +1119,8 @@ async function startServer() {
   app.get("/api/user/profile/:userId", async (req, res) => {
     try {
       const { userId } = req.params;
+      const callerId = (req as any).user?.id;
+      if (callerId !== userId) return res.status(403).json({ error: "Forbidden: Cannot access other users' profiles" });
       const { data, error } = await supabaseAdmin
         .from("user_profiles")
         .select("full_name, specialty, selected_course, profession, current_stage")
@@ -1122,6 +1138,8 @@ async function startServer() {
     try {
       const email = req.query.email as string;
       if (!email) return res.status(400).json({ error: "email is required" });
+      const callerEmail = (req as any).user?.email;
+      if (callerEmail !== email) return res.status(403).json({ error: "Forbidden: Cannot access other users' profiles" });
       
       // Look up user_id from auth.users via email
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
@@ -1149,6 +1167,10 @@ async function startServer() {
       if ((!userId && !email) || !selectedCourse) {
         return res.status(400).json({ error: "userId or email, and selectedCourse are required" });
       }
+      const callerId = (req as any).user?.id;
+      const callerEmail = (req as any).user?.email;
+      if (userId && callerId !== userId) return res.status(403).json({ error: "Forbidden" });
+      if (email && callerEmail !== email) return res.status(403).json({ error: "Forbidden" });
       
       let targetUserId = userId;
       
@@ -1178,6 +1200,8 @@ async function startServer() {
     try {
       const profileData = req.body;
       if (!profileData.user_id) return res.status(400).json({ error: "user_id is required" });
+      const callerId = (req as any).user?.id;
+      if (callerId !== profileData.user_id) return res.status(403).json({ error: "Forbidden" });
 
       const { data, error } = await supabaseAdmin
         .from("user_profiles")
@@ -1645,7 +1669,7 @@ async function startServer() {
   });
 
   // Admin: Get all affiliate partners (sorted by referral count)
-  app.get("/api/admin/referral/all-partners", async (req, res) => {
+  app.get("/api/admin/referral/all-partners", requireAdmin, async (req, res) => {
     try {
       const { data, error } = await supabase.rpc('admin_get_all_referral_partners');
       if (error) throw error;
@@ -1657,7 +1681,7 @@ async function startServer() {
   });
 
   // Admin: Get referral summary stats
-  app.get("/api/admin/referral/summary", async (req, res) => {
+  app.get("/api/admin/referral/summary", requireAdmin, async (req, res) => {
     try {
       const { data, error } = await supabase.rpc('admin_get_referral_summary');
       if (error) throw error;
@@ -1668,7 +1692,7 @@ async function startServer() {
   });
 
   // Admin: Get detailed referrals for a specific user
-  app.get("/api/admin/referral/user/:userId", async (req, res) => {
+  app.get("/api/admin/referral/user/:userId", requireAdmin, async (req, res) => {
     try {
       const { data, error } = await supabase.rpc('admin_get_user_referrals', { p_user_id: (req.params.userId === 'default' ? '00000000-0000-0000-0000-000000000000' : req.params.userId) });
       if (error) throw error;
@@ -2062,7 +2086,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/admin/users", async (req, res) => {
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
       const { data, error } = await supabase.from('users').select('id, email, role, created_at');
       if (error) throw error;
@@ -2072,7 +2096,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/admin/analytics", async (req, res) => {
+  app.get("/api/admin/analytics", requireAdmin, async (req, res) => {
     try {
       // In Supabase SQL we'd use grouping or an RPC.
       // Easiest is to fetch all and group in JS, or use a view/rpc.
@@ -2116,7 +2140,7 @@ async function startServer() {
   app.post("/api/knowledge", async (req, res) => {
     const { id, user_id, title, content, course, paper, section, topic } = req.body;
     try {
-      const { error } = await supabase.from('knowledge_library').upsert({
+      const { error } = await supabaseAdmin.from('knowledge_library').upsert({
         id, user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), title, content, course, paper, section, topic
       });
       if (error) throw error;
@@ -2139,7 +2163,7 @@ async function startServer() {
   app.post("/api/essays", async (req, res) => {
     const { id, user_id, title, content, course, paper, section, topic } = req.body;
     try {
-      const { error } = await supabase.from('essay_library').upsert({
+      const { error } = await supabaseAdmin.from('essay_library').upsert({
         id, user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), title, content, course, paper, section, topic
       });
       if (error) throw error;
@@ -2152,7 +2176,7 @@ async function startServer() {
   app.delete("/api/essays/:id", async (req, res) => {
     const { id } = req.params;
     try {
-      const { error } = await supabase.from('essay_library').delete().eq('id', id);
+      const { error } = await supabaseAdmin.from('essay_library').delete().eq('id', id);
       if (error) throw error;
       res.json({ success: true });
     } catch (error: any) {
@@ -2173,7 +2197,7 @@ async function startServer() {
   app.post("/api/mcqs", async (req, res) => {
     const { id, user_id, title, question, options, correct_answer, course, paper, section, topic } = req.body;
     try {
-      const { error } = await supabase.from('mcq_library').upsert({
+      const { error } = await supabaseAdmin.from('mcq_library').upsert({
         id, user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), title, question, options, correct_answer, course, paper, section, topic
       });
       if (error) throw error;
@@ -2196,7 +2220,7 @@ async function startServer() {
   app.post("/api/flashcards", async (req, res) => {
     const { id, user_id, title, front_content, back_content, course, paper, section, topic } = req.body;
     try {
-      const { error } = await supabase.from('flash_cards').upsert({
+      const { error } = await supabaseAdmin.from('flash_cards').upsert({
         id, user_id: (user_id === 'default' || !user_id ? '00000000-0000-0000-0000-000000000000' : user_id), title, front_content, back_content, course, paper, section, topic
       });
       if (error) throw error;

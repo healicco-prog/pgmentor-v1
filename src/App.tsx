@@ -52,12 +52,13 @@ window.fetch = async (input, init = {}) => {
     if (data?.session?.access_token) {
       init.headers = {
         ...init.headers,
-        Authorization: `Bearer ${data.session.access_token}`
+        Authorization: `Bearer ${data.session.access_token}`,
       };
     }
   }
   return originalFetch(input, init);
 };
+
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -16638,21 +16639,37 @@ const ControlPanelLogin = ({ onSuccess }: { onSuccess: (role: string) => void })
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    // Simulate brief network delay for UX
-    setTimeout(() => {
-      const match = CP_CREDENTIALS.find(c => c.email === email.trim().toLowerCase() && c.password === password);
-      if (match) {
-        sessionStorage.setItem('cp_auth', JSON.stringify({ role: match.role, ts: Date.now() }));
-        onSuccess(match.role);
-      } else {
-        setError('Invalid credentials. Access denied.');
-      }
+
+    // Step 1: Validate against Control Panel credentials
+    const match = CP_CREDENTIALS.find(c => c.email === email.trim().toLowerCase() && c.password === password);
+    if (!match) {
+      setError('Invalid credentials. Access denied.');
       setIsLoading(false);
-    }, 600);
+      return;
+    }
+
+    // Step 2: Also sign into Supabase so a real JWT is established.
+    // This is the CRITICAL step — it gives the fetch interceptor a valid Bearer
+    // token so all backend AI calls are authenticated automatically.
+    const { error: authError } = await _supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (authError) {
+      // If Supabase auth fails (e.g. wrong Supabase password), still gate entry
+      setError(`Authentication failed: ${authError.message}`);
+      setIsLoading(false);
+      return;
+    }
+
+    // Step 3: Store CP role and grant access
+    sessionStorage.setItem('cp_auth', JSON.stringify({ role: match.role, ts: Date.now() }));
+    onSuccess(match.role);
+    setIsLoading(false);
   };
 
   return (
@@ -16781,6 +16798,51 @@ const ControlPanel = ({ onNavigate, curriculum, setCurriculum, blogPosts, setBlo
   const [lmsPaperId, setLmsPaperId] = useState('');
   const [lmsSectionId, setLmsSectionId] = useState('');
   const [isGeneratingLMS, setIsGeneratingLMS] = useState(false);
+  const [createdLibraryContent, setCreatedLibraryContent] = useState({
+    knowledge: [] as string[],
+    essays: [] as string[],
+    mcqs: [] as string[],
+    flashcards: [] as string[]
+  });
+
+  useEffect(() => {
+    if (activeGenTab !== 'generation-engine') return;
+    Promise.all([
+      fetch('/api/knowledge').then(res => res.json()).catch(() => []),
+      fetch('/api/essays').then(res => res.json()).catch(() => []),
+      fetch('/api/mcqs').then(res => res.json()).catch(() => []),
+      fetch('/api/flashcards').then(res => res.json()).catch(() => [])
+    ]).then(([knowledge, essays, mcqs, flashcards]) => {
+      setCreatedLibraryContent({
+        knowledge: Array.isArray(knowledge) ? knowledge.map((item: any) => String(item.topic)) : [],
+        essays: Array.isArray(essays) ? essays.map((item: any) => String(item.topic)) : [],
+        mcqs: Array.isArray(mcqs) ? mcqs.map((item: any) => String(item.topic)) : [],
+        flashcards: Array.isArray(flashcards) ? flashcards.map((item: any) => String(item.topic)) : []
+      });
+      // Sync DB content into curriculum state to display it
+      setCurriculum((prev: any) => {
+        let hasChanges = false;
+        const newCur = JSON.parse(JSON.stringify(prev));
+        const kMap = new Map();
+        const eMap = new Map();
+        const mMap = new Map();
+        const fMap = new Map();
+        if (Array.isArray(knowledge)) knowledge.forEach((i: any) => kMap.set(String(i.topic), i.content));
+        if (Array.isArray(essays)) essays.forEach((i: any) => eMap.set(String(i.topic), i.content));
+        if (Array.isArray(mcqs)) mcqs.forEach((i: any) => mMap.set(String(i.topic), i.content));
+        if (Array.isArray(flashcards)) flashcards.forEach((i: any) => fMap.set(String(i.topic), i.content));
+
+        newCur.forEach((c: any) => c.papers?.forEach((p: any) => p.sections?.forEach((s: any) => s.topics?.forEach((t: any) => {
+          const tid = String(t.id);
+          if (!t.generatedContent && kMap.has(tid)) { t.generatedContent = kMap.get(tid); hasChanges = true; }
+          if (!t.generatedEssayContent && eMap.has(tid)) { t.generatedEssayContent = eMap.get(tid); hasChanges = true; }
+          if (!t.generatedMcqContent && mMap.has(tid)) { t.generatedMcqContent = mMap.get(tid); hasChanges = true; }
+          if (!t.generatedFlashCardsContent && fMap.has(tid)) { t.generatedFlashCardsContent = fMap.get(tid); hasChanges = true; }
+        }))));
+        return hasChanges ? newCur : prev;
+      });
+    }).catch(err => console.error("Error fetching library content status:", err));
+  }, [activeGenTab]);
   // Overwrite confirmation dialog state
   const [overwriteDialogTopics, setOverwriteDialogTopics] = useState<string[]>([]);
   const [overwriteDialogResolve, setOverwriteDialogResolve] = useState<((v: boolean) => void) | null>(null);
@@ -17183,6 +17245,56 @@ Return ONLY the JSON object, no extra text.`;
     }
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SAVE TO DEDICATED LIBRARY TABLES
+  // Saves generated content to the correct Supabase table so it appears in the
+  // public-facing Knowledge & Learning Resources sections.
+  // ═══════════════════════════════════════════════════════════════════════════
+  const saveToLibraryTable = async (
+    tab: string,
+    topicId: string | number,
+    topicName: string,
+    courseName: string,
+    paperName: string,
+    sectionName: string,
+    content: string
+  ) => {
+    try {
+      const id = `${tab}_${String(topicId).replace(/[^a-z0-9]/gi, '_')}`;
+      let endpoint = '';
+      let body: Record<string, any> = {};
+
+      if (tab === 'lms-notes' || tab === 'lms-notes-editor') {
+        endpoint = '/api/knowledge';
+        body = { id, title: topicName, content, course: courseName, paper: paperName, section: sectionName, topic: String(topicId) };
+      } else if (tab === 'essay-questions' || tab === 'essay-questions-editor') {
+        endpoint = '/api/essays';
+        body = { id, title: topicName, content, course: courseName, paper: paperName, section: sectionName, topic: String(topicId) };
+      } else if (tab === 'mcq-questions' || tab === 'mcq-questions-editor') {
+        endpoint = '/api/mcqs';
+        body = { id, title: topicName, question: content, options: [], correct_answer: '', course: courseName, paper: paperName, section: sectionName, topic: String(topicId) };
+      } else if (tab === 'flash-cards' || tab === 'flash-cards-editor') {
+        endpoint = '/api/flashcards';
+        body = { id, title: topicName, front_content: topicName, back_content: content, course: courseName, paper: paperName, section: sectionName, topic: String(topicId) };
+      }
+
+      if (!endpoint) return;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        console.log(`📚 Saved to library table (${endpoint}) for topic: ${topicName}`);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.error(`❌ Library table save failed for ${topicName}:`, err);
+      }
+    } catch (e) {
+      console.error('❌ saveToLibraryTable error:', e);
+    }
+  };
+
   const handleGenerateLMSNotes = async () => {
     if (selectedTopics.length === 0) {
       alert("Please select at least one topic to generate notes.");
@@ -17220,7 +17332,14 @@ Return ONLY the JSON object, no extra text.`;
     }
     if (topicsWithExistingContent.length > 0) {
       const proceed = await confirmOverwrite(topicsWithExistingContent);
-      if (!proceed) return;
+      if (!proceed) {
+        // Just show what's already created!
+        if (currentTab === 'lms-notes') setActiveTab('lms-notes-editor');
+        else if (currentTab === 'essay-questions') setActiveTab('essay-questions-editor');
+        else if (currentTab === 'mcq-questions') setActiveTab('mcq-questions-editor');
+        else if (currentTab === 'flash-cards') setActiveTab('flash-cards-editor');
+        return;
+      }
     }
     
     setIsGeneratingLMS(true);
@@ -17361,11 +17480,43 @@ FORMATTING REQUIREMENTS:
             console.error(`⚠️ [Iterative] Network error saving "${topicName}":`, saveErr);
           }
 
+          // Also save to the dedicated library table (knowledge_library / essay_library / mcq_library / flash_cards)
+          // so the content is visible in Knowledge & Learning Resources on the public site
+          {
+            let paperName = '';
+            let sectionName = '';
+            for (const c of latestCurriculum) {
+              for (const p of c.papers) {
+                for (const s of p.sections) {
+                  const t = s.topics.find((x: any) => x.id === topicId);
+                  if (t) { paperName = p.name; sectionName = s.name; }
+                }
+              }
+            }
+            await saveToLibraryTable(currentTab, topicId, topicName, courseName, paperName, sectionName, content);
+          }
+
           successCount++;
+
+          // Throttle: wait 2s between topics to avoid 503 overload on Gemini API
+          // (Backend retry logic handles individual failures but this prevents cascade)
+          if (successCount < selectedTopics.length) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
         } catch (topicErr: any) {
           console.error(`❌ Failed to generate for topic "${topicName}":`, topicErr);
           failedTopics.push(topicName);
           lastError = topicErr?.message || String(topicErr);
+          // On error, still wait before next topic to give the API time to recover
+          // Wait much longer (15s) if it's a 503 UNAVAILABLE or 429 Rate Limit
+          const isOverloaded = lastError.includes('UNAVAILABLE') || lastError.includes('503') || lastError.includes('429');
+          
+          if (isOverloaded && failedTopics.length >= 2 && successCount === 0) {
+            console.warn("⚠️ Aborting generation batch due to persistent model overload.");
+            break;
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, isOverloaded ? 15000 : 3000));
         }
       }
       
@@ -18372,7 +18523,11 @@ FORMATTING REQUIREMENTS:
                                   : activeTab === 'essay-questions' ? 'generatedEssayContent'
                                   : activeTab === 'mcq-questions' ? 'generatedMcqContent'
                                   : 'generatedFlashCardsContent';
-                                const uncreatedIds = genActiveTopics.filter((t: any) => !t[contentKey]).map((t: any) => t.id);
+                                const libraryList = activeTab === 'lms-notes' ? createdLibraryContent.knowledge
+                                  : activeTab === 'essay-questions' ? createdLibraryContent.essays
+                                  : activeTab === 'mcq-questions' ? createdLibraryContent.mcqs
+                                  : createdLibraryContent.flashcards;
+                                const uncreatedIds = genActiveTopics.filter((t: any) => !t[contentKey] && !libraryList.includes(String(t.id))).map((t: any) => t.id);
                                 setSelectedTopics(uncreatedIds);
                               }}
                               className="text-[11px] font-bold text-[#f59e0b] hover:text-[#d97706] bg-[#fffbeb] px-2 py-1 rounded-lg border border-[#fde68a] transition-colors"
@@ -18391,7 +18546,11 @@ FORMATTING REQUIREMENTS:
                             : activeTab === 'essay-questions' ? 'generatedEssayContent'
                             : activeTab === 'mcq-questions' ? 'generatedMcqContent'
                             : 'generatedFlashCardsContent';
-                          const createdCount = genActiveTopics.filter((t: any) => t[contentKey]).length;
+                          const libraryList = activeTab === 'lms-notes' ? createdLibraryContent.knowledge
+                            : activeTab === 'essay-questions' ? createdLibraryContent.essays
+                            : activeTab === 'mcq-questions' ? createdLibraryContent.mcqs
+                            : createdLibraryContent.flashcards;
+                          const createdCount = genActiveTopics.filter((t: any) => t[contentKey] || libraryList.includes(String(t.id))).length;
                           const pendingCount = genActiveTopics.length - createdCount;
                           const percentage = Math.round((createdCount / genActiveTopics.length) * 100);
                           return (
@@ -18428,15 +18587,20 @@ FORMATTING REQUIREMENTS:
                             <div className="text-[13px] text-slate-400 italic">No topics found in the selected context.</div>
                           ) : (
                             genActiveTopics.map(topic => {
-                              const hasNotes = !!(topic as any).generatedContent;
-                              const hasEssay = !!(topic as any).generatedEssayContent;
-                              const hasMcq = !!(topic as any).generatedMcqContent;
-                              const hasFlash = !!(topic as any).generatedFlashCardsContent;
+                              const topicStrId = String(topic.id);
+                              const hasNotes = !!(topic as any).generatedContent || createdLibraryContent.knowledge.includes(topicStrId);
+                              const hasEssay = !!(topic as any).generatedEssayContent || createdLibraryContent.essays.includes(topicStrId);
+                              const hasMcq = !!(topic as any).generatedMcqContent || createdLibraryContent.mcqs.includes(topicStrId);
+                              const hasFlash = !!(topic as any).generatedFlashCardsContent || createdLibraryContent.flashcards.includes(topicStrId);
                               const currentContentKey = activeTab === 'lms-notes' ? 'generatedContent'
                                 : activeTab === 'essay-questions' ? 'generatedEssayContent'
                                 : activeTab === 'mcq-questions' ? 'generatedMcqContent'
                                 : 'generatedFlashCardsContent';
-                              const hasCurrentContent = !!(topic as any)[currentContentKey];
+                              const currentLibraryList = activeTab === 'lms-notes' ? createdLibraryContent.knowledge
+                                : activeTab === 'essay-questions' ? createdLibraryContent.essays
+                                : activeTab === 'mcq-questions' ? createdLibraryContent.mcqs
+                                : createdLibraryContent.flashcards;
+                              const hasCurrentContent = !!(topic as any)[currentContentKey] || currentLibraryList.includes(topicStrId);
                               const allCreated = hasNotes && hasEssay && hasMcq && hasFlash;
                               return (
                                 <div 
@@ -19076,6 +19240,10 @@ FORMATTING REQUIREMENTS:
                         <button onClick={() => { setEditingNoteId(null); setEditingContent(''); }} className="flex-1 md:flex-none px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 border border-slate-300 transition-colors">Cancel</button>
                         <button onClick={async () => {
                           let updatedCurriculum = JSON.parse(JSON.stringify(curriculum));
+                          let savedTopicName = '';
+                          let savedCourseName = '';
+                          let savedPaperName = '';
+                          let savedSectionName = '';
                           for (const c of updatedCurriculum) {
                             if (!c.papers) continue;
                             for (const p of c.papers) {
@@ -19088,6 +19256,10 @@ FORMATTING REQUIREMENTS:
                                   else if (activeTab === 'essay-questions-editor') t.generatedEssayContent = editingContent;
                                   else if (activeTab === 'mcq-questions-editor') t.generatedMcqContent = editingContent;
                                   else if (activeTab === 'flash-cards-editor') t.generatedFlashCardsContent = editingContent;
+                                  savedTopicName = t.name;
+                                  savedCourseName = c.name;
+                                  savedPaperName = p.name;
+                                  savedSectionName = s.name;
                                 }
                               }
                             }
@@ -19101,8 +19273,12 @@ FORMATTING REQUIREMENTS:
                               body: JSON.stringify({ user_id: localStorage.getItem('PGMentor_user_id') || '', data: updatedCurriculum })
                             });
                           } catch (e) { console.error('Save failed:', e); }
+                          // Also publish to the dedicated library table
+                          if (savedTopicName) {
+                            await saveToLibraryTable(activeTab, editingNoteId, savedTopicName, savedCourseName, savedPaperName, savedSectionName, editingContent);
+                          }
                           setEditingNoteId(null);
-                        }} className="flex-1 md:flex-none px-5 py-2.5 rounded-xl font-bold bg-[#10b981] hover:bg-[#059669] text-white flex justify-center items-center gap-2 shadow-sm transition-colors"><CheckCircle size={18} /> Save Changes</button>
+                        }} className="flex-1 md:flex-none px-5 py-2.5 rounded-xl font-bold bg-[#10b981] hover:bg-[#059669] text-white flex justify-center items-center gap-2 shadow-sm transition-colors"><CheckCircle size={18} /> Save & Publish</button>
                       </div>
                     </div>
                     <textarea 
@@ -19386,21 +19562,25 @@ export default function App() {
             const customCourses = parsed.filter((c: any) => !defaultIds.has(c.id) && !deprecatedIds.has(c.id));
             
             const mergedDefaultCourses = DEFAULT_CURRICULUM.map(defaultCourse => {
-              const savedCourse = parsed.find((c: any) => c.id === defaultCourse.id);
+              const savedCourse = parsed.find((c: any) => c?.id?.toString() === defaultCourse?.id?.toString() || (c?.name && defaultCourse?.name && c.name === defaultCourse.name));
               if (!savedCourse) return defaultCourse;
 
+              const customPapers = savedCourse.papers?.filter((p: any) => !defaultCourse.papers?.find((dp: any) => dp?.id?.toString() === p?.id?.toString())) || [];
+
               const mergedPapers = defaultCourse.papers?.map(defaultPaper => {
-                const savedPaper = savedCourse.papers?.find((p: any) => p.id === defaultPaper.id);
+                const savedPaper = savedCourse.papers?.find((p: any) => p?.id?.toString() === defaultPaper?.id?.toString() || (p?.name && defaultPaper?.name && p.name === defaultPaper.name));
                 if (!savedPaper) return defaultPaper;
 
+                const customSections = savedPaper.sections?.filter((s: any) => !defaultPaper.sections?.find((ds: any) => ds?.id?.toString() === s?.id?.toString())) || [];
+
                 const mergedSections = defaultPaper.sections?.map(defaultSection => {
-                  const savedSection = savedPaper.sections?.find((s: any) => s.id === defaultSection.id);
+                  const savedSection = savedPaper.sections?.find((s: any) => s?.id?.toString() === defaultSection?.id?.toString() || (s?.name && defaultSection?.name && s.name === defaultSection.name));
                   if (!savedSection) return defaultSection;
 
-                  const customTopics = savedSection.topics?.filter((t: any) => !defaultSection.topics?.find((dt: any) => dt.id === t.id)) || [];
+                  const customTopics = savedSection.topics?.filter((t: any) => !defaultSection.topics?.find((dt: any) => dt?.id?.toString() === t?.id?.toString())) || [];
 
                   const mergedTopics = defaultSection.topics?.map(defaultTopic => {
-                    const savedTopic = savedSection.topics?.find((t: any) => t.id === defaultTopic.id);
+                    const savedTopic = savedSection.topics?.find((t: any) => t?.id?.toString() === defaultTopic?.id?.toString() || (t?.name && defaultTopic?.name && t.name === defaultTopic.name));
                     if (!savedTopic) return defaultTopic;
 
                     return {
@@ -19420,7 +19600,7 @@ export default function App() {
 
                 return {
                   ...defaultPaper,
-                  sections: mergedSections
+                  sections: [...(mergedSections || []), ...customSections]
                 };
               });
 

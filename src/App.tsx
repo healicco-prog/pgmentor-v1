@@ -17454,8 +17454,39 @@ FORMATTING REQUIREMENTS:
           }
 
           console.log(`🔄 Generating ${currentTab} for topic: ${topicName} (${successCount + 1}/${selectedTopics.length}) (role: ${cpRole})`);
-          const content = await generateMedicalContent(prompt, "You are an expert medical professor and author generating authoritative clinical content for a Learning Management System.", "text/plain", false, cpRole);
-          console.log(`✅ Generated ${currentTab} for topic: ${topicName}, length: ${content?.length || 0}`);
+          
+          let content = '';
+          let topicSuccess = false;
+          let topicAttempts = 0;
+          let lastTopicErr: any = null;
+
+          while (!topicSuccess && topicAttempts < 10) {
+            try {
+              topicAttempts++;
+              if (topicAttempts > 1) {
+                console.log(`🔄 Retrying ${currentTab} for topic: ${topicName} (Attempt ${topicAttempts}/10)`);
+              }
+              content = await generateMedicalContent(prompt, "You are an expert medical professor and author generating authoritative clinical content for a Learning Management System.", "text/plain", false, cpRole);
+              topicSuccess = true;
+            } catch (err: any) {
+              lastTopicErr = err;
+              const errorStr = err?.message || String(err);
+              console.warn(`⚠️ Attempt ${topicAttempts}/10 failed for "${topicName}":`, errorStr);
+              
+              if (topicAttempts < 10) {
+                // Determine backoff. If it's a 503 or 429, wait longer.
+                const isOverloaded = errorStr.includes('UNAVAILABLE') || errorStr.includes('503') || errorStr.includes('429');
+                const baseDelay = isOverloaded ? 10000 : 3000;
+                const delay = baseDelay * Math.pow(1.5, topicAttempts - 1) + Math.random() * 2000;
+                console.log(`⏳ API overloaded/failed. Waiting ${Math.round(delay/1000)}s before next attempt...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+              } else {
+                // If 10 retries exhaust, we finally throw to mark this topic as permanently failed
+                throw lastTopicErr;
+              }
+            }
+          }
+          console.log(`✅ Generated ${currentTab} for topic: ${topicName}, length: ${content?.length || 0} after ${topicAttempts} attempt(s)`);
           
           // ═══════════════════════════════════════════════════════════════
           // ITERATIVE SAVE: Use functional state update to avoid stale state
@@ -17527,19 +17558,11 @@ FORMATTING REQUIREMENTS:
             await new Promise(resolve => setTimeout(resolve, 2000));
           }
         } catch (topicErr: any) {
-          console.error(`❌ Failed to generate for topic "${topicName}":`, topicErr);
+          console.error(`❌ Failed to generate for topic "${topicName}" permanently:`, topicErr);
           failedTopics.push(topicName);
           lastError = topicErr?.message || String(topicErr);
-          // On error, still wait before next topic to give the API time to recover
-          // Wait much longer (15s) if it's a 503 UNAVAILABLE or 429 Rate Limit
-          const isOverloaded = lastError.includes('UNAVAILABLE') || lastError.includes('503') || lastError.includes('429');
-          
-          if (isOverloaded && failedTopics.length >= 2 && successCount === 0) {
-            console.warn("⚠️ Aborting generation batch due to persistent model overload.");
-            break;
-          }
-          
-          await new Promise(resolve => setTimeout(resolve, isOverloaded ? 15000 : 3000));
+          // Wait briefly before moving to the next topic to ensure API has breathing room
+          await new Promise(resolve => setTimeout(resolve, 5000));
         }
       }
       

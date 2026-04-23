@@ -336,7 +336,7 @@ async function startServer() {
   // ═══════════════════════════════════════════════════════════════════════════
   const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
-    : ['http://localhost:3000', '${APP_URL}', 'http://localhost:5173'];
+    : ['http://localhost:3000', APP_URL, 'http://localhost:5173'];
 
   app.use((req, res, next) => {
     const origin = req.headers.origin;
@@ -429,26 +429,34 @@ async function startServer() {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // API KEY PROTECTION — Block unauthorized direct access to backend
-  // ═══════════════════════════════════════════════════════════════════════════
+  
+  // API KEY PROTECTION - Block unauthorized direct access to backend
+  // Auth routes (/auth/*) are intentionally excluded - they must work without API key
+  // The Netlify Edge Function injects X-API-Key for all requests that go through it
   const BACKEND_API_KEY = process.env.BACKEND_API_KEY;
 
   if (IS_PRODUCTION && BACKEND_API_KEY) {
     app.use('/api', (req, res, next) => {
-      // Allow public read-only library endpoints without API key (for LMS Auto-Gen status check)
+      // Allow public auth & health endpoints without API key (forgot password, signup, login, etc.)
+      const publicPaths = ['/auth/', '/health'];
+      if (publicPaths.some(p => req.path.startsWith(p))) {
+        return next();
+      }
+
+      // Allow public read-only library endpoints without API key
       const publicReadPaths = ['/knowledge', '/essays', '/mcqs', '/flashcards'];
       if (req.method === 'GET' && publicReadPaths.some(p => req.path === p || req.path.startsWith(p + '?'))) {
         return next();
       }
+
       const clientKey = req.headers['x-api-key'];
-      if (clientKey !== BACKEND_API_KEY) {
-        console.warn(`⚠️ Warning: Invalid or missing API key from ${req.ip}. Expected API key protection to be active.`);
-        // Temporarily disabled to unblock Netlify frontend
-        // return res.status(403).json({ error: 'Forbidden: Invalid or missing API key.' });
+      if (!clientKey || clientKey !== BACKEND_API_KEY) {
+        console.warn('Blocked unauthorized request from ' + req.ip + ' to ' + req.method + ' ' + req.path);
+        return res.status(403).json({ error: 'Forbidden: Invalid or missing API key.' });
       }
       next();
     });
-    console.log('🔒 API Key protection enabled for /api/* routes.');
+    console.log('API Key protection enabled for non-auth /api/* routes.');
   }
 
   // Health check for Cloud Run
@@ -835,25 +843,37 @@ async function startServer() {
     }
 
     try {
-      // Call our Supabase RPC function to securely update the password
-      const { data, error } = await supabase.rpc('admin_reset_password', {
-        target_email: email,
-        new_password: newPassword
-      });
-
-      if (error) {
-        console.error("❌ Password reset RPC error:", error);
-        return res.status(500).json({ error: "Failed to reset password. Please try again." });
+      // Update password via Supabase Admin API (bypasses RLS using service role key)
+      // Look up user by email in auth.users (via admin API)
+      const { data: users, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+      
+      if (listError) {
+        console.error("Password reset user list error:", listError.message);
+        return res.status(500).json({ error: "Failed to look up user. Please try again." });
       }
 
-      if (data && !data.success) {
-        return res.status(404).json({ error: data.error || "User not found" });
+      const matchedUser = users?.users?.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+      
+      if (!matchedUser) {
+        console.error("Password reset: user not found for email:", email);
+        return res.status(404).json({ error: "User not found with this email address." });
+      }
+
+      // Update password via Supabase Admin API (uses service role key)
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        matchedUser.id,
+        { password: newPassword }
+      );
+
+      if (updateError) {
+        console.error("Password reset via admin API error:", updateError);
+        return res.status(500).json({ error: "Failed to reset password. Please try again." });
       }
 
       // Clean up the OTP entry
       otpStore.delete(email);
       
-      console.log(`🔑 Password reset successful for ${email}`);
+      console.log(`Password reset successful for ${email}`);
       
       // Send confirmation email
       if (resend) {

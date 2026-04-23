@@ -446,7 +446,6 @@ const EPortfolioMS = ({ onNavigate }: { onNavigate: (page: string) => void }) =>
 
   // Navigation
   const [activeModule, setActiveModule] = useState<Module>('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Data states
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -1237,12 +1236,35 @@ ${documents.map(d => `<div class="entry"><span class="entry-title">${d.title}</s
     documents: 'Document / Achievement',
   };
 
+  // ─── SELECT DROPDOWN STATE ────────────────────────────────────────────────
+  const [selectOpen, setSelectOpen] = useState(false);
+  const selectRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (selectRef.current && !selectRef.current.contains(e.target as Node)) {
+        setSelectOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const activeModuleInfo = MODULES.find(m => m.id === activeModule);
+
+  const handleModuleSelect = (moduleId: string) => {
+    setActiveModule(moduleId as Module);
+    if (moduleId === 'profile') setFormData({ ...(profile || {}), user_id: userId });
+    setSelectOpen(false);
+  };
+
   // ═══════════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════
   return (
     <div className="min-h-screen bg-[#f4f7fc] flex flex-col">
-      {/* Notification */}
+      {/* ── TOP NOTIFICATION ─────────────────────────────────────────── */}
       <AnimatePresence>
         {notification && (
           <motion.div
@@ -1257,93 +1279,139 @@ ${documents.map(d => `<div class="entry"><span class="entry-title">${d.title}</s
         )}
       </AnimatePresence>
 
-      <div className="flex flex-1 max-w-7xl mx-auto w-full">
-        {/* SIDEBAR */}
-        <aside className={`${sidebarOpen ? 'w-60' : 'w-16'} transition-all duration-300 py-6 flex flex-col shrink-0`}>
-          {/* Back button */}
+      {/* ── TOP HEADER BAR ───────────────────────────────────────────── */}
+      <header className="w-full bg-[#f4f7fc] sticky top-0 z-30 pt-3 pb-2 px-3 sm:px-6">
+        <div className="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3">
+
+          {/* Back to Professional Mgmt */}
           <button
             onClick={() => onNavigate('dashboard')}
-            className="flex items-center gap-2 text-[#6b7e99] hover:text-[#1e3a6e] text-sm font-semibold px-4 mb-5 transition-colors"
+            className="flex items-center gap-1.5 text-[#6b7e99] hover:text-[#1e3a6e] text-sm font-semibold transition-colors shrink-0"
           >
             <ArrowLeft size={16} />
-            {sidebarOpen && <span>Professional Mgmt</span>}
+            <span className="hidden xs:inline sm:inline">Professional Mgmt</span>
           </button>
 
-          {/* Portfolio Brand */}
-          {sidebarOpen && (
-            <div className="px-4 mb-5">
-              <div className="bg-gradient-to-br from-[#1e3a6e] to-[#2a4d8a] rounded-xl px-4 py-3">
-                <p className="text-white text-xs font-medium opacity-70">e-Portfolio MS</p>
-                <p className="text-white font-bold text-sm truncate">{profile?.full_name || 'My Portfolio'}</p>
-              </div>
+          {/* e-Portfolio MS branding pill */}
+          <div className="flex-1 min-w-0">
+            <div className="bg-gradient-to-br from-[#1e3a6e] to-[#2a4d8a] rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 inline-flex flex-col min-w-0 max-w-full">
+              <p className="text-white/70 text-[10px] font-medium leading-none">e-Portfolio MS</p>
+              <p className="text-white font-bold text-sm sm:text-base truncate leading-tight mt-0.5">
+                {profile?.full_name || 'My Portfolio'}
+              </p>
             </div>
-          )}
+          </div>
 
-          {/* Nav Items */}
-          <nav className="flex-1 space-y-0.5 px-2">
-            {MODULES.map(m => {
-              const active = activeModule === m.id;
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => { setActiveModule(m.id as Module); if (m.id === 'profile') setFormData({ ...(profile || {}), user_id: userId }); }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                    active
-                      ? 'bg-[#1e3a6e] text-white shadow-sm'
-                      : 'text-[#6b7e99] hover:bg-white hover:text-[#1e3a6e] hover:shadow-sm'
-                  }`}
-                >
-                  <m.icon size={16} className="shrink-0" />
-                  {sidebarOpen && <span className="truncate">{m.label}</span>}
-                  {sidebarOpen && active && <ChevronRight size={14} className="ml-auto shrink-0" />}
-                </button>
-              );
-            })}
-          </nav>
+          {/* branding pill — now centered/expanded since Select moved */}
+          <div className="flex-1 min-w-0 flex justify-center xs:justify-start">
+            <div className="bg-gradient-to-br from-[#1e3a6e] to-[#2a4d8a] rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 inline-flex flex-col min-w-0 max-w-full">
+              <p className="text-white/70 text-[10px] font-medium leading-none">e-Portfolio MS</p>
+              <p className="text-white font-bold text-sm sm:text-base truncate leading-tight mt-0.5">
+                {profile?.full_name || 'My Portfolio'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </header>
 
-          {/* Toggle sidebar */}
+      {/* ── MAIN CONTENT ─────────────────────────────────────────────── */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+
+        {/* Breadcrumb row matching Image 2 */}
+        <div className="mb-4 flex items-center gap-2">
           <button
-            onClick={() => setSidebarOpen(p => !p)}
-            className="mx-4 mt-4 flex items-center justify-center py-2 rounded-xl bg-white border border-[#eef2fb] text-[#9aadca] hover:text-[#1e3a6e] transition-colors text-xs gap-1.5"
+            onClick={() => setActiveModule('dashboard')}
+            className="flex items-center gap-1.5 text-[#6b7e99] hover:text-[#1e3a6e] text-xs sm:text-sm font-semibold transition-colors"
           >
-            {sidebarOpen ? <><ChevronDown size={14} className="rotate-90" /> Collapse</> : <ChevronDown size={14} className="-rotate-90" />}
+            <LayoutDashboard size={14} className="opacity-70" />
+            <span>Dashboard</span>
           </button>
-        </aside>
+          
+          <ChevronRight size={14} className="text-[#c0cee0]" />
 
-        {/* MAIN CONTENT */}
-        <main className="flex-1 px-4 py-6 min-w-0">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeModule}
-              initial={{ opacity: 0, x: 12 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -12 }}
-              transition={{ duration: 0.2 }}
+          {/* Combined Select Button + Label Pill */}
+          <div className="relative" ref={selectRef}>
+            <button
+              onClick={() => setSelectOpen(o => !o)}
+              className="inline-flex items-center gap-2 bg-[#1e3a6e] hover:bg-[#2a4d8a] text-white rounded-xl px-4 py-1.5 text-[13px] font-bold shadow-sm transition-all active:scale-95"
             >
-              {renderModule()}
-            </motion.div>
-          </AnimatePresence>
-        </main>
-      </div>
+              <span>{activeModule === 'dashboard' ? 'Select' : activeModuleInfo?.label || 'Select'}</span>
+              <ChevronDown 
+                size={14} 
+                className={`text-white/70 transition-transform duration-200 ${selectOpen ? 'rotate-180' : ''}`} 
+              />
+            </button>
 
-      {/* ENTRY MODAL */}
+            {/* Dropdown Menu (Positioned relative to the breadcrumb button) */}
+            <AnimatePresence>
+              {selectOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute left-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-[#e8eef8] overflow-hidden z-50 origin-top-left"
+                >
+                  <div className="px-4 py-2 bg-gray-50 border-b border-[#f0f4fb] text-[10px] uppercase font-bold text-[#6b7e99] tracking-wider">
+                    Portfolio Modules
+                  </div>
+                  <div className="max-h-[60vh] overflow-y-auto">
+                    {MODULES.map((m) => {
+                      const active = activeModule === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => handleModuleSelect(m.id)}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all text-left border-b border-[#f0f4fb] last:border-b-0 ${
+                            active
+                              ? 'bg-blue-50 text-[#1e3a6e]'
+                              : 'text-[#1e3a6e] hover:bg-[#f8faff]'
+                          }`}
+                        >
+                          <m.icon size={16} className="shrink-0" style={{ color: m.color }} />
+                          <span className="flex-1">{m.label}</span>
+                          {active && <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeModule}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {renderModule()}
+          </motion.div>
+        </AnimatePresence>
+      </main>
+
+      {/* ── ENTRY MODAL ─────────────────────────────────────────────── */}
       <AnimatePresence>
         {modal && modal.type !== 'profile' && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+            className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
             onClick={e => { if (e.target === e.currentTarget) closeModal(); }}
           >
             <motion.div
               initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
-              className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[92vh] flex flex-col shadow-2xl"
+              className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[92vh] flex flex-col shadow-2xl mx-auto"
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2fb] shrink-0">
-                <h3 className="text-[#1e3a6e] font-bold text-base">
+              <div className="flex items-center justify-center px-6 py-4 border-b border-[#eef2fb] shrink-0 relative">
+                <h3 className="text-[#1e3a6e] font-bold text-base text-center">
                   {modal.editing ? 'Edit' : 'Add'} {modalTitles[modal.type] || modal.type}
                 </h3>
-                <button onClick={closeModal} className="w-8 h-8 rounded-full bg-[#f0f4fb] flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors">
+                <button onClick={closeModal} className="absolute right-6 w-8 h-8 rounded-full bg-[#f0f4fb] flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors">
                   <X size={16} />
                 </button>
               </div>
@@ -1354,7 +1422,7 @@ ${documents.map(d => `<div class="entry"><span class="entry-title">${d.title}</s
               </div>
 
               {/* Modal Footer */}
-              <div className="px-6 py-4 border-t border-[#eef2fb] flex items-center justify-end gap-3 shrink-0">
+              <div className="px-6 py-4 border-t border-[#eef2fb] flex items-center justify-center gap-3 shrink-0">
                 <button
                   onClick={closeModal}
                   className="px-5 py-2.5 border border-[#dfe6f0] text-[#6b7e99] text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors"

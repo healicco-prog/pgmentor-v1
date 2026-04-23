@@ -93,7 +93,6 @@ export const generateMedicalContent = async (
           }
         } else if (eventType === 'ping') {
           // Keep-alive — connection is alive, Gemini still processing
-          console.log('AI stream: keep-alive ping');
         }
       }
     }

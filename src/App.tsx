@@ -10,7 +10,7 @@ import {
   Upload, Layers, Sparkles, CheckCircle, Check, Eye, Play, RotateCcw,
   Cpu, LineChart, Target, FileSymlink, GraduationCap, Lightbulb, HelpCircle, Pill, Lock,
   Gift, Award, Trophy, Shield, Mail, EyeOff, ChevronUp, ChevronDown, GripVertical,
-  Zap, Calendar, Crown, TrendingUp
+  Zap, Calendar, Crown, TrendingUp, Database
 } from 'lucide-react';
 import { FEATURES } from './constants';
 import { PGMentorMentorChat, generateMedicalContent, extractContactFromImage, extractPaperTextFromImage } from './services/ai';
@@ -34,8 +34,8 @@ const _supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-// SECURITY: Global Fetch Interceptor to attach JWT tokens to secure API routes
-// Also handles Control Panel admin secret injection when CP session is active
+// SECURITY: Global Fetch Interceptor — attaches Supabase JWT to all /api/* requests.
+// Backend validates the JWT and enforces roles (including admin) server-side.
 const originalFetch = window.fetch;
 window.fetch = async (input, init = {}) => {
   let url = '';
@@ -49,35 +49,22 @@ window.fetch = async (input, init = {}) => {
 
   // Only intercept our backend API routes
   if (url.startsWith('/api/') || url.includes('/api/')) {
-    // 1. Check if a Control Panel admin session is active (higher priority)
-    const cpAuth = (() => {
-      try {
-        const stored = sessionStorage.getItem('cp_auth');
-        if (!stored) return null;
-        const parsed = JSON.parse(stored);
-        // Session valid for 4 hours
-        if (Date.now() - parsed.ts < 4 * 60 * 60 * 1000) return parsed;
-        sessionStorage.removeItem('cp_auth');
-        return null;
-      } catch { return null; }
-    })();
-
-    if (cpAuth) {
-      // Inject secret header for control panel admin operations
-      init.headers = {
-        ...init.headers,
-        Authorization: `Secret PGMentor-SuperAdmin-SecretKey-2026`,
-      };
-    } else {
-      // 2. Fallback: inject Supabase JWT for regular logged-in users
-      const { data } = await _supabase.auth.getSession();
+    // Inject Supabase JWT for all authenticated requests.
+    // Race against a 3s timeout so this never blocks a request indefinitely.
+    try {
+      const { data } = await Promise.race([
+        _supabase.auth.getSession(),
+        new Promise<{ data: { session: null } }>(resolve =>
+          setTimeout(() => resolve({ data: { session: null } }), 3000)
+        )
+      ]);
       if (data?.session?.access_token) {
         init.headers = {
           ...init.headers,
           Authorization: `Bearer ${data.session.access_token}`,
         };
       }
-    }
+    } catch { /* ignore — send request without auth header */ }
   }
   return originalFetch(input, init);
 };
@@ -1429,6 +1416,12 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
   const [showChangeCourseModal, setShowChangeCourseModal] = useState(false);
   const [newCourseSelection, setNewCourseSelection] = useState('');
   const [changingCourse, setChangingCourse] = useState(false);
+
+  // Active Version state
+  const VERSION_OPTIONS = ['Version 1 – April 2026'];
+  const [activeVersion, setActiveVersion] = useState<string>('Version 1 – April 2026');
+  const [showVersionModal, setShowVersionModal] = useState(false);
+  const [newVersionSelection, setNewVersionSelection] = useState('');
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isRealUser, setIsRealUser] = useState(false);
 
@@ -1582,6 +1575,110 @@ const DashboardContent = ({ curriculum }: { curriculum?: any[] }) => {
           </button>
         </div>
       </div>
+
+      {/* ─── Active Version Card ─── */}
+      <div className="relative overflow-hidden rounded-2xl border border-[#dfe6f0] bg-gradient-to-br from-[#f0f4ff] via-white to-[#eef8f4] p-6 shadow-sm">
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#1e5a4e]/3 rounded-full blur-3xl" />
+        <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-[#2a8a6e]/5 rounded-full blur-3xl" />
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2a8a6e] via-[#1e7a5e] to-[#166a4e] flex items-center justify-center shadow-lg shadow-[#1e5a4e]/20 shrink-0">
+              <Layers size={26} className="text-white" />
+            </div>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-[#6b7e99] mb-1">Active Version</div>
+              <div className="text-xl font-extrabold text-[#1e5a4e]">{activeVersion}</div>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setNewVersionSelection(activeVersion);
+              setShowVersionModal(true);
+            }}
+            className="self-start md:self-center px-5 py-2.5 bg-[#1e5a4e]/5 hover:bg-[#1e5a4e]/10 border border-[#1e5a4e]/15 rounded-xl text-sm font-bold text-[#1e5a4e] transition-all flex items-center gap-2"
+          >
+            <Edit3 size={14} />
+            Select Version
+          </button>
+        </div>
+      </div>
+
+      {/* ─── Select Version Modal ─── */}
+      <AnimatePresence>
+        {showVersionModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 backdrop-blur-md"
+            onClick={() => setShowVersionModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white border border-[#dfe6f0] rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl shadow-black/20"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#2a8a6e] via-[#1e7a5e] to-[#166a4e] flex items-center justify-center">
+                  <Layers size={22} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-[#1e3a6e]">Select Version</h3>
+                  <p className="text-sm text-[#6b7e99]">Choose the content version to use</p>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 mb-6">
+                <label className="block text-[#1e3a6e] text-sm font-medium">Available Versions</label>
+                <div className="space-y-2">
+                  {VERSION_OPTIONS.map(v => (
+                    <button
+                      key={v}
+                      onClick={() => setNewVersionSelection(v)}
+                      className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all flex items-center justify-between ${
+                        newVersionSelection === v
+                          ? 'bg-[#1e5a4e]/10 border-[#1e5a4e]/40 text-[#1e5a4e]'
+                          : 'bg-[#f5f7fa] border-[#dfe6f0] text-[#1e3a6e] hover:bg-[#eef2f8]'
+                      }`}
+                    >
+                      <span>{v}</span>
+                      {newVersionSelection === v && <CheckCircle size={16} className="text-[#1e5a4e]" />}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-[#8a9ab4] mt-2 flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                  More versions will be added as they become available.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowVersionModal(false)}
+                  className="flex-1 py-3 bg-[#f5f7fa] hover:bg-[#eef2f8] text-[#6b7e99] font-bold rounded-xl transition-colors border border-[#dfe6f0]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (newVersionSelection) {
+                      setActiveVersion(newVersionSelection);
+                      localStorage.setItem('PGMentor_selected_version', newVersionSelection);
+                    }
+                    setShowVersionModal(false);
+                  }}
+                  disabled={!newVersionSelection || newVersionSelection === activeVersion}
+                  className="flex-1 py-3 bg-[#1e5a4e] hover:bg-[#2a6e5e] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+                >
+                  <CheckCircle size={16} /> Confirm
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Change Course Modal ─── */}
       <AnimatePresence>
@@ -1897,12 +1994,12 @@ const DashboardLayout = ({ onNavigate, currentPage, children, curriculum, userPl
               daysLeft = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
             }
             return (
-              <div className="mx-2 mb-3 px-3 py-2.5 rounded-xl bg-[#c9a84c]/20 border border-[#c9a84c]/40">
+              <div className={`mx-2 mb-3 px-3 py-2.5 rounded-xl border ${daysLeft <= 3 ? 'bg-amber-500/30 border-amber-400/60' : 'bg-[#c9a84c]/25 border-[#c9a84c]/50'}`}>
                 <div className="flex items-center gap-2">
-                  <span className="text-[#c9a84c] text-xs">{daysLeft <= 3 ? '⚠️' : '🎉'}</span>
-                  <span className={`text-[11px] font-bold uppercase tracking-wider ${daysLeft <= 3 ? 'text-amber-800' : 'text-[#c9a84c]'}`}>Trial Active</span>
+                  <span className="text-xs">{daysLeft <= 3 ? '⚠️' : '🎉'}</span>
+                  <span className={`text-[11px] font-bold uppercase tracking-wider ${daysLeft <= 3 ? 'text-amber-300' : 'text-[#f0d080]'}`}>Trial Active</span>
                 </div>
-                <p className={`text-[10px] mt-1 ${daysLeft <= 3 ? 'text-amber-800/80' : 'text-[#93c4f9]'}`}>
+                <p className={`text-[10px] mt-1 ${daysLeft <= 3 ? 'text-amber-200' : 'text-[#e8c96a]'}`}>
                   {daysLeft === 0 ? 'Trial expires today' : daysLeft === 1 ? '1 day left of trial' : `${daysLeft} days left of trial`}
                 </p>
               </div>
@@ -2734,6 +2831,7 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
   const [klPaperId, setKlPaperId] = useState('');
   const [klSectionId, setKlSectionId] = useState('');
   const [klTopicId, setKlTopicId] = useState('');
+  const [klStructureVersion, setKlStructureVersion] = useState<string | null>(null);
 
   // Specialized states for Knowledge Analyser (Essay)
   const [analyzerSubject, setAnalyzerSubject] = useState('');
@@ -3238,13 +3336,35 @@ const FeatureModule = ({ featureId, onNavigate, curriculum }: { featureId: strin
         if (response.ok) {
           const data = await response.json();
           // Filter by topic ID
-          const matchedItem = data.find((item: any) => item.topic === klTopicId);
+          // Use String() coercion for reliable topic ID comparison regardless of stored type
+          const matchedItem = data.find((item: any) => String(item.topic) === String(klTopicId));
           if (matchedItem) {
-             const content = featureId === 'flash-cards' 
-                  ? `**${matchedItem.title}**\n\n**Front:**\n${matchedItem.front_content}\n\n**Back:**\n${matchedItem.back_content}`
-                  : featureId === 'mcq-library'
-                  ? `**${matchedItem.title}**\n\n${matchedItem.question}\n\n**Options:**\n${matchedItem.options ? (typeof matchedItem.options === 'string' ? JSON.parse(matchedItem.options) : matchedItem.options).map((o:any, i:number) => `${String.fromCharCode(65+i)}. ${o}`).join('\\n') : 'N/A'}\n\n**Correct Answer:** ${matchedItem.correct_answer}`
-                  : matchedItem.content;
+             let content = '';
+             if (featureId === 'flash-cards') {
+               content = matchedItem.back_content || matchedItem.content || '';
+               setKlStructureVersion(matchedItem.structure_version ?? null);
+             } else if (featureId === 'mcq-library') {
+               content = matchedItem.question || matchedItem.content || '';
+               setKlStructureVersion(matchedItem.structure_version ?? null);
+             } else if (featureId === 'essay-library') {
+               content = matchedItem.content || '';
+               setKlStructureVersion(matchedItem.structure_version ?? null);
+             } else if (featureId === 'knowledge-library') {
+               // Reconstruct full markdown from structured detail columns.
+               // These are the REAL columns: definition, basic_concepts, detailed_essay, summary, key_takeaways.
+               // The `content` column is legacy/NULL — never use it as primary source.
+               const parts: string[] = [];
+               if (matchedItem.definition)     parts.push(`## Definition\n${matchedItem.definition}`);
+               if (matchedItem.basic_concepts) parts.push(`## Basic Concepts\n${matchedItem.basic_concepts}`);
+               if (matchedItem.detailed_essay) parts.push(`## Detailed Essay\n${matchedItem.detailed_essay}`);
+               if (matchedItem.summary)        parts.push(`## Summary\n${matchedItem.summary}`);
+               if (matchedItem.key_takeaways)  parts.push(`## Key Takeaways\n${matchedItem.key_takeaways}`);
+               content = parts.length > 0 ? parts.join('\n\n') : (matchedItem.content || '');
+               // Store structure version for display
+               setKlStructureVersion(matchedItem.structure_version ?? null);
+             } else {
+               content = matchedItem.content || '';
+             }
              setOutput(content);
           } else {
              setOutput("📝 **No Data Found**\n\nNo saved data for this course/ section/ topic.\n\nContact PGMentor for more information.");
@@ -4521,6 +4641,7 @@ Return the response in JSON format with the following schema:
 
   useEffect(() => {
     if (['knowledge-library', 'essay-library', 'mcq-library', 'flash-cards'].includes(featureId) && klTopicId) {
+      setKlStructureVersion(null); // reset while loading
       handleGenerate();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -8480,9 +8601,16 @@ Return the response in JSON format with the following schema:
                               <BookOpen size={22} style={{ color: '#0d9488' }} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h2 style={{ color: '#134e4a' }} className="text-xl md:text-2xl font-extrabold tracking-tight leading-snug mb-1">
-                                Expert Clinical Note: {topicName}
-                              </h2>
+                              <div className="flex flex-wrap items-center gap-2 mb-1">
+                                <h2 style={{ color: '#134e4a' }} className="text-xl md:text-2xl font-extrabold tracking-tight leading-snug">
+                                  Expert Clinical Note: {topicName}
+                                </h2>
+                                {klStructureVersion != null && klStructureVersion !== '' && (
+                                  <span style={{ background: '#ccfbf1', color: '#0d9488', border: '1px solid #99f6e4' }} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide shrink-0">
+                                    Version: {klStructureVersion}
+                                  </span>
+                                )}
+                              </div>
                               <p style={{ color: '#0d9488' }} className="text-sm font-medium">
                                 <span className="font-semibold">Course Context:</span> {courseName}
                               </p>
@@ -8627,9 +8755,16 @@ Return the response in JSON format with the following schema:
                               <FileText size={22} style={{ color: '#4f46e5' }} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h2 style={{ color: '#1e1b4b' }} className="text-xl md:text-2xl font-extrabold tracking-tight leading-snug mb-1">
-                                Expert Essay Questions: {topicName}
-                              </h2>
+                              <div className="flex flex-wrap items-center gap-2 mb-1">
+                                <h2 style={{ color: '#1e1b4b' }} className="text-xl md:text-2xl font-extrabold tracking-tight leading-snug">
+                                  Essay Questions: {topicName}
+                                </h2>
+                                {klStructureVersion != null && klStructureVersion !== '' && (
+                                  <span style={{ background: '#e0e7ff', color: '#4f46e5', border: '1px solid #c7d2fe' }} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide shrink-0">
+                                    Version: {klStructureVersion}
+                                  </span>
+                                )}
+                              </div>
                               <p style={{ color: '#6366f1' }} className="text-sm font-medium">
                                 <span className="font-semibold">Course Context:</span> {courseName}
                               </p>
@@ -8719,9 +8854,71 @@ Return the response in JSON format with the following schema:
                   placeholder="Edit generated content here..."
                 />
               ) : featureId === 'flash-cards' ? (
-                <FlashcardViewer output={output} />
+                <div className="space-y-4">
+                  {(() => {
+                    const topicName = klActiveTopics.find((t: any) => t.id?.toString() === klTopicId?.toString())?.name || 'Topic';
+                    const courseName = klActiveCourse?.name || 'Course';
+                    return (
+                      <div style={{ background: 'linear-gradient(135deg, #fffbeb, #fef9c3)', border: '1px solid #fde68a' }} className="rounded-2xl p-6 md:p-8 shadow-sm">
+                        <div className="flex items-start gap-4">
+                          <div style={{ background: '#fef3c7' }} className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+                            <Layers size={22} style={{ color: '#d97706' }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <h2 style={{ color: '#78350f' }} className="text-xl md:text-2xl font-extrabold tracking-tight leading-snug">
+                                Flash Cards: {topicName}
+                              </h2>
+                              {klStructureVersion != null && klStructureVersion !== '' && (
+                                <span style={{ background: '#fef3c7', color: '#d97706', border: '1px solid #fde68a' }} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide shrink-0">
+                                  Version: {klStructureVersion}
+                                </span>
+                              )}
+                            </div>
+                            <p style={{ color: '#d97706' }} className="text-sm font-medium">
+                              <span className="font-semibold">Course Context:</span> {courseName}
+                            </p>
+                          </div>
+                        </div>
+                        <div style={{ background: 'linear-gradient(to right, #f59e0b, #fbbf24, transparent)' }} className="mt-4 h-[2px] rounded-full" />
+                      </div>
+                    );
+                  })()}
+                  <FlashcardViewer output={output} />
+                </div>
               ) : (
-                <QuestionsViewer output={output} />
+                <div className="space-y-4">
+                  {(() => {
+                    const topicName = klActiveTopics.find((t: any) => t.id?.toString() === klTopicId?.toString())?.name || 'Topic';
+                    const courseName = klActiveCourse?.name || 'Course';
+                    return (
+                      <div style={{ background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)', border: '1px solid #bbf7d0' }} className="rounded-2xl p-6 md:p-8 shadow-sm">
+                        <div className="flex items-start gap-4">
+                          <div style={{ background: '#dcfce7' }} className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+                            <CheckSquare size={22} style={{ color: '#16a34a' }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <h2 style={{ color: '#14532d' }} className="text-xl md:text-2xl font-extrabold tracking-tight leading-snug">
+                                MCQ Questions: {topicName}
+                              </h2>
+                              {klStructureVersion != null && klStructureVersion !== '' && (
+                                <span style={{ background: '#dcfce7', color: '#16a34a', border: '1px solid #bbf7d0' }} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide shrink-0">
+                                  Version: {klStructureVersion}
+                                </span>
+                              )}
+                            </div>
+                            <p style={{ color: '#16a34a' }} className="text-sm font-medium">
+                              <span className="font-semibold">Course Context:</span> {courseName}
+                            </p>
+                          </div>
+                        </div>
+                        <div style={{ background: 'linear-gradient(to right, #22c55e, #4ade80, transparent)' }} className="mt-4 h-[2px] rounded-full" />
+                      </div>
+                    );
+                  })()}
+                  <QuestionsViewer output={output} />
+                </div>
               )}
               </div>
               </>
@@ -15930,89 +16127,89 @@ export const DEFAULT_CURRICULUM = [
     "name": "Anaesthesiology",
     "papers": [
       {
-        "id": "ana_p1",
+        "id": "anesth_p1",
         "name": "Paper I – Basic Sciences in Relation to Anaesthesiology",
         "sections": [
           {
-            "id": "ana_p1_s1",
+            "id": "anesth_p1_s1",
             "name": "Anatomy",
             "topics": [
               {
-                "id": "ana_p1_s1_t1",
+                "id": "anesth_p1_s1_t1",
                 "name": "Airway anatomy"
               },
               {
-                "id": "ana_p1_s1_t2",
+                "id": "anesth_p1_s1_t2",
                 "name": "Neuraxial neuroanatomy"
               },
               {
-                "id": "ana_p1_s1_t3",
+                "id": "anesth_p1_s1_t3",
                 "name": "Peripheral nerve plexuses (brachial, lumbar)"
               }
             ]
           },
           {
-            "id": "ana_p1_s2",
+            "id": "anesth_p1_s2",
             "name": "Physiology",
             "topics": [
               {
-                "id": "ana_p1_s2_t1",
+                "id": "anesth_p1_s2_t1",
                 "name": "Respiratory physiology and gas exchange"
               },
               {
-                "id": "ana_p1_s2_t2",
+                "id": "anesth_p1_s2_t2",
                 "name": "Cardiovascular physiology (cardiac output, blood pressure)"
               },
               {
-                "id": "ana_p1_s2_t3",
+                "id": "anesth_p1_s2_t3",
                 "name": "Renal and hepatic physiology"
               },
               {
-                "id": "ana_p1_s2_t4",
+                "id": "anesth_p1_s2_t4",
                 "name": "Neurophysiology and ICP"
               }
             ]
           },
           {
-            "id": "ana_p1_s3",
+            "id": "anesth_p1_s3",
             "name": "Pharmacology",
             "topics": [
               {
-                "id": "ana_p1_s3_t1",
+                "id": "anesth_p1_s3_t1",
                 "name": "Inhalational anaesthetics"
               },
               {
-                "id": "ana_p1_s3_t2",
+                "id": "anesth_p1_s3_t2",
                 "name": "Intravenous anaesthetics (Propofol, Ketamine)"
               },
               {
-                "id": "ana_p1_s3_t3",
+                "id": "anesth_p1_s3_t3",
                 "name": "Neuromuscular blocking agents"
               },
               {
-                "id": "ana_p1_s3_t4",
+                "id": "anesth_p1_s3_t4",
                 "name": "Local anaesthetics"
               },
               {
-                "id": "ana_p1_s3_t5",
+                "id": "anesth_p1_s3_t5",
                 "name": "Opioids and analgesics"
               }
             ]
           },
           {
-            "id": "ana_p1_s4",
+            "id": "anesth_p1_s4",
             "name": "Physics in Anaesthesia",
             "topics": [
               {
-                "id": "ana_p1_s4_t1",
+                "id": "anesth_p1_s4_t1",
                 "name": "Gas laws"
               },
               {
-                "id": "ana_p1_s4_t2",
+                "id": "anesth_p1_s4_t2",
                 "name": "Vaporizers and breathing circuits"
               },
               {
-                "id": "ana_p1_s4_t3",
+                "id": "anesth_p1_s4_t3",
                 "name": "Monitoring principles (ECG, SpO2, Capnography)"
               }
             ]
@@ -16020,77 +16217,77 @@ export const DEFAULT_CURRICULUM = [
         ]
       },
       {
-        "id": "ana_p2",
+        "id": "anesth_p2",
         "name": "Paper II – Clinical Anaesthesiology",
         "sections": [
           {
-            "id": "ana_p2_s1",
+            "id": "anesth_p2_s1",
             "name": "Preoperative Assessment",
             "topics": [
               {
-                "id": "ana_p2_s1_t1",
+                "id": "anesth_p2_s1_t1",
                 "name": "Pre-anaesthetic evaluation (PAC)"
               },
               {
-                "id": "ana_p2_s1_t2",
+                "id": "anesth_p2_s1_t2",
                 "name": "ASA grading"
               },
               {
-                "id": "ana_p2_s1_t3",
+                "id": "anesth_p2_s1_t3",
                 "name": "Airway assessment"
               }
             ]
           },
           {
-            "id": "ana_p2_s2",
+            "id": "anesth_p2_s2",
             "name": "General Anaesthesia",
             "topics": [
               {
-                "id": "ana_p2_s2_t1",
+                "id": "anesth_p2_s2_t1",
                 "name": "Induction and intubation"
               },
               {
-                "id": "ana_p2_s2_t2",
+                "id": "anesth_p2_s2_t2",
                 "name": "Maintenance of anaesthesia"
               },
               {
-                "id": "ana_p2_s2_t3",
+                "id": "anesth_p2_s2_t3",
                 "name": "Reversal and extubation"
               }
             ]
           },
           {
-            "id": "ana_p2_s3",
+            "id": "anesth_p2_s3",
             "name": "Regional Anaesthesia",
             "topics": [
               {
-                "id": "ana_p2_s3_t1",
+                "id": "anesth_p2_s3_t1",
                 "name": "Spinal anaesthesia"
               },
               {
-                "id": "ana_p2_s3_t2",
+                "id": "anesth_p2_s3_t2",
                 "name": "Epidural and caudal anaesthesia"
               },
               {
-                "id": "ana_p2_s3_t3",
+                "id": "anesth_p2_s3_t3",
                 "name": "Peripheral nerve blocks (USG guided)"
               }
             ]
           },
           {
-            "id": "ana_p2_s4",
+            "id": "anesth_p2_s4",
             "name": "Complications",
             "topics": [
               {
-                "id": "ana_p2_s4_t1",
+                "id": "anesth_p2_s4_t1",
                 "name": "Difficult airway management"
               },
               {
-                "id": "ana_p2_s4_t2",
+                "id": "anesth_p2_s4_t2",
                 "name": "Malignant hyperthermia"
               },
               {
-                "id": "ana_p2_s4_t3",
+                "id": "anesth_p2_s4_t3",
                 "name": "Anaesthetic emergencies (anaphylaxis, local anaesthetic systemic toxicity)"
               }
             ]
@@ -16098,87 +16295,87 @@ export const DEFAULT_CURRICULUM = [
         ]
       },
       {
-        "id": "ana_p3",
+        "id": "anesth_p3",
         "name": "Paper III – Anaesthesia in Specialities",
         "sections": [
           {
-            "id": "ana_p3_s1",
+            "id": "anesth_p3_s1",
             "name": "Obstetric Anaesthesia",
             "topics": [
               {
-                "id": "ana_p3_s1_t1",
+                "id": "anesth_p3_s1_t1",
                 "name": "Physiological changes in pregnancy"
               },
               {
-                "id": "ana_p3_s1_t2",
+                "id": "anesth_p3_s1_t2",
                 "name": "Labour analgesia"
               },
               {
-                "id": "ana_p3_s1_t3",
+                "id": "anesth_p3_s1_t3",
                 "name": "Anaesthesia for LSCS"
               }
             ]
           },
           {
-            "id": "ana_p3_s2",
+            "id": "anesth_p3_s2",
             "name": "Paediatric Anaesthesia",
             "topics": [
               {
-                "id": "ana_p3_s2_t1",
+                "id": "anesth_p3_s2_t1",
                 "name": "Neonatal resuscitation"
               },
               {
-                "id": "ana_p3_s2_t2",
+                "id": "anesth_p3_s2_t2",
                 "name": "Paediatric equipment and circuits"
               },
               {
-                "id": "ana_p3_s2_t3",
+                "id": "anesth_p3_s2_t3",
                 "name": "Anaesthesia for common paediatric surgeries"
               }
             ]
           },
           {
-            "id": "ana_p3_s3",
+            "id": "anesth_p3_s3",
             "name": "Neuroanaesthesia",
             "topics": [
               {
-                "id": "ana_p3_s3_t1",
+                "id": "anesth_p3_s3_t1",
                 "name": "Anaesthesia for craniotomy"
               },
               {
-                "id": "ana_p3_s3_t2",
+                "id": "anesth_p3_s3_t2",
                 "name": "Management of raised ICP"
               }
             ]
           },
           {
-            "id": "ana_p3_s4",
+            "id": "anesth_p3_s4",
             "name": "Cardiac & Thoracic Anaesthesia",
             "topics": [
               {
-                "id": "ana_p3_s4_t1",
+                "id": "anesth_p3_s4_t1",
                 "name": "Cardiopulmonary bypass principles"
               },
               {
-                "id": "ana_p3_s4_t2",
+                "id": "anesth_p3_s4_t2",
                 "name": "One-lung ventilation"
               }
             ]
           },
           {
-            "id": "ana_p3_s5",
+            "id": "anesth_p3_s5",
             "name": "Other Specialties",
             "topics": [
               {
-                "id": "ana_p3_s5_t1",
+                "id": "anesth_p3_s5_t1",
                 "name": "Anaesthesia for laparoscopy"
               },
               {
-                "id": "ana_p3_s5_t2",
+                "id": "anesth_p3_s5_t2",
                 "name": "Geriatric anaesthesia"
               },
               {
-                "id": "ana_p3_s5_t3",
+                "id": "anesth_p3_s5_t3",
                 "name": "Anaesthesia for trauma"
               }
             ]
@@ -16186,123 +16383,123 @@ export const DEFAULT_CURRICULUM = [
         ]
       },
       {
-        "id": "ana_p4",
+        "id": "anesth_p4",
         "name": "Paper IV – Intensive Care Medicine & Pain Management",
         "sections": [
           {
-            "id": "ana_p4_s1",
+            "id": "anesth_p4_s1",
             "name": "Intensive Care Medicine",
             "topics": [
               {
-                "id": "ana_p4_s1_t1",
+                "id": "anesth_p4_s1_t1",
                 "name": "Mechanical ventilation modes"
               },
               {
-                "id": "ana_p4_s1_t2",
+                "id": "anesth_p4_s1_t2",
                 "name": "ARDS management"
               },
               {
-                "id": "ana_p4_s1_t3",
+                "id": "anesth_p4_s1_t3",
                 "name": "Sepsis and septic shock"
               },
               {
-                "id": "ana_p4_s1_t4",
+                "id": "anesth_p4_s1_t4",
                 "name": "Acid-base balance and ABG interpretation"
               },
               {
-                "id": "ana_p4_s1_t5",
+                "id": "anesth_p4_s1_t5",
                 "name": "Fluid and electrolyte management"
               }
             ]
           },
           {
-            "id": "ana_p4_s2",
+            "id": "anesth_p4_s2",
             "name": "Resuscitation",
             "topics": [
               {
-                "id": "ana_p4_s2_t1",
+                "id": "anesth_p4_s2_t1",
                 "name": "BLS and ACLS protocols"
               },
               {
-                "id": "ana_p4_s2_t2",
+                "id": "anesth_p4_s2_t2",
                 "name": "Post-cardiac arrest care"
               }
             ]
           },
           {
-            "id": "ana_p4_s3",
+            "id": "anesth_p4_s3",
             "name": "Pain Management",
             "topics": [
               {
-                "id": "ana_p4_s3_t1",
+                "id": "anesth_p4_s3_t1",
                 "name": "Acute postoperative pain"
               },
               {
-                "id": "ana_p4_s3_t2",
+                "id": "anesth_p4_s3_t2",
                 "name": "Chronic pain management"
               },
               {
-                "id": "ana_p4_s3_t3",
+                "id": "anesth_p4_s3_t3",
                 "name": "Palliative care"
               }
             ]
           },
           {
-            "id": "ana_p4_s4",
+            "id": "anesth_p4_s4",
             "name": "Recent Advances",
             "topics": [
               {
-                "id": "ana_p4_s4_t1",
+                "id": "anesth_p4_s4_t1",
                 "name": "Target controlled infusion (TCI)"
               },
               {
-                "id": "ana_p4_s4_t2",
+                "id": "anesth_p4_s4_t2",
                 "name": "Ultrasound in ICU and regional anaesthesia"
               }
             ]
           },
           {
-            "id": "ana_p4_s5",
+            "id": "anesth_p4_s5",
             "name": "Very High-Yield Topics",
             "topics": [
               {
-                "id": "ana_p4_s5_t1",
+                "id": "anesth_p4_s5_t1",
                 "name": "Airway management guidelines"
               },
               {
-                "id": "ana_p4_s5_t2",
+                "id": "anesth_p4_s5_t2",
                 "name": "Difficult airway algorithm"
               },
               {
-                "id": "ana_p4_s5_t3",
+                "id": "anesth_p4_s5_t3",
                 "name": "Local anaesthetic systemic toxicity (LAST)"
               },
               {
-                "id": "ana_p4_s5_t4",
+                "id": "anesth_p4_s5_t4",
                 "name": "Spinal vs epidural anaesthesia"
               },
               {
-                "id": "ana_p4_s5_t5",
+                "id": "anesth_p4_s5_t5",
                 "name": "Labour analgesia"
               },
               {
-                "id": "ana_p4_s5_t6",
+                "id": "anesth_p4_s5_t6",
                 "name": "ACLS and BLS protocols"
               },
               {
-                "id": "ana_p4_s5_t7",
+                "id": "anesth_p4_s5_t7",
                 "name": "ARDS and ventilator strategies"
               },
               {
-                "id": "ana_p4_s5_t8",
+                "id": "anesth_p4_s5_t8",
                 "name": "Sepsis guidelines"
               },
               {
-                "id": "ana_p4_s5_t9",
+                "id": "anesth_p4_s5_t9",
                 "name": "Inhalational agents pharmacokinetics"
               },
               {
-                "id": "ana_p4_s5_t10",
+                "id": "anesth_p4_s5_t10",
                 "name": "ABG interpretation"
               }
             ]
@@ -16647,14 +16844,6 @@ export const DEFAULT_CURRICULUM = [
   }
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════
-// CONTROL PANEL AUTH CREDENTIALS (hashed at build for security-through-obscurity)
-// ═══════════════════════════════════════════════════════════════════════════
-const CP_CREDENTIALS = [
-  { email: 'drnarayanak@gmail.com', password: 'Tata@#viDhya#2026', role: 'Super Admin' },
-  { email: 'aimsrcpharmac@gmail.com', password: 'DeVanaHalli-#@Pradeep#2026', role: 'Admin' },
-];
-
 const ControlPanelLogin = ({ onSuccess }: { onSuccess: (role: string) => void }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16667,31 +16856,35 @@ const ControlPanelLogin = ({ onSuccess }: { onSuccess: (role: string) => void })
     setIsLoading(true);
     setError('');
 
-    // Step 1: Validate against Control Panel credentials
-    const match = CP_CREDENTIALS.find(c => c.email === email.trim().toLowerCase() && c.password === password);
-    if (!match) {
-      setError('Invalid credentials. Access denied.');
-      setIsLoading(false);
-      return;
-    }
-
-    // Step 2: Also sign into Supabase so a real JWT is established.
-    // This is the CRITICAL step — it gives the fetch interceptor a valid Bearer
-    // token so all backend AI calls are authenticated automatically.
-    const { error: authError } = await _supabase.auth.signInWithPassword({
+    // Step 1: Authenticate with Supabase — credentials are never stored in frontend code
+    const { data: authData, error: authError } = await _supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password,
     });
-    if (authError) {
-      // If Supabase auth fails (e.g. wrong Supabase password), still gate entry
-      setError(`Authentication failed: ${authError.message}`);
+    if (authError || !authData.session) {
+      setError('Authentication failed. Please check your credentials.');
       setIsLoading(false);
       return;
     }
 
-    // Step 3: Store CP role and grant access
-    sessionStorage.setItem('cp_auth', JSON.stringify({ role: match.role, ts: Date.now() }));
-    onSuccess(match.role);
+    // Step 2: Verify admin role via backend — the JWT is injected by the fetch interceptor
+    try {
+      const res = await fetch(`/api/user/profile/${authData.user.id}`);
+      if (!res.ok) throw new Error('Profile fetch failed');
+      const profile = await res.json();
+      const role: string = profile?.role || '';
+      if (role !== 'admin' && role !== 'super_admin') {
+        await _supabase.auth.signOut();
+        setError('Access denied. Admin privileges required.');
+        setIsLoading(false);
+        return;
+      }
+      const displayRole = role === 'super_admin' ? 'Super Admin' : 'Admin';
+      sessionStorage.setItem('cp_auth', JSON.stringify({ role: displayRole, ts: Date.now() }));
+      onSuccess(displayRole);
+    } catch {
+      setError('Could not verify admin privileges. Please try again.');
+    }
     setIsLoading(false);
   };
 
@@ -16713,9 +16906,9 @@ const ControlPanelLogin = ({ onSuccess }: { onSuccess: (role: string) => void })
         {/* Login Card */}
         <form onSubmit={handleLogin} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl shadow-black/30">
           {error && (
-            <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 flex items-center gap-2">
-              <ShieldAlert size={18} className="text-red-700 shrink-0" />
-              <span className="text-red-800 text-sm font-medium">{error}</span>
+            <div className="mb-6 bg-yellow-100/90 border border-yellow-400/60 rounded-xl px-4 py-3 flex items-center gap-2">
+              <ShieldAlert size={18} className="text-yellow-700 shrink-0" />
+              <span className="text-yellow-900 text-sm font-medium">{error}</span>
             </div>
           )}
 
@@ -16793,6 +16986,7 @@ const ControlPanel = ({ onNavigate, curriculum, setCurriculum, blogPosts, setBlo
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [lmsNotes, setLmsNotes] = useState(DEFAULT_LMS_STRUCTURE);
+  const [lmsStructureVersion, setLmsStructureVersion] = useState('April 2026');
   const [essayQuestions, setEssayQuestions] = useState(DEFAULT_ESSAY_STRUCTURE);
   const [mcqQuestions, setMcqQuestions] = useState(DEFAULT_MCQ_STRUCTURE);
   const [flashCards, setFlashCards] = useState(DEFAULT_FLASH_CARDS_STRUCTURE);
@@ -16806,6 +17000,8 @@ const ControlPanel = ({ onNavigate, curriculum, setCurriculum, blogPosts, setBlo
   const [bulkProgress, setBulkProgress] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
+  const [isSavingPublish, setIsSavingPublish] = useState(false);
+  const [publishStatus, setPublishStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState('c1');
   const [selectedPaperId, setSelectedPaperId] = useState('');
   const [selectedSectionId, setSelectedSectionId] = useState('');
@@ -16813,10 +17009,10 @@ const ControlPanel = ({ onNavigate, curriculum, setCurriculum, blogPosts, setBlo
   const [newPaper, setNewPaper] = useState('');
   const [newSection, setNewSection] = useState('');
   const [newTopic, setNewTopic] = useState('');
-  const [genCourseId, setGenCourseId] = useState('c1');
-  const [genPaperId, setGenPaperId] = useState('p1');
-  const [genSectionId, setGenSectionId] = useState('s2');
-  const [selectedTopics, setSelectedTopics] = useState<string[]>(['t4']);
+  const [genCourseId, setGenCourseId] = useState('c10');
+  const [genPaperId, setGenPaperId] = useState('ana_p1');
+  const [genSectionId, setGenSectionId] = useState('ana_p1_s1');
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [lmsCourseId, setLmsCourseId] = useState('c1');
   const [lmsPaperId, setLmsPaperId] = useState('');
   const [lmsSectionId, setLmsSectionId] = useState('');
@@ -16827,6 +17023,27 @@ const ControlPanel = ({ onNavigate, curriculum, setCurriculum, blogPosts, setBlo
     mcqs: [] as string[],
     flashcards: [] as string[]
   });
+
+  // Auto-load structure_version from DB on mount and whenever the structure tab opens
+  const loadLmsStructureVersion = () => {
+    fetch('/api/knowledge')
+      .then(r => r.json())
+      .then((rows: any[]) => {
+        if (!Array.isArray(rows) || rows.length === 0) return;
+        const counts: Record<string, number> = {};
+        rows.forEach((row: any) => {
+          const v = row.structure_version;
+          if (v && String(v).trim()) counts[String(v).trim()] = (counts[String(v).trim()] || 0) + 1;
+        });
+        const topVersion = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+        if (topVersion) setLmsStructureVersion(topVersion);
+      })
+      .catch(() => {});
+  };
+  useEffect(() => { loadLmsStructureVersion(); }, []);
+  useEffect(() => {
+    if (activeGenTab === 'lms-notes') loadLmsStructureVersion();
+  }, [activeGenTab]);
 
   useEffect(() => {
     if (activeGenTab !== 'generation-engine') return;
@@ -16850,10 +17067,23 @@ const ControlPanel = ({ onNavigate, curriculum, setCurriculum, blogPosts, setBlo
         const eMap = new Map();
         const mMap = new Map();
         const fMap = new Map();
-        if (Array.isArray(knowledge)) knowledge.forEach((i: any) => kMap.set(String(i.topic), i.content));
-        if (Array.isArray(essays)) essays.forEach((i: any) => eMap.set(String(i.topic), i.content));
-        if (Array.isArray(mcqs)) mcqs.forEach((i: any) => mMap.set(String(i.topic), i.content));
-        if (Array.isArray(flashcards)) flashcards.forEach((i: any) => fMap.set(String(i.topic), i.content));
+        // knowledge_library uses structured detail columns: definition, basic_concepts, detailed_essay, summary, key_takeaways
+        // Reconstruct the full markdown from those columns so generatedContent is complete.
+        // mcq_library: content stored as "question"
+        // flash_cards: content stored as "back_content"
+        if (Array.isArray(knowledge)) knowledge.forEach((i: any) => {
+          const parts: string[] = [];
+          if (i.definition)     parts.push(`## Definition\n${i.definition}`);
+          if (i.basic_concepts) parts.push(`## Basic Concepts\n${i.basic_concepts}`);
+          if (i.detailed_essay) parts.push(`## Detailed Essay\n${i.detailed_essay}`);
+          if (i.summary)        parts.push(`## Summary\n${i.summary}`);
+          if (i.key_takeaways)  parts.push(`## Key Takeaways\n${i.key_takeaways}`);
+          const reconstructed = parts.length > 0 ? parts.join('\n\n') : (i.content || i.definition || '');
+          kMap.set(String(i.topic), reconstructed);
+        });
+        if (Array.isArray(essays)) essays.forEach((i: any) => eMap.set(String(i.topic), i.content || i.definition || ''));
+        if (Array.isArray(mcqs)) mcqs.forEach((i: any) => mMap.set(String(i.topic), i.question || i.definition || ''));
+        if (Array.isArray(flashcards)) flashcards.forEach((i: any) => fMap.set(String(i.topic), i.back_content || i.definition || ''));
 
         newCur.forEach((c: any) => c.papers?.forEach((p: any) => p.sections?.forEach((s: any) => s.topics?.forEach((t: any) => {
           const tid = String(t.id);
@@ -17273,6 +17503,115 @@ Return ONLY the JSON object, no extra text.`;
   // Saves generated content to the correct Supabase table so it appears in the
   // public-facing Knowledge & Learning Resources sections.
   // ═══════════════════════════════════════════════════════════════════════════
+  const deleteFromLibraryTable = async (activeTabName: string, topicId: string | number) => {
+    const safeId = String(topicId).replace(/[^a-z0-9]/gi, '_');
+    let id = '';
+    let endpoint = '';
+    if (activeTabName === 'lms-notes-editor') {
+      id = `lms-notes_${safeId}`;
+      endpoint = `/api/knowledge/${id}`;
+    } else if (activeTabName === 'essay-questions-editor') {
+      id = `essay-questions_${safeId}`;
+      endpoint = `/api/essays/${id}`;
+    } else if (activeTabName === 'mcq-questions-editor') {
+      id = `mcq-questions_${safeId}`;
+      endpoint = `/api/mcqs/${id}`;
+    } else if (activeTabName === 'flash-cards-editor') {
+      id = `flash-cards_${safeId}`;
+      endpoint = `/api/flashcards/${id}`;
+    }
+    if (!endpoint) return;
+    try {
+      const res = await fetch(endpoint, { method: 'DELETE' });
+      if (res.ok) {
+        console.log(`🗑️ Deleted library entry: ${endpoint}`);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.error(`❌ Library delete failed:`, err);
+      }
+    } catch (e) {
+      console.error('❌ deleteFromLibraryTable error:', e);
+    }
+  };
+
+  // ── Parse generated knowledge content into named sections ──────────────────
+  // Splits the AI-generated markdown blob into the 6 knowledge_library columns:
+  // topic_title, definition, basic_concepts, detailed_essay, summary, key_takeaways
+  const parseKnowledgeSections = (content: string, fallbackTitle: string) => {
+    const sections: Record<string, string> = {
+      topic_title: fallbackTitle,
+      definition: '',
+      basic_concepts: '',
+      detailed_essay: '',
+      summary: '',
+      key_takeaways: '',
+    };
+
+    // Split on any markdown heading (##, ###, or **Heading:**)
+    const lines = content.split('\n');
+    let currentKey: string | null = null;
+    const buffer: string[] = [];
+
+    const flushBuffer = () => {
+      if (currentKey && buffer.length > 0) {
+        sections[currentKey] = buffer.join('\n').trim();
+      }
+      buffer.length = 0;
+    };
+
+    const headingMap: Record<string, string> = {
+      'topic title':    'topic_title',
+      'definition':     'definition',
+      'basic concepts': 'basic_concepts',
+      'detailed essay': 'detailed_essay',
+      'summary':        'summary',
+      'key takeaways':  'key_takeaways',
+    };
+
+    for (const line of lines) {
+      // Match ## Heading or **Heading:** or **Heading**
+      const headingMatch = line.match(/^#{1,3}\s+(.+)$/) || line.match(/^\*\*([^*]+)\*\*:?\s*$/);
+      if (headingMatch) {
+        flushBuffer();
+        const headingText = headingMatch[1].replace(/[*:]/g, '').trim().toLowerCase();
+        // PREFIX match — handles AI output like "## Topic Title Homeostasis and Feedback Control"
+        // where the topic name is embedded directly in the section heading
+        const matchedKey = Object.keys(headingMap).find(
+          h => headingText === h || headingText.startsWith(h + ' ') || headingText.startsWith(h + ':')
+        );
+        currentKey = matchedKey ? headingMap[matchedKey] : null;
+        if (currentKey === 'topic_title') {
+          // Strip "Topic Title" prefix to get the actual topic name
+          const inlineText = line
+            .replace(/^#{1,3}\s+/, '')
+            .replace(/\*\*/g, '')
+            .replace(/^topic title[:\s]*/i, '')
+            .trim();
+          if (inlineText && inlineText.toLowerCase() !== 'topic title') {
+            sections['topic_title'] = inlineText || fallbackTitle;
+          }
+          currentKey = null; // topic_title is single-line, don't buffer
+        }
+      } else if (currentKey) {
+        buffer.push(line);
+      }
+    }
+    flushBuffer();
+
+    // Fallback: if no sections parsed, store everything in detailed_essay
+    const hasAnySections = Object.values(sections).some((v, i) => i > 0 && v.length > 0);
+    if (!hasAnySections) {
+      sections.detailed_essay = content.trim();
+    }
+
+    return sections;
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // saveToLibraryTable — RELIABLE SAVE via Server API (supabaseAdmin service role)
+  // Always uses the server API as PRIMARY so supabaseAdmin bypasses all RLS/permission issues.
+  // Direct anon Supabase client is NOT used for writes — it lacks INSERT grants on library tables.
+  // ═══════════════════════════════════════════════════════════════════════════
   const saveToLibraryTable = async (
     tab: string,
     topicId: string | number,
@@ -17281,40 +17620,82 @@ Return ONLY the JSON object, no extra text.`;
     paperName: string,
     sectionName: string,
     content: string
-  ) => {
+  ): Promise<{ ok: boolean; error?: string }> => {
     try {
       const id = `${tab}_${String(topicId).replace(/[^a-z0-9]/gi, '_')}`;
-      let endpoint = '';
-      let body: Record<string, any> = {};
+      const userId = '00000000-0000-0000-0000-000000000000'; // intentional: global shared content, not user-owned
 
+      // ── Knowledge Library ──────────────────────────────────────────────────
       if (tab === 'lms-notes' || tab === 'lms-notes-editor') {
-        endpoint = '/api/knowledge';
-        body = { id, title: topicName, content, course: courseName, paper: paperName, section: sectionName, topic: String(topicId) };
-      } else if (tab === 'essay-questions' || tab === 'essay-questions-editor') {
-        endpoint = '/api/essays';
-        body = { id, title: topicName, content, course: courseName, paper: paperName, section: sectionName, topic: String(topicId) };
-      } else if (tab === 'mcq-questions' || tab === 'mcq-questions-editor') {
-        endpoint = '/api/mcqs';
-        body = { id, title: topicName, question: content, options: [], correct_answer: '', course: courseName, paper: paperName, section: sectionName, topic: String(topicId) };
-      } else if (tab === 'flash-cards' || tab === 'flash-cards-editor') {
-        endpoint = '/api/flashcards';
-        body = { id, title: topicName, front_content: topicName, back_content: content, course: courseName, paper: paperName, section: sectionName, topic: String(topicId) };
+        const parsed = parseKnowledgeSections(content, topicName);
+        const row = {
+          id, user_id: userId,
+          topic_title:    parsed.topic_title    || topicName,
+          definition:     parsed.definition     || '',
+          basic_concepts: parsed.basic_concepts || '',
+          detailed_essay: parsed.detailed_essay || '',
+          summary:        parsed.summary        || '',
+          key_takeaways:  parsed.key_takeaways  || '',
+          course: courseName, paper: paperName, section: sectionName, topic: String(topicId),
+        };
+        // PRIMARY: server API uses supabaseAdmin (service role) — guaranteed write access
+        const res = await fetch('/api/knowledge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...row, structure_version: lmsStructureVersion }) });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const msg = err.error || err.hint || err.message || `HTTP ${res.status}`;
+          console.error(`❌ knowledge_library save FAILED for "${topicName}": ${msg}`);
+          return { ok: false, error: msg };
+        }
+        console.log(`📚 knowledge_library saved: "${topicName}" (course: ${courseName}, paper: ${paperName}, section: ${sectionName})`);
+        return { ok: true };
       }
 
-      if (!endpoint) return;
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
-        console.log(`📚 Saved to library table (${endpoint}) for topic: ${topicName}`);
-      } else {
-        const err = await res.json().catch(() => ({}));
-        console.error(`❌ Library table save failed for ${topicName}:`, err);
+      // ── Essay Library ──────────────────────────────────────────────────────
+      if (tab === 'essay-questions' || tab === 'essay-questions-editor') {
+        const row = { id, user_id: userId, title: topicName, content, course: courseName, paper: paperName, section: sectionName, topic: String(topicId) };
+        const res = await fetch('/api/essays', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(row) });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const msg = err.error || err.hint || err.message || `HTTP ${res.status}`;
+          console.error(`❌ essay_library save FAILED for "${topicName}": ${msg}`);
+          return { ok: false, error: msg };
+        }
+        console.log(`📚 essay_library saved: "${topicName}" (course: ${courseName})`);
+        return { ok: true };
       }
-    } catch (e) {
+
+      // ── MCQ Library ────────────────────────────────────────────────────────
+      if (tab === 'mcq-questions' || tab === 'mcq-questions-editor') {
+        const row = { id, user_id: userId, title: topicName, question: content, options: [], correct_answer: '', course: courseName, paper: paperName, section: sectionName, topic: String(topicId) };
+        const res = await fetch('/api/mcqs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(row) });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const msg = err.error || err.hint || err.message || `HTTP ${res.status}`;
+          console.error(`❌ mcq_library save FAILED for "${topicName}": ${msg}`);
+          return { ok: false, error: msg };
+        }
+        console.log(`📚 mcq_library saved: "${topicName}" (course: ${courseName})`);
+        return { ok: true };
+      }
+
+      // ── Flash Cards ────────────────────────────────────────────────────────
+      if (tab === 'flash-cards' || tab === 'flash-cards-editor') {
+        const row = { id, user_id: userId, title: topicName, front_content: topicName, back_content: content, course: courseName, paper: paperName, section: sectionName, topic: String(topicId) };
+        const res = await fetch('/api/flashcards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(row) });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const msg = err.error || err.hint || err.message || `HTTP ${res.status}`;
+          console.error(`❌ flash_cards save FAILED for "${topicName}": ${msg}`);
+          return { ok: false, error: msg };
+        }
+        console.log(`📚 flash_cards saved: "${topicName}" (course: ${courseName})`);
+        return { ok: true };
+      }
+
+      return { ok: true }; // unknown tab — no-op
+    } catch (e: any) {
       console.error('❌ saveToLibraryTable error:', e);
+      return { ok: false, error: e.message || String(e) };
     }
   };
 
@@ -17368,28 +17749,59 @@ Return ONLY the JSON object, no extra text.`;
     setIsGeneratingLMS(true);
     let successCount = 0;
     let failedTopics: string[] = [];
+    let librarySaveFailures: string[] = []; // tracks topics that generated OK but failed to save to Supabase
     let lastError = '';
     // Keep a reference to the latest curriculum after each iterative save
     let latestCurriculum = JSON.parse(JSON.stringify(curriculum));
     
     try {
-      for (const topicId of selectedTopics) {
-        // Find topic name and course name from the LATEST curriculum state
-        let topicName = '';
-        let courseName = '';
-        for (const c of latestCurriculum) {
-          for (const p of c.papers) {
-            for (const s of p.sections) {
+      const CONCURRENCY_LIMIT = 3;
+      for (let i = 0; i < selectedTopics.length; i += CONCURRENCY_LIMIT) {
+        const chunk = selectedTopics.slice(i, i + CONCURRENCY_LIMIT);
+        
+        await Promise.all(chunk.map(async (topicId) => {
+          let topicName = '';
+          let courseName = '';
+          // FIXED: Use the captured generation context (currentGenCourseId/PaperId/SectionId)
+          // to constrain the topic lookup. This prevents picking up the topic from a
+          // different course when the same topic ID exists across multiple courses,
+          // and ensures we break on the FIRST match rather than the last.
+          const genCourse = latestCurriculum.find((c: any) => c.id === currentGenCourseId);
+          const genPapersForTopic = currentGenPaperId === 'all'
+            ? (genCourse?.papers || [])
+            : (genCourse?.papers || []).filter((p: any) => p.id === currentGenPaperId);
+          topicSearch: for (const p of genPapersForTopic) {
+            if (!p.sections) continue;
+            const genSectionsForTopic = currentGenSectionId === 'all'
+              ? p.sections
+              : p.sections.filter((s: any) => s.id === currentGenSectionId);
+            for (const s of genSectionsForTopic) {
+              if (!s.topics) continue;
               const t = s.topics.find((x: any) => x.id === topicId);
-              if (t) {
-                topicName = t.name;
-                courseName = c.name;
+              if (t) { topicName = t.name; courseName = genCourse?.name || ''; break topicSearch; }
+            }
+          }
+          // Fallback: if not found in the selected context, search the whole curriculum (break on first match)
+          if (!topicName) {
+            outerFallback: for (const c of latestCurriculum) {
+              if (!c.papers) continue;
+              for (const p of c.papers) {
+                if (!p.sections) continue;
+                for (const s of p.sections) {
+                  if (!s.topics) continue;
+                  const t = s.topics.find((x: any) => x.id === topicId);
+                  if (t) { topicName = t.name; courseName = c.name; break outerFallback; }
+                }
               }
             }
           }
+
+        if (!topicName) {
+          console.error(`❌ Topic ID "${topicId}" was not found in the curriculum. Check that topics are selected from the correct course/section.`);
+          failedTopics.push(`[Topic not found — ID: ${topicId}]`);
+          lastError = `Topic ID "${topicId}" not found in curriculum. Please re-select topics from the Generation Engine dropdowns.`;
+          return;
         }
-        
-        if (!topicName) continue;
         
         try {
           // Build dynamic structure prompt from active lmsNotes structure
@@ -17466,7 +17878,8 @@ FORMATTING REQUIREMENTS:
               if (topicAttempts > 1) {
                 console.log(`🔄 Retrying ${currentTab} for topic: ${topicName} (Attempt ${topicAttempts}/10)`);
               }
-              content = await generateMedicalContent(prompt, "You are an expert medical professor and author generating authoritative clinical content for a Learning Management System.", "text/plain", false, cpRole);
+              const currentUserId = localStorage.getItem('PGMentor_user_id') || undefined;
+              content = await generateMedicalContent(prompt, "You are an expert medical professor and author generating authoritative clinical content for a Learning Management System.", "text/plain", false, cpRole, currentUserId);
               topicSuccess = true;
             } catch (err: any) {
               lastTopicErr = err;
@@ -17496,8 +17909,11 @@ FORMATTING REQUIREMENTS:
               const updated = JSON.parse(JSON.stringify(prevCurriculum));
               // Find the topic and assign the generated content
               for (const c of updated) {
+                if (!c.papers) continue;
                 for (const p of c.papers) {
+                  if (!p.sections) continue;
                   for (const s of p.sections) {
+                    if (!s.topics) continue;
                     const t = s.topics.find((x: any) => x.id === topicId);
                     if (t) {
                       if (currentTab === 'lms-notes') t.generatedContent = content;
@@ -17539,34 +17955,86 @@ FORMATTING REQUIREMENTS:
           {
             let paperName = '';
             let sectionName = '';
-            for (const c of latestCurriculum) {
-              for (const p of c.papers) {
-                for (const s of p.sections) {
-                  const t = s.topics.find((x: any) => x.id === topicId);
-                  if (t) { paperName = p.name; sectionName = s.name; }
+            // FIXED: Use the captured generation context to constrain the lookup,
+            // and break on the FIRST match to avoid stale/wrong course metadata.
+            const genCourseForLib = latestCurriculum.find((c: any) => c.id === currentGenCourseId);
+            const genPapersForLib = currentGenPaperId === 'all'
+              ? (genCourseForLib?.papers || [])
+              : (genCourseForLib?.papers || []).filter((p: any) => p.id === currentGenPaperId);
+            libSearch: for (const p of genPapersForLib) {
+              if (!p.sections) continue;
+              const genSectionsForLib = currentGenSectionId === 'all'
+                ? p.sections
+                : p.sections.filter((s: any) => s.id === currentGenSectionId);
+              for (const s of genSectionsForLib) {
+                if (!s.topics) continue;
+                const t = s.topics.find((x: any) => x.id === topicId);
+                if (t) { paperName = p.name; sectionName = s.name; break libSearch; }
+              }
+            }
+            // Fallback: search whole curriculum if not found in selected context (break on first match)
+            if (!paperName) {
+              outerLibFallback: for (const c of latestCurriculum) {
+                if (!c.papers) continue;
+                for (const p of c.papers) {
+                  if (!p.sections) continue;
+                  for (const s of p.sections) {
+                    if (!s.topics) continue;
+                    const t = s.topics.find((x: any) => x.id === topicId);
+                    if (t) { paperName = p.name; sectionName = s.name; break outerLibFallback; }
+                  }
                 }
               }
             }
-            await saveToLibraryTable(currentTab, topicId, topicName, courseName, paperName, sectionName, content);
+            const libResult = await saveToLibraryTable(currentTab, topicId, topicName, courseName, paperName, sectionName, content);
+            if (!libResult.ok) {
+              librarySaveFailures.push(`${topicName} (${libResult.error})`);
+            } else {
+              // Immediately update createdLibraryContent so the counter reflects the actual DB state
+              const tabKey = currentTab === 'lms-notes' ? 'knowledge'
+                : currentTab === 'essay-questions' ? 'essays'
+                : currentTab === 'mcq-questions' ? 'mcqs'
+                : 'flashcards';
+              setCreatedLibraryContent((prev: any) => ({
+                ...prev,
+                [tabKey]: prev[tabKey].includes(String(topicId)) ? prev[tabKey] : [...prev[tabKey], String(topicId)]
+              }));
+            }
           }
 
           successCount++;
-
-          // Throttle: wait 2s between topics to avoid 503 overload on Gemini API
-          // (Backend retry logic handles individual failures but this prevents cascade)
-          if (successCount < selectedTopics.length) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
         } catch (topicErr: any) {
           console.error(`❌ Failed to generate for topic "${topicName}" permanently:`, topicErr);
           failedTopics.push(topicName);
           lastError = topicErr?.message || String(topicErr);
-          // Wait briefly before moving to the next topic to ensure API has breathing room
-          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+        }));
+
+        // Throttle briefly between chunks
+        if (i + CONCURRENCY_LIMIT < selectedTopics.length) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
       
       console.log(`📊 Generation complete: ${successCount}/${selectedTopics.length} succeeded, ${failedTopics.length} failed (tab: ${currentTab})`);
+
+      // Re-fetch createdLibraryContent from DB to ensure counter reflects actual Supabase state
+      try {
+        const [knowledge, essays, mcqs, flashcards] = await Promise.all([
+          fetch('/api/knowledge').then(r => r.json()).catch(() => []),
+          fetch('/api/essays').then(r => r.json()).catch(() => []),
+          fetch('/api/mcqs').then(r => r.json()).catch(() => []),
+          fetch('/api/flashcards').then(r => r.json()).catch(() => [])
+        ]);
+        setCreatedLibraryContent({
+          knowledge:  Array.isArray(knowledge)   ? knowledge.map((i: any)   => String(i.topic)) : [],
+          essays:     Array.isArray(essays)      ? essays.map((i: any)      => String(i.topic)) : [],
+          mcqs:       Array.isArray(mcqs)        ? mcqs.map((i: any)        => String(i.topic)) : [],
+          flashcards: Array.isArray(flashcards)  ? flashcards.map((i: any)  => String(i.topic)) : [],
+        });
+      } catch (fetchErr) {
+        console.warn('⚠️ Could not re-fetch library content after generation:', fetchErr);
+      }
 
       // Sync the Editor context dropdowns to match the generation context
       if (currentGenCourseId) setLmsCourseId(currentGenCourseId);
@@ -17591,12 +18059,19 @@ FORMATTING REQUIREMENTS:
       else if (currentTab === 'mcq-questions') setActiveTab('mcq-questions-editor');
       else if (currentTab === 'flash-cards') setActiveTab('flash-cards-editor');
 
-      if (failedTopics.length > 0 && successCount > 0) {
-        alert(`Partially generated! ${successCount} topic(s) succeeded, ${failedTopics.length} failed:\n${failedTopics.join(', ')}\n\nError: ${lastError}`);
+      const libNote = librarySaveFailures.length > 0
+        ? `\n\n⚠️ WARNING — ${librarySaveFailures.length} topic(s) generated but FAILED to save to the library tables:\n${librarySaveFailures.join('\n')}\n\nFix: Use the "Migrate All to Library" button in the LMS Auto-Gen panel to push all curriculum content to Supabase. Also run library_schema_migration.sql in the Supabase SQL Editor.`
+        : '';
+
+      if (successCount === 0 && failedTopics.length === 0) {
+        alert("No topics were processed. Please select topics from the Generation Engine before generating.");
+      } else if (failedTopics.length > 0 && successCount > 0) {
+        alert(`Partially generated! ${successCount} topic(s) succeeded.\n\n${failedTopics.length} topic(s) failed:\n${failedTopics.join('\n')}\n\nLast error: ${lastError}${libNote}`);
       } else if (failedTopics.length > 0 && successCount === 0) {
-        alert(`Error generating content for all topics.\n\nError: ${lastError}`);
+        alert(`Generation failed for all ${failedTopics.length} selected topic(s).\n\nFailed:\n${failedTopics.join('\n')}\n\nError: ${lastError}${libNote}`);
       } else {
-        alert("Successfully auto-generated content! You are now in the Editor.");
+        // successCount > 0 && failedTopics.length === 0
+        alert(`Successfully auto-generated content for ${successCount} topic(s)! You are now in the Editor.${libNote}`);
       }
     } catch (e: any) {
       console.error('❌ LMS generation fatal error:', e);
@@ -17967,10 +18442,19 @@ FORMATTING REQUIREMENTS:
 
               {activeGenTab === 'curriculum' ? (
                 <div className="flex flex-col lg:flex-row gap-8 items-start w-full max-w-5xl mx-auto">
-                  
+
                   {/* Left Column: Context Forms */}
                   <div className="w-full lg:w-[360px] shrink-0 space-y-5">
-                    
+
+                    {lmsStructureVersion && (
+                      <div className="flex items-center gap-2 bg-[#faf5ff] border border-[#8b5cf6]/30 rounded-xl px-4 py-2.5">
+                        <span className="text-[11px] font-bold text-[#8b5cf6] uppercase tracking-widest">Knowledge Library Version</span>
+                        <span className="ml-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-bold bg-[#8b5cf6] text-white tracking-wide">
+                          {lmsStructureVersion}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="flex justify-end">
                         <button onClick={() => { if(window.confirm('This will replace your current curriculum with the default RGUHS Anatomy curriculum. Continue?')) { setCurriculum(DEFAULT_CURRICULUM); setSelectedCourseId(DEFAULT_CURRICULUM[0].id); setSelectedPaperId(''); setSelectedSectionId(''); } }} className="text-[13px] bg-white hover:bg-slate-50 text-slate-600 px-4 py-2.5 rounded-xl flex items-center gap-2 font-bold transition-all shadow-sm border border-slate-200 w-full justify-center hover:border-slate-300 hover:shadow">
                            <RotateCcw size={15} /> Reset to Default Curriculum
@@ -18596,7 +19080,10 @@ FORMATTING REQUIREMENTS:
                             : activeTab === 'essay-questions' ? createdLibraryContent.essays
                             : activeTab === 'mcq-questions' ? createdLibraryContent.mcqs
                             : createdLibraryContent.flashcards;
-                          const createdCount = genActiveTopics.filter((t: any) => t[contentKey] || libraryList.includes(String(t.id))).length;
+                          // Count ONLY items confirmed in the DB (libraryList is populated from Supabase).
+                          // t[contentKey] is intentionally excluded — it reflects in-memory state which
+                          // is set even when DB saves fail, causing false "55/55 created" readings.
+                          const createdCount = genActiveTopics.filter((t: any) => libraryList.includes(String(t.id))).length;
                           const pendingCount = genActiveTopics.length - createdCount;
                           const percentage = Math.round((createdCount / genActiveTopics.length) * 100);
                           return (
@@ -18725,6 +19212,161 @@ FORMATTING REQUIREMENTS:
                         >
                            {isGeneratingLMS ? <span className="flex items-center gap-2"><div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin"></div> Generating...</span> : <span className="flex items-center gap-2"><Play size={16} /> Auto-Generate {activeTab === 'essay-questions' || activeTab === 'mcq-questions' ? 'Questions' : activeTab === 'flash-cards' ? 'Cards' : 'Notes'}</span>}
                         </button>
+                        {/* Migrate all existing curriculum content → library tables */}
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm('This will push ALL generated content from the curriculum into the Supabase library tables (knowledge_library, essay_library, mcq_library, flash_cards).\n\nExisting entries will be overwritten. Continue?')) return;
+                            try {
+                              const r = await fetch('/api/admin/migrate-to-library', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                              const data = await r.json();
+                              if (r.ok) {
+                                const m = data.migrated || {};
+                                const errList = (data.errors || []).join('\n');
+                                alert(`✅ Migration complete!\n\nKnowledge: ${m.knowledge || 0}\nEssays: ${m.essays || 0}\nMCQs: ${m.mcqs || 0}\nFlashcards: ${m.flashcards || 0}${errList ? '\n\n⚠️ Errors:\n' + errList : ''}`);
+                              } else {
+                                alert(`❌ Migration failed: ${data.error}`);
+                              }
+                            } catch (e: any) {
+                              alert(`❌ Network error: ${e.message}`);
+                            }
+                          }}
+                          disabled={isGeneratingLMS}
+                          className="w-full mt-3 bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:from-[#4338ca] hover:to-[#6d28d9] disabled:opacity-50 transition-all shadow-lg shadow-indigo-500/20"
+                        >
+                          <CheckCircle size={16} /> Migrate All to Library (Supabase)
+                        </button>
+
+                        {/* Backfill section columns for existing knowledge_library rows */}
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm('This will re-parse ALL existing knowledge_library records and fill in the topic_title, definition, basic_concepts, detailed_essay, summary, and key_takeaways columns.\n\nThis fixes rows where those columns are NULL. Continue?')) return;
+                            try {
+                              const r = await fetch('/api/admin/backfill-sections', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                              const data = await r.json();
+                              if (r.ok) {
+                                const errList = (data.errors || []).join('\n');
+                                alert(`✅ Backfill complete!\n\nTotal rows: ${data.total || 0}\nUpdated: ${data.updated || 0}\nSkipped: ${data.skipped || 0}${errList ? '\n\n⚠️ Errors:\n' + errList : ''}`);
+                              } else {
+                                alert(`❌ Backfill failed: ${data.error}\n\nMake sure you ran library_schema_migration.sql in Supabase SQL Editor first.`);
+                              }
+                            } catch (e: any) {
+                              alert(`❌ Network error: ${e.message}`);
+                            }
+                          }}
+                          disabled={isGeneratingLMS}
+                          className="w-full mt-2 bg-gradient-to-r from-[#0891b2] to-[#0e7490] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:from-[#0e7490] hover:to-[#155e75] disabled:opacity-50 transition-all shadow-lg shadow-cyan-500/20"
+                        >
+                          <Database size={16} /> Backfill Section Columns (Fix NULLs)
+                        </button>
+
+                        {/* Fix wrong course/paper/section metadata — runs entirely client-side via _supabase */}
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm(
+                              'This will scan ALL library tables and fix rows where the course, paper, or section is wrong.\n\n' +
+                              'It cross-references each row\'s topic ID against your curriculum.\n\n' +
+                              'Example: course "Anaesthesiology" → "Anatomy" for Anatomy topics.\n\nContinue?'
+                            )) return;
+
+                            // Build topic map directly from curriculum already in React state
+                            const topicMap: Record<string, { course: string; paper: string; section: string }> = {};
+                            for (const c of curriculum) {
+                              if (!c?.papers) continue;
+                              for (const p of c.papers) {
+                                if (!p?.sections) continue;
+                                for (const s of p.sections) {
+                                  if (!s?.topics) continue;
+                                  for (const t of s.topics) {
+                                    if (!t?.id) continue;
+                                    if (!topicMap[String(t.id)]) {
+                                      topicMap[String(t.id)] = { course: c.name || '', paper: p.name || '', section: s.name || '' };
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                            const topicCount = Object.keys(topicMap).length;
+                            if (topicCount === 0) {
+                              alert('❌ No topics found in curriculum. Make sure the curriculum is loaded first.');
+                              return;
+                            }
+
+                            const tables = [
+                              { name: 'knowledge_library' },
+                              { name: 'essay_library' },
+                              { name: 'mcq_library' },
+                              { name: 'flash_cards' },
+                            ];
+
+                            const results: Record<string, { fixed: number; skipped: number; notFound: number; errors: string[] }> = {};
+
+                            for (const { name } of tables) {
+                              const res = { fixed: 0, skipped: 0, notFound: 0, errors: [] as string[] };
+                              results[name] = res;
+
+                              // Fetch all rows from this table
+                              const allRows: any[] = [];
+                              let page = 0;
+                              const PAGE = 1000;
+                              while (true) {
+                                const { data, error } = await (_supabase as any)
+                                  .from(name)
+                                  .select('id, topic, course, paper, section')
+                                  .range(page * PAGE, (page + 1) * PAGE - 1);
+                                if (error) { res.errors.push(`fetch: ${error.message}`); break; }
+                                if (!data || data.length === 0) break;
+                                allRows.push(...data);
+                                if (data.length < PAGE) break;
+                                page++;
+                              }
+
+                              // Identify rows needing correction
+                              const toFix = allRows.filter(row => {
+                                const entry = topicMap[String(row.topic || '')];
+                                if (!entry) { res.notFound++; return false; }
+                                return row.course !== entry.course || row.paper !== entry.paper || row.section !== entry.section;
+                              });
+
+                              // Update in chunks of 50
+                              const CHUNK = 50;
+                              for (let i = 0; i < toFix.length; i += CHUNK) {
+                                const chunk = toFix.slice(i, i + CHUNK).map(row => {
+                                  const entry = topicMap[String(row.topic)];
+                                  return { id: row.id, course: entry.course, paper: entry.paper, section: entry.section };
+                                });
+                                const { error } = await (_supabase as any)
+                                  .from(name)
+                                  .upsert(chunk, { onConflict: 'id' });
+                                if (error) {
+                                  res.errors.push(`chunk ${i}: ${error.message}`);
+                                } else {
+                                  res.fixed += chunk.length;
+                                }
+                                // Small delay to avoid rate limiting
+                                if (i + CHUNK < toFix.length) await new Promise(r => setTimeout(r, 100));
+                              }
+
+                              res.skipped = allRows.length - toFix.length - res.notFound;
+                            }
+
+                            const totalFixed = Object.values(results).reduce((s, r) => s + r.fixed, 0);
+                            const allErrors = Object.values(results).flatMap(r => r.errors);
+
+                            alert(
+                              `✅ Course metadata fix complete!\n\n` +
+                              `Topics in curriculum: ${topicCount}\n\n` +
+                              Object.entries(results).map(([t, r]) =>
+                                `${t}:  ${r.fixed} fixed, ${r.skipped} correct, ${r.notFound} unknown`
+                              ).join('\n') +
+                              (allErrors.length > 0 ? `\n\n⚠️ Errors:\n${allErrors.join('\n')}` : '') +
+                              `\n\nTotal rows corrected: ${totalFixed}`
+                            );
+                          }}
+                          disabled={isGeneratingLMS}
+                          className="w-full mt-2 bg-gradient-to-r from-[#dc2626] to-[#b91c1c] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:from-[#b91c1c] hover:to-[#991b1b] disabled:opacity-50 transition-all shadow-lg shadow-red-500/20"
+                        >
+                          <ShieldAlert size={16} /> Fix Wrong Course / Paper / Section (All Tables)
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -18739,6 +19381,41 @@ FORMATTING REQUIREMENTS:
                     <div>
                       <h3 className="text-[24px] font-bold text-[#0f172a] mb-1">{activeTab === 'essay-questions' ? 'Essay Questions Structure' : activeTab === 'mcq-questions' ? 'MCQ Question Library Structure' : activeTab === 'flash-cards' ? 'Flash Card Library Structure' : 'Knowledge Library Structure'}</h3>
                       <p className="text-[14px] text-[#64748b] font-medium">Configure each section's description, format, and word count • {activeStructure.filter((n: any) => selectedStructureIds.includes(n.id)).length} sections active</p>
+                    </div>
+                    <div className="flex flex-col gap-2 bg-[#faf5ff] border-2 border-[#8b5cf6]/30 rounded-2xl px-5 py-4 shadow-sm min-w-[260px]">
+                        <label className="text-[10px] font-bold text-[#8b5cf6] tracking-widest uppercase">Content Structure Version</label>
+                        <p className="text-[11px] text-slate-500 leading-tight">Tag applied to all newly generated & saved content. Edit to create a new version, then click "Update All" to standardise existing rows.</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <input
+                            type="text"
+                            value={lmsStructureVersion}
+                            onChange={(e) => setLmsStructureVersion(e.target.value)}
+                            placeholder="e.g. April 2026"
+                            className="flex-1 bg-white border-2 border-[#8b5cf6]/40 rounded-xl px-3 py-1.5 text-[13px] font-bold text-[#4f46e5] focus:outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/10 transition-all"
+                          />
+                          <button
+                            onClick={async () => {
+                              if (!lmsStructureVersion.trim()) { alert('Enter a version first.'); return; }
+                              if (!confirm(`Update ALL rows in the Knowledge Library to version "${lmsStructureVersion.trim()}"?\n\nThis will overwrite all existing structure_version values.`)) return;
+                              try {
+                                const r = await fetch('/api/admin/update-library-versions', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ version: lmsStructureVersion.trim() }),
+                                });
+                                const d = await r.json();
+                                if (!r.ok) throw new Error(d.error || 'Failed');
+                                alert(`✅ Updated ${d.updated} row(s) to version "${d.version}".`);
+                              } catch (e: any) {
+                                alert(`❌ Error: ${e.message}`);
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white text-[12px] font-bold rounded-xl transition-colors whitespace-nowrap"
+                            title="Update all existing knowledge_library rows to use this version"
+                          >
+                            Update All
+                          </button>
+                        </div>
                     </div>
                   </div>
 
@@ -19283,51 +19960,76 @@ FORMATTING REQUIREMENTS:
                         <p className="text-slate-600 text-[13px] font-semibold mt-1">{contextStr}</p>
                       </div>
                       <div className="flex gap-3 w-full md:w-auto">
-                        <button onClick={() => { setEditingNoteId(null); setEditingContent(''); }} className="flex-1 md:flex-none px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 border border-slate-300 transition-colors">Cancel</button>
+                        <button onClick={() => { setEditingNoteId(null); setEditingContent(''); setPublishStatus(null); }} disabled={isSavingPublish} className="flex-1 md:flex-none px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 border border-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
                         <button onClick={async () => {
-                          let updatedCurriculum = JSON.parse(JSON.stringify(curriculum));
-                          let savedTopicName = '';
-                          let savedCourseName = '';
-                          let savedPaperName = '';
-                          let savedSectionName = '';
-                          for (const c of updatedCurriculum) {
-                            if (!c.papers) continue;
-                            for (const p of c.papers) {
-                              if (!p.sections) continue;
-                              for (const s of p.sections) {
-                                if (!s.topics) continue;
-                                const t = s.topics.find((x: any) => x && x.id === editingNoteId);
-                                if (t) {
-                                  if (activeTab === 'lms-notes-editor') t.generatedContent = editingContent;
-                                  else if (activeTab === 'essay-questions-editor') t.generatedEssayContent = editingContent;
-                                  else if (activeTab === 'mcq-questions-editor') t.generatedMcqContent = editingContent;
-                                  else if (activeTab === 'flash-cards-editor') t.generatedFlashCardsContent = editingContent;
-                                  savedTopicName = t.name;
-                                  savedCourseName = c.name;
-                                  savedPaperName = p.name;
-                                  savedSectionName = s.name;
+                          setIsSavingPublish(true);
+                          setPublishStatus(null);
+                          try {
+                            let updatedCurriculum = JSON.parse(JSON.stringify(curriculum));
+                            let savedTopicName = '';
+                            let savedCourseName = '';
+                            let savedPaperName = '';
+                            let savedSectionName = '';
+                            for (const c of updatedCurriculum) {
+                              if (!c.papers) continue;
+                              for (const p of c.papers) {
+                                if (!p.sections) continue;
+                                for (const s of p.sections) {
+                                  if (!s.topics) continue;
+                                  const t = s.topics.find((x: any) => x && String(x.id) === String(editingNoteId));
+                                  if (t) {
+                                    if (activeTab === 'lms-notes-editor') t.generatedContent = editingContent;
+                                    else if (activeTab === 'essay-questions-editor') t.generatedEssayContent = editingContent;
+                                    else if (activeTab === 'mcq-questions-editor') t.generatedMcqContent = editingContent;
+                                    else if (activeTab === 'flash-cards-editor') t.generatedFlashCardsContent = editingContent;
+                                    savedTopicName = t.name;
+                                    savedCourseName = c.name;
+                                    savedPaperName = p.name;
+                                    savedSectionName = s.name;
+                                  }
                                 }
                               }
                             }
+                            if (!savedTopicName) {
+                              setPublishStatus({ ok: false, message: 'Topic not found in curriculum. Please refresh and try again.' });
+                              setIsSavingPublish(false);
+                              return;
+                            }
+                            setCurriculum(updatedCurriculum);
+                            // Save curriculum to database
+                            try {
+                              const currRes = await fetch('/api/state/curriculum', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ user_id: localStorage.getItem('PGMentor_user_id') || '', data: updatedCurriculum })
+                              });
+                              if (!currRes.ok) console.warn('Curriculum save returned non-OK:', currRes.status);
+                            } catch (e) { console.error('Curriculum save failed:', e); }
+                            // Publish to the dedicated library table
+                            const libResult = await saveToLibraryTable(activeTab, editingNoteId!, savedTopicName, savedCourseName, savedPaperName, savedSectionName, editingContent);
+                            if (libResult.ok) {
+                              setPublishStatus({ ok: true, message: `"${savedTopicName}" saved & published successfully!` });
+                              setTimeout(() => { setEditingNoteId(null); setEditingContent(''); setPublishStatus(null); }, 1500);
+                            } else {
+                              setPublishStatus({ ok: false, message: `Save failed: ${libResult.error || 'Unknown error'}. Curriculum was updated but library publish failed.` });
+                            }
+                          } catch (e: any) {
+                            setPublishStatus({ ok: false, message: `Unexpected error: ${e.message || String(e)}` });
+                          } finally {
+                            setIsSavingPublish(false);
                           }
-                          setCurriculum(updatedCurriculum);
-                          // Explicitly save to database immediately
-                          try {
-                            await fetch('/api/state/curriculum', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ user_id: localStorage.getItem('PGMentor_user_id') || '', data: updatedCurriculum })
-                            });
-                          } catch (e) { console.error('Save failed:', e); }
-                          // Also publish to the dedicated library table
-                          if (savedTopicName) {
-                            await saveToLibraryTable(activeTab, editingNoteId, savedTopicName, savedCourseName, savedPaperName, savedSectionName, editingContent);
-                          }
-                          setEditingNoteId(null);
-                        }} className="flex-1 md:flex-none px-5 py-2.5 rounded-xl font-bold bg-[#10b981] hover:bg-[#059669] text-white flex justify-center items-center gap-2 shadow-sm transition-colors"><CheckCircle size={18} /> Save & Publish</button>
+                        }} disabled={isSavingPublish} className="flex-1 md:flex-none px-5 py-2.5 rounded-xl font-bold bg-[#10b981] hover:bg-[#059669] text-white flex justify-center items-center gap-2 shadow-sm transition-colors disabled:opacity-70 disabled:cursor-not-allowed">
+                          {isSavingPublish ? <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div> Saving...</> : <><CheckCircle size={18} /> Save & Publish</>}
+                        </button>
                       </div>
                     </div>
-                    <textarea 
+                    {publishStatus && (
+                      <div className={`mb-4 px-5 py-3 rounded-xl font-semibold text-[14px] flex items-center gap-2 ${publishStatus.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                        {publishStatus.ok ? <CheckCircle size={16} /> : <span>⚠️</span>}
+                        {publishStatus.message}
+                      </div>
+                    )}
+                    <textarea
                       value={editingContent}
                       onChange={(e) => setEditingContent(e.target.value)}
                       className="w-full min-h-[500px] border-2 border-slate-300 rounded-2xl p-6 text-[15px] text-slate-900 bg-white leading-relaxed focus:outline-none focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/10 transition-all font-mono"
@@ -19423,9 +20125,47 @@ FORMATTING REQUIREMENTS:
                                       </div>
                                     </div>
                                  </div>
-                                 <button onClick={() => { setEditingNoteId(topic.id); setEditingContent(contentField || ''); }} className={`px-4 py-2 rounded-xl font-bold text-[13px] transition-all shrink-0 flex items-center gap-2 border border-slate-200 bg-white text-slate-600 hover:bg-[#10b981] hover:text-white hover:border-[#10b981] shadow-sm`}>
-                                   {hasContent ? <><Edit3 size={16} /> Edit</> : <><Plus size={16} /> Add Notes</>}
-                                 </button>
+                                 <div className="flex items-center gap-2 shrink-0">
+                                   <button onClick={() => { setEditingNoteId(topic.id); setEditingContent(contentField || ''); setPublishStatus(null); }} className={`px-4 py-2 rounded-xl font-bold text-[13px] transition-all flex items-center gap-2 border border-slate-200 bg-white text-slate-600 hover:bg-[#10b981] hover:text-white hover:border-[#10b981] shadow-sm`}>
+                                     {hasContent ? <><Edit3 size={16} /> Edit</> : <><Plus size={16} /> Add Notes</>}
+                                   </button>
+                                   {hasContent && (
+                                     <button
+                                       onClick={async () => {
+                                         if (!window.confirm(`Delete the generated content for "${topic.name}"? This cannot be undone.`)) return;
+                                         // Clear from curriculum state
+                                         const contentKey = activeTab === 'lms-notes-editor' ? 'generatedContent'
+                                           : activeTab === 'essay-questions-editor' ? 'generatedEssayContent'
+                                           : activeTab === 'mcq-questions-editor' ? 'generatedMcqContent'
+                                           : 'generatedFlashCardsContent';
+                                         const updatedCurriculum = JSON.parse(JSON.stringify(curriculum));
+                                         for (const c of updatedCurriculum) {
+                                           for (const p of c.papers || []) {
+                                             for (const s of p.sections || []) {
+                                               const t = (s.topics || []).find((x: any) => x && x.id === topic.id);
+                                               if (t) { t[contentKey] = ''; }
+                                             }
+                                           }
+                                         }
+                                         setCurriculum(updatedCurriculum);
+                                         // Save curriculum to DB
+                                         try {
+                                           await fetch('/api/state/curriculum', {
+                                             method: 'POST',
+                                             headers: { 'Content-Type': 'application/json' },
+                                             body: JSON.stringify({ user_id: localStorage.getItem('PGMentor_user_id') || '', data: updatedCurriculum })
+                                           });
+                                         } catch (e) { console.error('Curriculum save failed:', e); }
+                                         // Delete from dedicated library table
+                                         await deleteFromLibraryTable(activeTab, topic.id);
+                                       }}
+                                       className="px-3 py-2 rounded-xl font-bold text-[13px] transition-all flex items-center gap-1.5 border border-red-200 bg-white text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500 shadow-sm"
+                                       title="Delete generated content"
+                                     >
+                                       <Trash2 size={15} /> Delete
+                                     </button>
+                                   )}
+                                 </div>
                                </div>
                              );
                            })
@@ -19533,7 +20273,7 @@ export default function App() {
         const res = await fetch('/api/auth/session/validate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, sessionId })
+          body: JSON.stringify({ email, userId: authSession.user.id, sessionId })
         });
         // Only act on successful responses with explicit valid:false
         if (res.ok) {
@@ -19543,7 +20283,7 @@ export default function App() {
             clearInterval(interval);
             await _supabase.auth.signOut();
             localStorage.removeItem('PGMentor_session_id');
-            alert('Your session has ended because your account was accessed from another device.');
+            // Silently redirect to home page, which will prompt login if they try to access protected routes
             window.location.href = '/';
           }
         }
@@ -19705,43 +20445,14 @@ export default function App() {
               imageSrc: p.image_src || p.imageSrc || PEXELS_MEDICAL_IMAGES[Math.floor(Math.random() * PEXELS_MEDICAL_IMAGES.length)]
             }));
             setBlogPosts(mapped);
-            console.log(`✅ Loaded ${mapped.length} blog posts from Supabase`);
           } else {
-            // Supabase is empty — seed the default posts
-            console.log('📝 Seeding default blog posts to Supabase...');
-            const seededPosts: any[] = [];
-            for (let i = 0; i < ACADEMIC_INSIGHTS_POSTS.length; i++) {
-              const post = ACADEMIC_INSIGHTS_POSTS[i];
-              const postWithId = {
-                ...post,
-                id: `blog-seed-${i + 1}`,
-                image_src: post.imageSrc || PEXELS_MEDICAL_IMAGES[i % PEXELS_MEDICAL_IMAGES.length],
-                status: 'published',
-                content: post.content || '',
-                hashtags: post.hashtags || '',
-              };
-              try {
-                const saveRes = await fetch('/api/blog-publications', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(postWithId)
-                });
-                if (saveRes.ok) {
-                  const saved = await saveRes.json();
-                  seededPosts.push({ ...postWithId, ...saved, imageSrc: saved.image_src || postWithId.image_src });
-                  console.log(`  ✅ Seeded: ${post.title}`);
-                }
-              } catch (seedErr) {
-                console.error(`  ❌ Failed to seed: ${post.title}`, seedErr);
-                seededPosts.push(postWithId);
-              }
-            }
-            setBlogPosts(seededPosts);
+            setBlogPosts(ACADEMIC_INSIGHTS_POSTS);
           }
+        } else {
+          setBlogPosts(ACADEMIC_INSIGHTS_POSTS);
         }
-      } catch (e) {
-        console.error('Failed to fetch blog posts from Supabase:', e);
-        // Fall back to hardcoded defaults if API is unavailable
+      } catch {
+        setBlogPosts(ACADEMIC_INSIGHTS_POSTS);
       }
     };
     fetchBlogPosts();
@@ -19819,34 +20530,30 @@ export default function App() {
   );
 }
 
-// Helper functions
 function getIcon(name: string) {
-  switch (name) {
-    case 'Library': return <Library size={24} />;
-    case 'FileText': return <FileText size={24} />;
-    case 'Presentation': return <Presentation size={24} />;
-    case 'BookOpen': return <BookOpen size={24} />;
-    case 'ClipboardList': return <ClipboardList size={24} />;
-    case 'BarChart3': return <BarChart3 size={24} />;
-    case 'CheckSquare': return <CheckSquare size={24} />;
-    case 'Stethoscope': return <Stethoscope size={24} />;
-    case 'ShieldAlert': return <ShieldAlert size={24} />;
-    case 'PenTool': return <PenTool size={24} />;
-    case 'FileQuestion': return <FileQuestion size={24} />;
-    case 'Search': return <Search size={24} />;
-    case 'UserPlus': return <UserPlus size={24} />;
-    case 'Brain': return <Brain size={24} />;
-    case 'Cpu': return <Cpu size={24} />;
-    case 'LineChart': return <LineChart size={24} />;
-    case 'Target': return <Target size={24} />;
-    case 'HeartPulse': return <HeartPulse size={24} />;
-    case 'FileSymlink': return <FileSymlink size={24} />;
-    case 'GraduationCap': return <GraduationCap size={24} />;
-    case 'Layers': return <Layers size={24} />;
-    case 'Lightbulb': return <Lightbulb size={24} />;
-    case 'HelpCircle': return <HelpCircle size={24} />;
-    case 'Pill': return <Pill size={24} />;
-    case 'Upload': return <Upload size={24} />;
-    default: return <Activity size={24} />;
-  }
+  const iconMap: Record<string, React.ReactElement> = {
+    Search:        <Search size={24} />,
+    Library:       <Library size={24} />,
+    FileText:      <FileText size={24} />,
+    CheckSquare:   <CheckSquare size={24} />,
+    Layers:        <Layers size={24} />,
+    BookOpen:      <BookOpen size={24} />,
+    Presentation:  <Presentation size={24} />,
+    FilePlus:      <FileText size={24} />,
+    BarChart3:     <BarChart3 size={24} />,
+    PenTool:       <PenTool size={24} />,
+    Lightbulb:     <Lightbulb size={24} />,
+    Cpu:           <Cpu size={24} />,
+    Activity:      <Activity size={24} />,
+    ClipboardList: <ClipboardList size={24} />,
+    FileSymlink:   <FileSymlink size={24} />,
+    ShieldAlert:   <ShieldAlert size={24} />,
+    Stethoscope:   <Stethoscope size={24} />,
+    HelpCircle:    <HelpCircle size={24} />,
+    Pill:          <Pill size={24} />,
+    Brain:         <Brain size={24} />,
+    UserPlus:      <UserPlus size={24} />,
+    GraduationCap: <GraduationCap size={24} />,
+  };
+  return iconMap[name] ?? <BookOpen size={24} />;
 }

@@ -43,7 +43,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const [showOverrideConfirm, setShowOverrideConfirm] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
   const [verificationName, setVerificationName] = useState('');
@@ -132,7 +131,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
     setNewPassword('');
     setConfirmPassword('');
     setShowNewPassword(false);
-    setShowOverrideConfirm(false);
   };
 
   const switchMode = (m: AuthMode) => {
@@ -245,49 +243,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
   };
 
   // ── Sign In ─────────────────────────────────────────────────────────────────
-  const handleSignIn = async (e?: React.FormEvent, force: boolean = false) => {
+  const handleSignIn = async (e?: React.FormEvent, force: boolean = true) => {
     if (e) e.preventDefault();
     setError('');
     setLoading(true);
-    let overrideTriggered = false;
     
     try {
-      if (!force) {
-        // Step 1: Check if there's an active session
-        const res = await fetch(`/api/auth/session-status?email=${encodeURIComponent(email)}`);
-        const data = await res.json();
-        if (data.hasActiveSession) {
-          setShowOverrideConfirm(true);
-          setLoading(false); // Reset loading so OK button is clickable
-          overrideTriggered = true;
-          return; // Stop here, wait for manual override click
-        }
-      }
+      // Always proceed with sign in without prompting for session override
 
       // Step 2: Proceed with sign in
       const { data: authData, error: err } = await supabase.auth.signInWithPassword({ email, password });
-      if (err) { setError(err.message); setShowOverrideConfirm(false); return; }
+      if (err) { setError(err.message); return; }
 
       // Step 2.5: Check email verification status
       const userId = authData.user?.id;
       if (userId) {
-        try {
-          const verifyRes = await fetch(`/api/auth/verification-status/${userId}`);
-          const verifyData = await verifyRes.json();
-          if (!verifyData.verified) {
-            // Email not verified — show verification screen
-            await supabase.auth.signOut(); // Sign them out
-            setVerificationEmail(email);
-            setVerificationName(authData.user?.user_metadata?.full_name || '');
-            setVerificationUserId(userId);
-            setVerificationSent(true);
-            setError('Please verify your email before signing in. Check your inbox for the verification link.');
-            setLoading(false);
-            return;
+        // If Supabase natively recognizes the email as confirmed, we can skip the manual DB check.
+        // We also gracefully fall back to the custom DB check if email_confirmed_at isn't set yet.
+        const isSupabaseConfirmed = !!authData.user?.email_confirmed_at;
+        
+        if (!isSupabaseConfirmed) {
+          try {
+            const verifyRes = await fetch(`/api/auth/verification-status/${userId}`);
+            const verifyData = await verifyRes.json();
+            if (!verifyData.verified) {
+              // Email not verified — show verification screen
+              await supabase.auth.signOut(); // Sign them out
+              setVerificationEmail(email);
+              setVerificationName(authData.user?.user_metadata?.full_name || '');
+              setVerificationUserId(userId);
+              setVerificationSent(true);
+              setError('Please verify your email before signing in. Check your inbox for the verification link.');
+              setLoading(false);
+              return;
+            }
+          } catch (verifyErr) {
+            console.warn('Could not check verification status:', verifyErr);
+            // Allow sign-in if verification check fails (graceful degradation)
           }
-        } catch (verifyErr) {
-          console.warn('Could not check verification status:', verifyErr);
-          // Allow sign-in if verification check fails (graceful degradation)
         }
       }
 
@@ -298,7 +291,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
       await fetch('/api/auth/session/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, sessionId, deviceId: navigator.userAgent })
+        body: JSON.stringify({ email, userId: authData.user?.id, sessionId, deviceId: navigator.userAgent })
       });
       
       setSuccess(force 
@@ -306,12 +299,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
         : 'Signed in successfully! Redirecting...'
       );
       setTimeout(onSuccess, force ? 2000 : 800);
-    } catch {
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      if (!overrideTriggered) {
-        setLoading(false);
+    } catch (err: any) {
+      // TypeError with "fetch" in the message = server is not running
+      const msg = err?.message || '';
+      if (msg.includes('fetch') || msg.includes('network') || msg.includes('connect') || err instanceof TypeError) {
+        setError('Cannot reach the server. Please make sure the app server is running (npm run dev), then try again.');
+      } else {
+        setError('An unexpected error occurred. Please try again.');
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -587,37 +584,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
 
           {/* ── SIGN IN FORM ──────────────────────────────────── */}
           {mode === 'signin' && (
-            showOverrideConfirm ? (
-              <div className="space-y-4 text-center">
-                <div className="w-16 h-16 bg-[#c9a84c]/10 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-[#c9a84c]/20">
-                  <AlertCircle size={28} className="text-[#c9a84c]" />
-                </div>
-                <h3 className="text-lg font-bold text-[#1e3a6e]">Active Session Detected</h3>
-                <p className="text-[#4a5568] text-sm leading-relaxed px-4">
-                  You are already logged in on another device. Logging in here will log you out from the previous session.
-                </p>
-                <p className="text-[#6b7e99] text-xs leading-relaxed px-4">
-                  If it is OK, click <strong className="text-[#1e3a6e]">&quot;OK&quot;</strong> to continue.
-                </p>
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => { setShowOverrideConfirm(false); setLoading(false); setError(''); }}
-                    className="flex-1 py-3 rounded-xl border border-[#dfe6f0] text-[#6b7e99] hover:bg-[#f5f7fa] font-semibold text-sm transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    disabled={loading || !!success}
-                    onClick={() => handleSignIn(undefined, true)}
-                    className="flex-1 bg-[#1e3a6e] hover:bg-[#2347a0] disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 text-sm"
-                  >
-                    {loading ? <><Loader2 size={16} className="animate-spin" /> Logging in...</> : 'OK'}
-                  </button>
-                </div>
-              </div>
-            ) : (
             <form onSubmit={handleSignIn} className="space-y-4">
               <InputField
                 label="Email Address" type="email" value={email}
@@ -655,7 +621,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
                 </button>
               </p>
             </form>
-            )
           )}
 
           {/* ── FORGOT PASSWORD FLOW ──────────────────────────── */}
@@ -942,3 +907,5 @@ const PasswordField = ({
     </div>
   </div>
 );
+
+export default AuthModal;

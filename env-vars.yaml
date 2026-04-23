@@ -1,0 +1,7 @@
+NODE_ENV: "production"
+GOOGLE_CLOUD_PROJECT: "pgmentor-ver-1"
+SUPABASE_URL: "https://qnguxwmrqwcksspujmoa.supabase.co"
+ALLOWED_ORIGINS: "https://pgmentor.netlify.app,https://www.pgmentor.in,https://pgmentor.in"
+APP_URL: "https://www.pgmentor.in"
+EMAIL_FROM: "PGMentor <noreply@pgmentor.in>"
+ADMIN_EMAIL: "drnarayanak@gmail.com"

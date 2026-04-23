@@ -6,16 +6,10 @@
   NODE_VERSION = "20"
 
 # ═══════════════════════════════════════════════════════════════
-# API Proxy — Route /api/* requests to Cloud Run backend
-# The X-API-Key header is injected server-side (not visible to browsers)
+# API Proxy — handled by the Edge Function at netlify/edge-functions/api-proxy.ts
+# The Edge Function injects X-API-Key from the BACKEND_API_KEY env var
+# (stored in Netlify dashboard — never hardcoded here).
 # ═══════════════════════════════════════════════════════════════
-[[redirects]]
-  from = "/api/*"
-  to = "https://pgmentor-backend-441308586999.us-central1.run.app/api/:splat"
-  status = 200
-  force = true
-  [redirects.headers]
-    X-API-Key = "8c79db32a6134110a841b688b1f9bce7417b31448d57e43fb874970915c"
 
 # ═══════════════════════════════════════════════════════════════
 # Blog OG Card Proxy — Route /blog/* to backend for SSR meta tags
@@ -44,6 +38,7 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
 
 # ═══════════════════════════════════════════════════════════════
 # Static Asset Caching — Vite hashed assets get long cache

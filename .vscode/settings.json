@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd \"c:\\\\Users\\\\Dr Narayana K\\\\Documents\\\\pgmentor Ver 1\" ; node --version ; npx tsx --version$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

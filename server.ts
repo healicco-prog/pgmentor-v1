@@ -1,4 +1,4 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 import express from "express";
 import path from "path";
 import crypto from "crypto";
@@ -741,44 +741,46 @@ async function startServer() {
     const newAttempts = (existing?.attempts || 0) + 1;
     const code = generateOTP();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-    otpStore.set(email, { code, expiresAt, attempts: newAttempts });
 
     console.log(`🔑 OTP generated for ${email}`);
 
     // Send OTP email via Resend
-    if (resend) {
-      try {
-        await resend.emails.send({
-          from: EMAIL_FROM,
-          to: [email],
-          subject: "Password Reset Code – PGMentor",
-          html: emailWrapper("Password Reset", `
-            <h2 style="color:#0f172a;font-size:22px;margin:0 0 16px 0;">Password Reset Request 🔐</h2>
-            <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 24px 0;">
-              We received a request to reset your PGMentor account password. Use the code below to verify your identity:
+    if (!resend) {
+      console.warn("⚠️ Email service is not configured, cannot send reset code email");
+      return res.status(503).json({ error: "Email service unavailable. Please try again later." });
+    }
+    try {
+      await resend.emails.send({
+        from: EMAIL_FROM,
+        to: [email],
+        subject: "Password Reset Code – PGMentor",
+        html: emailWrapper("Password Reset", `
+          <h2 style="color:#0f172a;font-size:22px;margin:0 0 16px 0;">Password Reset Request 🔐</h2>
+          <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 24px 0;">
+            We received a request to reset your PGMentor account password. Use the code below to verify your identity:
+          </p>
+          
+          <div style="background-color:#1e293b;border-radius:16px;padding:32px;text-align:center;margin:0 0 24px 0;">
+            <p style="color:#94a3b8;font-size:12px;font-weight:600;margin:0 0 12px 0;text-transform:uppercase;letter-spacing:2px;">Your Verification Code</p>
+            <p style="color:#ffffff;font-size:42px;font-weight:800;letter-spacing:12px;margin:0;font-family:'Courier New',monospace;">${code}</p>
+          </div>
+          
+          <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:16px 20px;margin:0 0 20px 0;">
+            <p style="color:#92400e;font-size:13px;margin:0;line-height:1.5;">
+              ⚠️ This code expires in <strong>10 minutes</strong>. If you didn't request this, please ignore this email — your account is safe.
             </p>
-            
-            <div style="background-color:#1e293b;border-radius:16px;padding:32px;text-align:center;margin:0 0 24px 0;">
-              <p style="color:#94a3b8;font-size:12px;font-weight:600;margin:0 0 12px 0;text-transform:uppercase;letter-spacing:2px;">Your Verification Code</p>
-              <p style="color:#ffffff;font-size:42px;font-weight:800;letter-spacing:12px;margin:0;font-family:'Courier New',monospace;">${code}</p>
-            </div>
-            
-            <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:16px 20px;margin:0 0 20px 0;">
-              <p style="color:#92400e;font-size:13px;margin:0;line-height:1.5;">
-                ⚠️ This code expires in <strong>10 minutes</strong>. If you didn't request this, please ignore this email — your account is safe.
-              </p>
-            </div>
-            
-            <p style="color:#94a3b8;font-size:13px;margin:0;text-align:center;">
-              For security, never share this code with anyone.
-            </p>
-          `)
-        });
-        console.log("📧 Reset code email sent to:", email);
-      } catch (err: any) {
-        console.error("❌ Failed to send reset code email:", err.message);
-        // Still return success – the OTP is stored, log it for dev purposes
-      }
+          </div>
+          
+          <p style="color:#94a3b8;font-size:13px;margin:0;text-align:center;">
+            For security, never share this code with anyone.
+          </p>
+        `)
+      });
+      console.log("📧 Reset code email sent to:", email);
+      otpStore.set(email, { code, expiresAt, attempts: newAttempts });
+    } catch (err: any) {
+      console.error("❌ Failed to send reset code email:", err.message);
+      return res.status(502).json({ error: "Unable to send reset code email. Please try again later." });
     }
 
     res.json({ success: true, message: "Reset code sent to your email" });
@@ -1926,14 +1928,17 @@ async function startServer() {
       const { email } = req.body;
       if (!email) return res.status(400).json({ error: "email is required" });
       
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.getUserByEmail(email);
-      if (authError || !authData?.user) return res.json({ success: true });
-      const authUser = authData.user;
-      
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from("user_profiles")
+        .select("user_id")
+        .eq("email", email)
+        .single();
+      if (profileError || !profile?.user_id) return res.json({ success: true });
+
       await supabaseAdmin
         .from("user_profiles")
         .update({ active_session_id: null })
-        .eq("user_id", authUser.id);
+        .eq("user_id", profile.user_id);
         
       res.json({ success: true });
     } catch (error: any) {
@@ -5310,14 +5315,29 @@ async function startServer() {
   // Check verification status for a user
   app.get("/api/auth/verification-status/:userId", async (req, res) => {
     try {
+      const userId = req.params.userId === 'default' ? '00000000-0000-0000-0000-000000000000' : req.params.userId;
+
       const { data, error } = await supabaseAdmin
         .from("user_profiles")
         .select("email_verified")
-        .eq("user_id", (req.params.userId === 'default' ? '00000000-0000-0000-0000-000000000000' : req.params.userId))
+        .eq("user_id", userId)
         .single();
 
-      if (error) return res.status(404).json({ verified: false });
-      res.json({ verified: data?.email_verified === true });
+      if (!error && data?.email_verified === true) {
+        return res.json({ verified: true });
+      }
+
+      // Fallback: check auth.users email_confirmed_at in case the profile row is stale or missing
+      try {
+        const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+        if (authUser?.user?.email_confirmed_at) {
+          return res.json({ verified: true });
+        }
+      } catch {
+        // Ignore fallback failures and return false below
+      }
+
+      res.json({ verified: false });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

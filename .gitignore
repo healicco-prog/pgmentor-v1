@@ -21,6 +21,10 @@ service-account.json
 # Local Netlify folder
 .netlify
 
+# Deployment scripts (contain tokens — delete after use)
+deploy-netlify.ps1
+deploy-cloudrun.ps1
+
 # Temp output files
 deploy_out.txt
 diff_output.txt

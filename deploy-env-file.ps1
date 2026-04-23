@@ -1,0 +1,14 @@
+gcloud run deploy pgmentor-backend `
+  --source="." `
+  --region=us-central1 `
+  --platform=managed `
+  --allow-unauthenticated `
+  --port=8080 `
+  --memory=512Mi `
+  --cpu=1 `
+  --min-instances=0 `
+  --max-instances=10 `
+  --concurrency=80 `
+  --timeout=300 `
+  --env-vars-file="cloudrun-env.yaml" `
+  --project=pgmentor-ver-1

@@ -11,3 +11,4 @@ public
 !package-lock.json
 !tsconfig.json
 !Dockerfile
+!cloudbuild.yaml

@@ -438,7 +438,7 @@ async function startServer() {
   if (IS_PRODUCTION && BACKEND_API_KEY) {
     app.use('/api', (req, res, next) => {
       // Allow public auth & health endpoints without API key (forgot password, signup, login, etc.)
-      const publicPaths = ['/auth/', '/health'];
+      const publicPaths = ['/auth/', '/health', '/user/profile/', '/admin/verify-admin'];
       if (publicPaths.some(p => req.path.startsWith(p))) {
         return next();
       }

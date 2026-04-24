@@ -47,8 +47,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
   const [verificationEmail, setVerificationEmail] = useState('');
   const [verificationName, setVerificationName] = useState('');
   const [verificationUserId, setVerificationUserId] = useState('');
-  const [resendingVerification, setResendingVerification] = useState(false);
+    const [resendingVerification, setResendingVerification] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Resend confirmation email (Supabase native) — when sign-in fails with "Email not confirmed"
+  const [confirmEmail, setConfirmEmail] = useState('');
+  const [resendingConfirm, setResendingConfirm] = useState(false);
+  const [confirmResent, setConfirmResent] = useState(false);
 
   // Sign In fields
   const [email, setEmail] = useState('');
@@ -252,8 +257,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
       // Always proceed with sign in without prompting for session override
 
       // Step 2: Proceed with sign in
-      const { data: authData, error: err } = await supabase.auth.signInWithPassword({ email, password });
-      if (err) { setError(err.message); return; }
+            const { data: authData, error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (err) {
+        // Detect "Email not confirmed" error from Supabase and offer resend option
+        const msg = err.message?.toLowerCase() || '';
+        if (msg.includes('email not confirmed') || msg.includes('email_not_confirmed') || msg.includes('unconfirmed')) {
+          setConfirmEmail(email);
+          setError(err.message);
+          setLoading(false);
+          return;
+        }
+        setError(err.message);
+        return;
+      }
 
       // Step 2.5: Check email verification status
       const userId = authData.user?.id;
@@ -338,8 +354,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
       }, 1000);
     } catch {
       setError('Failed to resend. Please try again.');
-    } finally {
+        } finally {
       setResendingVerification(false);
+    }
+  };
+
+  // ✅ Resend Supabase confirmation email (called when sign-in fails with "Email not confirmed")
+  const handleResendConfirmation = async () => {
+    if (resendingConfirm) return;
+    setResendingConfirm(true);
+    setError('');
+    setConfirmResent(false);
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: confirmEmail || email
+      });
+      if (resendError) {
+        setError(resendError.message || 'Failed to resend confirmation email.');
+        return;
+      }
+      setConfirmResent(true);
+      setSuccess('✅ Confirmation email has been resent. Please check your inbox and spam folder.');
+    } catch {
+      setError('Failed to resend confirmation email. Please try again.');
+    } finally {
+      setResendingConfirm(false);
     }
   };
 
@@ -613,6 +653,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onGoHo
 
 
 
+
+                            {/* Resend confirmation button — shown when sign-in fails with "Email not confirmed" */}
+              {error && confirmEmail && (
+                <div className="mt-2 space-y-2">
+                  <button
+                    type="button"
+                    onClick={handleResendConfirmation}
+                    disabled={resendingConfirm}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-[#1e3a6e]/20 text-[#1e3a6e] hover:bg-[#1e3a6e]/5 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm font-semibold"
+                  >
+                    {resendingConfirm ? (
+                      <><Loader2 size={16} className="animate-spin" /> Sending...</>
+                    ) : confirmResent ? (
+                      <><CheckCircle size={16} className="text-[#27ae60]" /> Resent! Check your inbox</>
+                    ) : (
+                      <><Mail size={16} /> Resend confirmation email</>
+                    )}
+                  </button>
+                </div>
+              )}
 
               <p className="text-center text-xs text-[#8a9ab4] pt-2">
                 Don't have an account?{' '}

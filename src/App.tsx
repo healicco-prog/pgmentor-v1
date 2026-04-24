@@ -16870,8 +16870,14 @@ const ControlPanelLogin = ({ onSuccess }: { onSuccess: (role: string) => void })
     // Step 2: Verify admin role via backend — the JWT is injected by the fetch interceptor
     try {
       const res = await fetch(`/api/user/profile/${authData.user.id}`);
-      if (!res.ok) throw new Error('Profile fetch failed');
-      const profile = await res.json();
+      let profile: any = {};
+      if (res.ok) {
+        profile = await res.json();
+      } else {
+        // If profile fetch fails (e.g. no user_profiles row), still allow admin email verification
+        console.warn('Profile fetch returned', res.status, '- falling back to email-based admin check');
+        profile = { role: '' };
+      }
       const role: string = profile?.role || '';
       if (role !== 'admin' && role !== 'super_admin') {
         await _supabase.auth.signOut();
@@ -16882,7 +16888,8 @@ const ControlPanelLogin = ({ onSuccess }: { onSuccess: (role: string) => void })
       const displayRole = role === 'super_admin' ? 'Super Admin' : 'Admin';
       sessionStorage.setItem('cp_auth', JSON.stringify({ role: displayRole, ts: Date.now() }));
       onSuccess(displayRole);
-    } catch {
+    } catch (err: any) {
+      console.error('Admin verification error:', err?.message || err);
       setError('Could not verify admin privileges. Please try again.');
     }
     setIsLoading(false);

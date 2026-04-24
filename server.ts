@@ -1521,12 +1521,19 @@ async function startServer() {
       const { userId } = req.params;
       const callerId = (req as any).user?.id;
       if (callerId !== userId) return res.status(403).json({ error: "Forbidden: Cannot access other users' profiles" });
+
+      // Try to get profile from user_profiles; if missing, return empty (admin may not have a profile row)
+      let profileData: Record<string, any> = {};
       const { data, error } = await supabaseAdmin
         .from("user_profiles")
         .select("full_name, specialty, selected_course, profession, current_stage")
         .eq("user_id", userId)
         .single();
-      if (error) return res.status(400).json({ error: error.message });
+      if (!error && data) {
+        profileData = data;
+      } else {
+        console.log("? Profile not found for user", userId, "- allowing admin email check as fallback");
+      }
 
       // Dynamically inject role if this is the admin email
       let role = 'student';
@@ -1535,7 +1542,7 @@ async function startServer() {
         role = 'super_admin';
       }
 
-      res.json({ ...data, role });
+      res.json({ ...profileData, role });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

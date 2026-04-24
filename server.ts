@@ -2268,7 +2268,10 @@ async function startServer() {
         const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: fullName } }
+          options: {
+            data: { full_name: fullName },
+            emailRedirectTo: `${APP_URL}/`
+          }
         });
 
         if (signUpErr) {

@@ -433,7 +433,8 @@ async function startServer() {
   // API KEY PROTECTION - Block unauthorized direct access to backend
   // Auth routes (/auth/*) are intentionally excluded - they must work without API key
   // The Netlify Edge Function injects X-API-Key for all requests that go through it
-  const BACKEND_API_KEY = process.env.BACKEND_API_KEY;
+    // Trim to handle any accidental whitespace in Secret Manager values
+  const BACKEND_API_KEY = (process.env.BACKEND_API_KEY || '').trim();
 
   if (IS_PRODUCTION && BACKEND_API_KEY) {
     app.use('/api', (req, res, next) => {
@@ -450,7 +451,7 @@ async function startServer() {
       }
 
       const clientKey = req.headers['x-api-key'];
-      if (!clientKey || clientKey !== BACKEND_API_KEY) {
+      if (!clientKey || clientKey.trim() !== BACKEND_API_KEY) {
         console.warn('Blocked unauthorized request from ' + req.ip + ' to ' + req.method + ' ' + req.path);
         return res.status(403).json({ error: 'Forbidden: Invalid or missing API key.' });
       }
@@ -942,17 +943,30 @@ async function startServer() {
       let role = 'student';
       if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
         role = 'super_admin';
-      } else {
-        // Fallback to legacy users table check just in case
+            } else {
+        // Look up role from user_profiles (the actual table)
         const { data: profile, error: profileError } = await supabaseAdmin
-          .from('users')
+          .from('user_profiles')
           .select('role')
           .eq('email', user.email)
-          .single();
+          .maybeSingle();
         if (profileError) {
-          console.error("❌ Admin auth: DB lookup failed for", user.email, "-", profileError.message);
+          console.error("❌ Admin auth: user_profiles lookup failed for", user.email, "-", profileError.message);
         }
-        if (profile?.role) role = profile.role;
+        if (profile?.role) {
+          role = profile.role;
+        } else {
+          // Fallback to legacy users table
+          const { data: legacyProfile, error: legacyError } = await supabaseAdmin
+            .from('users')
+            .select('role')
+            .eq('email', user.email)
+            .maybeSingle();
+          if (legacyError) {
+            console.error("❌ Admin auth: legacy users lookup failed for", user.email, "-", legacyError.message);
+          }
+          if (legacyProfile?.role) role = legacyProfile.role;
+        }
       }
 
       const ADMIN_ROLES = ['admin', 'super_admin'];

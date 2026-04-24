@@ -1,5 +1,43 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Users, Search, Shield, Coins, FileText, CheckCircle, XCircle, AlertTriangle,
+  Clock, RefreshCw, Edit3, UserX, UserCheck, X, Save, Plus, Minus,
+  Info, CreditCard, Key, Activity, ChevronDown, Eye, EyeOff, Copy, Check,
+  IndianRupee, BadgeCheck, BadgeX
+} from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
+
+const _adminSupabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface Plan { id: string; name: string; price_monthly: number; description: string; is_trial: boolean; }
+interface UserProfile {
+  user_id: string; full_name: string; mobile: string; profession: string;
+  specialty: string; highest_qualification: string; current_stage: string;
+  country: string; state: string; city: string; account_status: string;
+  role?: string; email_verified: boolean; created_at: string; email?: string;
+}
+interface Subscription {
+  id: number; user_id: string; plan_id: string; status: string; is_trial: boolean;
+  trial_end_date: string; start_date: string; end_date: string;
+  payment_status?: 'done' | 'not_done';
+}
+interface TokenPolicy { plan_id: string; monthly_tokens: number; trial_tokens: number; }
+interface UserRow {
+  id: string; email: string; created_at: string; profile: UserProfile | null;
+  subscription: Subscription | null; token_used: number; token_limit: number; email_confirmed: boolean;
+}
+interface AuditLog { id: number; action_type: string; performed_by: string; target_user_email: string; details: any; created_at: string; }
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+// Use XMLHttpRequest to bypass the window.fetch interceptor in App.tsx and inject
+// the admin Bearer JWT directly, avoiding any interceptor latency.
 const adminFetch = (path: string, options?: RequestInit): Promise<any> => {
   return new Promise((resolve, reject) => {
+    // Try localStorage first (fast path), then fall back to Supabase session
     let token = '';
     try {
       const lsKey = Object.keys(localStorage).find(k => k.includes('auth-token'));
@@ -17,17 +55,17 @@ const adminFetch = (path: string, options?: RequestInit): Promise<any> => {
     } else {
       makeXHR(token);
     }
-    function makeXHR(tok) {
+    function makeXHR(tok: string) {
       const xhr = new XMLHttpRequest();
       const method = (options?.method || 'GET').toUpperCase();
       xhr.open(method, path, true);
-      if (tok) xhr.setRequestHeader('Authorization', `${tok}`);
+      if (tok) xhr.setRequestHeader('Authorization', `Bearer ${tok}`);
       if (method !== 'GET' && method !== 'HEAD') {
         xhr.setRequestHeader('Content-Type', 'application/json');
       }
       xhr.timeout = 10000;
       xhr.onload = () => {
-        let json;
+        let json: any;
         try { json = JSON.parse(xhr.responseText); } catch { json = { error: xhr.statusText }; }
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve(json);
@@ -453,11 +491,11 @@ export const UserManagementSystem: React.FC = () => {
     setLoading(true); setError(null);
     try {
       const [profiles, subs, overrides, usage, policies] = await Promise.all([
-        adminFetch('/api/admin/all-users').catch(() => []),
-        adminFetch('/api/admin/all-subscriptions').catch(() => []),
-        adminFetch('/api/admin/all-token-overrides').catch(() => []),
-        adminFetch('/api/admin/token-usage-summary').catch(() => []),
-        adminFetch('/api/admin/all-token-policies').catch(() => []),
+        adminFetch('/api/admin/all-users').catch((e: any) => { setError(`all-users: ${e.message}`); return []; }),
+        adminFetch('/api/admin/all-subscriptions').catch((e: any) => { console.error('subs:', e.message); return []; }),
+        adminFetch('/api/admin/all-token-overrides').catch((e: any) => { console.error('overrides:', e.message); return []; }),
+        adminFetch('/api/admin/token-usage-summary').catch((e: any) => { console.error('usage:', e.message); return []; }),
+        adminFetch('/api/admin/all-token-policies').catch((e: any) => { console.error('policies:', e.message); return []; }),
       ]);
       const usageByUser: Record<string, number> = {};
       (usage || []).forEach((t: any) => { usageByUser[t.user_id] = Number(t.total_used) || 0; });
@@ -666,6 +704,13 @@ export const UserManagementSystem: React.FC = () => {
               <p className="text-gray-400 text-sm mt-1">
                 {users.length === 0 ? 'Ensure you are authenticated and the backend is running.' : 'Adjust your filters.'}
               </p>
+              {error && (
+                <div className="mt-4 mx-auto max-w-md bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-left">
+                  <p className="text-xs font-bold text-red-700 mb-1">Debug Info:</p>
+                  <p className="text-xs text-red-600 font-mono break-all">Error: {error}</p>
+                  <p className="text-xs text-red-500 mt-1">Backend URL: /api/admin/* (via Netlify proxy → Cloud Run)</p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">

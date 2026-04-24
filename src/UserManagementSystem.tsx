@@ -1,61 +1,33 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Users, Search, Shield, Coins, FileText, CheckCircle, XCircle, AlertTriangle,
-  Clock, RefreshCw, Edit3, UserX, UserCheck, X, Save, Plus, Minus,
-  Info, CreditCard, Key, Activity, ChevronDown, Eye, EyeOff, Copy, Check,
-  IndianRupee, BadgeCheck, BadgeX
-} from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-
-const _adminSupabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface Plan { id: string; name: string; price_monthly: number; description: string; is_trial: boolean; }
-interface UserProfile {
-  user_id: string; full_name: string; mobile: string; profession: string;
-  specialty: string; highest_qualification: string; current_stage: string;
-  country: string; state: string; city: string; account_status: string;
-  role?: string; email_verified: boolean; created_at: string; email?: string;
-}
-interface Subscription {
-  id: number; user_id: string; plan_id: string; status: string; is_trial: boolean;
-  trial_end_date: string; start_date: string; end_date: string;
-  payment_status?: 'done' | 'not_done';
-}
-interface TokenPolicy { plan_id: string; monthly_tokens: number; trial_tokens: number; }
-interface UserRow {
-  id: string; email: string; created_at: string; profile: UserProfile | null;
-  subscription: Subscription | null; token_used: number; token_limit: number; email_confirmed: boolean;
-}
-interface AuditLog { id: number; action_type: string; performed_by: string; target_user_email: string; details: any; created_at: string; }
-
-// ─── API ──────────────────────────────────────────────────────────────────────
-// Use XMLHttpRequest to bypass the window.fetch interceptor in App.tsx and inject
-// the admin Bearer JWT directly, avoiding any interceptor latency.
 const adminFetch = (path: string, options?: RequestInit): Promise<any> => {
   return new Promise((resolve, reject) => {
-    // Get the cached Supabase session synchronously — no network call needed
-    // when the token is already in memory after login.
-    _adminSupabase.auth.getSession().then(({ data }) => {
-      const token = data?.session?.access_token;
-
+    let token = '';
+    try {
+      const lsKey = Object.keys(localStorage).find(k => k.includes('auth-token'));
+      if (lsKey) {
+        const stored = JSON.parse(localStorage.getItem(lsKey) || '{}');
+        token = stored?.access_token || '';
+      }
+    } catch {}
+    if (!token) {
+      _adminSupabase.auth.getSession().then(({ data }) => {
+        const t = data?.session?.access_token;
+        if (t) makeXHR(t);
+        else makeXHR('');
+      }).catch(() => makeXHR(''));
+    } else {
+      makeXHR(token);
+    }
+    function makeXHR(tok) {
       const xhr = new XMLHttpRequest();
       const method = (options?.method || 'GET').toUpperCase();
-
       xhr.open(method, path, true);
-
-      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      if (tok) xhr.setRequestHeader('Authorization', `${tok}`);
       if (method !== 'GET' && method !== 'HEAD') {
         xhr.setRequestHeader('Content-Type', 'application/json');
       }
-
       xhr.timeout = 10000;
-
       xhr.onload = () => {
-        let json: any;
+        let json;
         try { json = JSON.parse(xhr.responseText); } catch { json = { error: xhr.statusText }; }
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve(json);
@@ -63,12 +35,10 @@ const adminFetch = (path: string, options?: RequestInit): Promise<any> => {
           reject(new Error(json?.error || json?.message || `HTTP ${xhr.status}`));
         }
       };
-
       xhr.onerror   = () => reject(new Error('Network error'));
       xhr.ontimeout = () => reject(new Error('Server did not respond in 10s'));
-
       xhr.send(options?.body != null ? String(options.body) : null);
-    }).catch(reject);
+    }
   });
 };
 
